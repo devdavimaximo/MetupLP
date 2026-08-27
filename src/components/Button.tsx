@@ -70,6 +70,10 @@ const BASE = cn(
   'focus-visible:focus-ring',
   'disabled:cursor-not-allowed disabled:opacity-50',
   "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:opacity-0 before:transition-opacity before:duration-fast before:ease-out before:content-['']",
+  // Camada de preenchimento do `secondary`: nasce colapsada em `scale-x-0` (origem à
+  // esquerda) e cresce por TRANSFORM até cobrir a caixa — nunca por `width`, que
+  // forçaria reflow a cada quadro (§6.4). Fica atrás do glow (`before`) e do texto.
+  "after:pointer-events-none after:absolute after:inset-0 after:-z-20 after:origin-left after:scale-x-0 after:rounded-[inherit] after:transition-transform after:duration-base after:ease-out after:content-['']",
 );
 
 const VARIANT: Record<ButtonVariant, string> = {
@@ -81,8 +85,9 @@ const VARIANT: Record<ButtonVariant, string> = {
     'hover:before:opacity-100 before:shadow-glow-accent',
   ),
   secondary: cn(
-    'bg-surface-raised text-fg border border-line-strong',
-    'hover:border-accent hover:text-accent',
+    'bg-transparent text-accent border border-accent',
+    'hover:text-on-accent active:text-on-accent',
+    'after:bg-accent hover:after:scale-x-100 active:after:scale-x-100 active:after:bg-accent-active',
     'hover:before:opacity-100 before:shadow-glow-accent',
   ),
   ghost: 'bg-transparent text-fg-muted hover:text-accent',

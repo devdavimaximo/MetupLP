@@ -34,6 +34,13 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       Se um rótulo mudar, o build quebra com a lista do que faltou — de propósito.
       ⚠ **Novo em F3:** `## Serviços` agora também exige `**Título da seção:**` — sem
       ele a seção ficaria sem `<h2>` e sem nome acessível.
+      ⚠ **Novo no refino do herói:** `## Hero` aceita `**Eyebrow:**` e
+      `**Destaque:**`, os dois **opcionais** — apagar a linha tira o kicker (ou o
+      brilho âmbar) do site sem quebrar o build. `**Destaque:**` guarda o trecho da
+      headline que recebe a cor, escrito exatamente como aparece nela; se não bater,
+      o título sai inteiro na cor normal. A headline em vigor é do Davi
+      ("construa. automatize. cresça."), e o tamanho dela está amarrado ao layout:
+      ver o aviso sobre "uma linha" mais abaixo antes de trocá-la.
 - [ ] **Título da seção de Serviços** — "O que a Metup faz" é **proposta do Claude
       aprovada pelo Davi em 2026-08-27** (F3), no mesmo regime do MOCK: sem
       afirmação, número ou promessa. Trocar pela copy oficial junto com o resto.
@@ -133,6 +140,66 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       install`), e as métricas batem com a tabela de F2. **A partir de F4, anotar o
       tamanho dos chunks aqui no fim de cada fase.**
 
+- [x] ~~Medir o herói com a cena WebGPU~~ — **medido em 2026-08-27**, mesma receita
+      (`dist/` no `npm run preview`, Chrome headless):
+
+      | | Perf | A11y | BP | SEO | LCP | CLS | TBT |
+      |---|---|---|---|---|---|---|---|
+      | Desktop | **100** | **100** | **100** | 91 | 0,6 s | 0,03 | 0 ms |
+      | Mobile  | **94–95** | **100** | **100** | 91 | 2,5–2,7 s | 0,02–0,03 | 40–80 ms |
+
+      **O elemento de LCP é o `<h1>`** (confirmado pelo audit
+      `largest-contentful-paint-element`) — a cena nunca disputa a primeira pintura.
+      Chunks: `app-*.js` **93,07 kB gzip** (era 92,1 kB em F3: +~950 B), CSS **7,27 kB
+      gzip** (era 7,4 kB — encolheu), e o chunk `HeroScene-*.js` de **418,8 kB gzip**,
+      que é 100% lazy e não entra no caminho crítico.
+
+      ⚠ **Duas ressalvas honestas, as duas dependem de re-medição limpa:**
+      1. **O mobile caiu de 96–97 para 94–95 e o LCP de 2,3–2,4 s para 2,5–2,7 s.** Não
+         consegui isolar se é regressão real ou ruído: a tentativa de medir o HEAD (F3)
+         na MESMA máquina, para comparar lado a lado, falhou — o Chrome headless passou
+         a devolver `NO_FCP` para qualquer build, inclusive para um que tinha acabado de
+         medir 95. É exatamente a variância que a nota de F3 já registrava nesta
+         máquina. **Refazer os dois lados com a máquina limpa antes de tratar como
+         regressão.** Se for real, os dois itens de F7 acima (preload da Fraunces, CSS
+         crítico) são a folga que existe.
+      2. `perf 94` fica ABAIXO do ≥95 do §6.2. Está na margem de ruído do número, mas
+         não é para ignorar.
+
+- [x] ~~TBT com a cena carregando em `requestIdleCallback`~~ — **regressão medida e
+      corrigida no mesmo dia.** A primeira versão de `useHeroScene` baixava a cena em
+      `requestIdleCallback`: TBT mobile **~350 ms** (era ~30 ms) e perf **86–88**.
+      Analisar/compilar ~1,5 MB de JS custa ~300 ms de thread num celular, e o idle
+      callback entregava essa conta durante a leitura da primeira dobra. **Corrigido
+      esperando o primeiro gesto** (`pointermove`/`scroll`/`touchstart`/…) depois do
+      `load`, com fallback de 6 s: TBT voltou para **40–80 ms**. O raciocínio inteiro
+      está no cabeçalho de `src/hooks/useHeroScene.ts` — **não troque aquilo por um
+      idle callback sem re-medir.**
+
+- [x] ~~Medir o herói depois da troca de tipografia e do preto novo~~ — **medido em
+      2026-08-27**, 9 execuções mobile + desktop, mesma receita:
+
+      | | Perf | A11y | BP | SEO | LCP | CLS | TBT |
+      |---|---|---|---|---|---|---|---|
+      | Desktop | **100** | **100** | **100** | 91 | 0,6 s | **0,003** | 0 ms |
+      | Mobile  | **94** (91–96) | **100** | **100** | 91 | 2,5 s | **0,010–0,012** | 140 ms |
+
+      **CLS melhorou muito** — 0,010 contra 0,024–0,031 do passe anterior e 0,053 lá
+      em F2. O elemento de LCP continua sendo o `<h1>`, agora com
+      `aria-label="construa. automatize. cresça."` (o SplitText lidou com o `<span>`
+      do destaque sem picotar o nome acessível). Payload de fontes DIMINUIU: entrou
+      Archivo 800 (14,4 kB), saiu o itálico da Fraunces (18 kB). CSS 7,17 kB gzip
+      (era 7,27 — a grade saiu).
+
+      ⚠ **O `94` fica abaixo do ≥95 do §6.2.** Investigado: a cena **não** carrega
+      durante a medição (0 requisições de `HeroScene-*.js` no audit de rede — o
+      portão de interação funciona). A tarefa longa dominante é a **hidratação do
+      React** (`scheduler-*.js`, ~2,4 s), e ela variou de 121 ms a 260 ms entre
+      execuções do MESMO build — a variância desta máquina, já registrada em F3.
+      Nada neste trabalho tocou hidratação: o `app-*.js` cresceu 170 bytes gzip.
+      **Os três itens de F7 acima (router, CSS crítico, preload da fonte) são o que
+      existe de folga real** — e agora a fonte crítica é a Archivo 800.
+
 - [ ] **F7 — preload da Fraunces 600 (é a fonte do elemento de LCP).** O `@fontsource`
       entra por `@import` no CSS, então o navegador só descobre o woff2 depois de
       baixar e parsear a folha. O hash do Vite impede um `<link rel="preload">`
@@ -185,6 +252,232 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       2,3–2,4 s. **Regra para F4+: medir com nada mais rodando e repetir 3×** — uma
       execução isolada não distingue regressão de ruído.
 
+## Kicker removido do herói (2026-08-27)
+
+- [x] ~~"Somos a Metup" acima do título~~ — removido a pedido do Davi. Só a linha
+      `**Eyebrow:**` saiu de `content/copy.md`; o campo já era opcional no parser
+      (`content-parser.ts`) desde que foi criado, então nada de código mudou. O
+      componente `Eyebrow` continua existindo — é usado em Serviços — só a
+      instância do herói ficou sem conteúdo para mostrar.
+- [x] ~~Recalibrar `--hero-lift` depois da remoção~~ — sem o kicker, o bloco de
+      texto perdeu a pouca massa que tinha ACIMA do título, e o desvio (ver seção
+      abaixo) piorou uniformemente ~10–15px em toda viewport testada. Reajustado
+      (intercepto −105px→−92px) e reconferido: voltou para a faixa −7 a −74px,
+      quase idêntica à de antes do kicker sair, sem reduzir a margem do CTA no
+      iPhone SE (~24px, era ~23px).
+
+## Brilho da cena — o que ficou aberto
+
+- [ ] ⚠ **`SCENE.bodyGain=2,4` foi calibrado matematicamente, não visualmente
+      comparado lado a lado com alternativas.** A conta (contraste real, não
+      estimado desta vez) diz que o subtítulo (o pior caso, mais largo e mais
+      perto da borda que o título) fica em 5,33:1 na borda e 8,9:1+ no centro —
+      folgado acima da AA normal (4,5:1). Se o Davi achar que ainda está fraco ou
+      que passou do ponto, o número está isolado em `three/hero/config.ts` com a
+      conta inteira do lado — reajustar e reconferir com o mesmo método (script
+      abaixo), não no olho.
+- [ ] **Como reproduzir a verificação de contraste** (para quem for mexer em
+      `bodyGain`, no tom do subtítulo, ou no `.hero-scrim`):
+      1. Decodificar `SCENE_COLOR.body` de sRGB para linear (`new
+         THREE.Color(hex)`), multiplicar pelo `bodyGain`, ré-codificar para sRGB
+         (gamma 2.4) — isso dá o pixel que a tela realmente mostra no pico da forma.
+      2. Multiplicar esse pixel por `(1 − alfaDoScrim)` no ponto de interesse
+         (centro, borda) para simular a camada semi-transparente preta por cima.
+      3. Passar o resultado pela `contrastRatio()` de `src/lib/contrast.ts` contra
+         `--color-fg` (título/subtítulo, ambos nesta cor agora).
+      Feito com `node --experimental-strip-types` + `three` já instalado; não
+      precisa de navegador para ESTA parte.
+- [ ] **A largura real do subtítulo foi medida com Puppeteer, não estimada** — ele
+      chega a 92–95% da viewport em telas ≤768px, mais largo que o título nesses
+      tamanhos. Se a copy do subtítulo mudar de tamanho (mais curta ou mais longa),
+      remeça essa largura antes de confiar que o `.hero-scrim` ainda cobre.
+- [ ] ⚠ **Um comentário de código estava factualmente errado** ("~5:1 no pico",
+      quando a conta de verdade dava ~2,6:1) e ficou sem ser percebido desde F2 —
+      foi corrigido agora que alguém finalmente recalculou. Não é motivo para
+      desconfiar de TODOS os números documentados no projeto, mas é um lembrete:
+      onde um comentário afirma um contraste, vale reconferir com
+      `src/lib/contrast.ts` antes de tratar como verdade, em vez de só copiar para
+      a próxima decisão.
+
+## Centramento real do título — o que ficou aberto
+
+- [ ] ⚠ **`--hero-lift` NÃO ZERA O DESVIO — é uma escolha deliberada, e vale
+      reconfirmar com o Davi.** Depois de medir com Puppeteer (`getBoundingClientRect`
+      do `<h1>`, 11 viewports de 320×568 a 1920×1080), o desvio do título caiu de
+      **−108/−139px para −5/−73px**, mas não chegou a zero em nenhuma largura de
+      desktop (fica entre −49 e −83px lá). Zerar por completo pediria ~250px fixos de
+      deslocamento, e isso derruba o CTA para fora da dobra num iPhone SE de 1ª
+      geração (320×568) — o único motivo de ter parado onde parou. **Se o Davi
+      preferir centralização perfeita e aceitar um vão vazio maior acima do kicker
+      (ou aceitar que o CTA precise de um scroll mínimo em telas muito curtas), o
+      valor em `--hero-lift` (`styles/hero.css`) pode subir — a tabela de segurança
+      (margem de CTA por viewport) que limitou a escolha está registrada abaixo.**
+- [ ] **A tabela de medição completa (para quem for reajustar `--hero-lift`):**
+
+      | viewport | desvio do título | margem do CTA até a dobra |
+      |---|---|---|
+      | 1920×1080 | −49px | 362px |
+      | 1440×900  | −73px | 304px |
+      | 1366×768  | −54px | 223px |
+      | 1280×800  | −65px | 254px |
+      | 1024×768  | −68px | 252px |
+      | 900×700   | −56px | 213px |
+      | 768×1024  | −33px | 357px |
+      | 414×896   | −64px | 272px |
+      | 375×812   | −63px | 229px |
+      | 320×690   | −35px | 113px |
+      | 320×568   | −5px  | **23px** ← o limite que travou o ajuste |
+
+      Método: `node` + `puppeteer-core` (instalado com `--no-save`, não ficou no
+      projeto), `page.setViewport` + `getBoundingClientRect()` no `#hero-titulo` e no
+      link do CTA dentro de `#inicio`. Reproduzível por qualquer um com Chrome
+      instalado; não depende de ferramenta específica desta sessão.
+- [ ] **Tentativa registrada e descartada: duas caixas `flex-1` ladeando o `<h1>`.**
+      Parecia a solução "de livro" para centralizar um elemento com conteúdo
+      assimétrico ao redor, mas MEDIDA piorou o resultado (desvio subiu para
+      −151/−183px). Causa: o conteúdo abaixo do título (subtítulo+CTA) é maior que a
+      metade do espaço livre em QUALQUER viewport real testada, então o flexbox
+      trava essa caixa no próprio conteúdo mínimo e empurra toda folga para a caixa
+      de cima — o oposto de dividir igual. Não tentar de novo sem antes confirmar que
+      o conteúdo abaixo do título encolheu o bastante para caber em metade do espaço
+      livre típico (não encolheu nesta rodada).
+- [ ] **`.hero-halo` já foi fechado três vezes** (50%×46% a 30%/10% → 38%×34% a
+      20%/6% → 32%×28% a 14%/4%). Se ainda parecer "não preto o bastante", o próximo
+      ajuste é a mesma alavanca — a porcentagem do `color-mix` — não o token de cor
+      (`--color-bg` já é `#000000`, piso absoluto).
+
+## Tipografia e fundo do herói — o que ficou aberto
+
+- [ ] ⚠ **DUAS FAMÍLIAS DE DISPLAY CONVIVEM, e isso é uma decisão em aberto.** A
+      headline do herói é Archivo ExtraBold em caixa alta (`--font-hero`); os `<h2>`
+      das seções continuam em Fraunces (`--font-display`). É deliberado — o pedido
+      era refinar o HERÓI, e trocar a serifa da página inteira muda a identidade que
+      F0 aprovou. Mas as duas direções precisam ser conciliadas antes de F8: ou a
+      Archivo assume tudo (`--font-display: var(--font-hero)`, uma linha, e aí a
+      Fraunces sai do build inteira), ou fica documentado que a primeira dobra tem
+      voz própria de propósito. **Decisão do Davi, e é visual: precisa ver as duas
+      seções juntas na tela.**
+- [ ] **A promessa de "uma linha" é da COPY ATUAL.** `--text-hero` foi dimensionada
+      medindo "CONSTRUA. AUTOMATIZE. CRESÇA." (18,63em em Archivo 800). Uma headline
+      mais longa quebra em duas linhas no desktop — não é bug, é geometria. A fórmula
+      para redimensionar está no comentário do token; para remedir um texto novo,
+      `npm i -D fontkit` e `font.layout(texto).advanceWidth / font.unitsPerEm`.
+- [ ] **`sharp` continua como devDependency órfã** (era da conversão das texturas).
+      Mesmo destino de antes: virar o pipeline de imagem do §9 em F4 ou sair em F7.
+- [ ] **F7 — o preload da fonte crítica agora é da ARCHIVO 800**, não mais da
+      Fraunces. O item continua sendo a maior alavanca isolada sobre o LCP mobile
+      (2,5 s), e o arquivo é menor que o anterior (14,4 kB contra 18 kB).
+
+- [ ] ⚠ **A MEDIÇÃO DE PERFORMANCE NESTA MÁQUINA NÃO É MAIS CONFIÁVEL — refazer
+      limpa.** Quatro execuções do MESMO build deram perf **87, 91, 91 e 95** (TBT de
+      70 ms a 320 ms). Diagnosticado nos artefatos: a cena WebGPU **não carrega em
+      nenhuma** delas (0 requisições de `HeroScene-*.js`), e o que varia é a tarefa
+      longa da **hidratação do React** (`scheduler-*.js`), de 109 ms a 287 ms — 2,6×
+      de diferença sem nenhuma mudança de código. O `app-*.js` cresceu 170 bytes gzip
+      nos três passes do herói somados.
+
+      **Antes de tratar qualquer número mobile como regressão**, refaça com a máquina
+      sem nada rodando (nem servidor de preview antigo, nem Chrome sobrando) e com 5
+      execuções. Só o desktop está estável: **100/100/100**, LCP 0,6 s, TBT 0 ms.
+
+### Falta ver no navegador (terceiro passe — centramento e preto)
+
+- [x] ~~O texto está no centro vertical da tela?~~ — **medido com Puppeteer, não só
+      calculado** (a conta do "0px de desvio" abaixo estava ERRADA: ela centralizava
+      o bloco inteiro, não o título — ver a seção nova "Centramento real do título"
+      acima, com a tabela de verdade e o porquê de não ter zerado).
+- [x] ~~O indicador de rolagem cabe na dobra?~~ — confirmado por medição: o CTA (que
+      é o que realmente importa pelo §3) fica acima da dobra nas 11 viewports
+      testadas, incluindo um iPhone SE de 1ª geração.
+- [x] ~~O preto ficou preto?~~ — verificado por screenshot real (Puppeteer, 1600×900):
+      sem a lavagem marrom que a captura do Davi mostrava. `--color-bg` chegou ao piso
+      absoluto (`#000000`) nesta mesma rodada; se ainda incomodar, o knob que resta é
+      a porcentagem do `.hero-halo` (já fechado três vezes, ver acima).
+
+### Falta ver no navegador (segundo passe do herói)
+
+- [ ] **A headline cabe mesmo em uma linha?** A conta diz que sim de 757px a 3440px,
+      com folga de 8% a 26% — mas é conta sobre métricas da fonte, não pixel medido.
+      Conferir em 1366, 1440 e 1920. Se estourar, o knob é a inclinação `3.7vw`.
+- [ ] **A palavra em destaque.** "AUTOMATIZE." em âmbar no meio do título. Já se
+      sabe que o SplitText lidou bem com o `<span>` aninhado — o `aria-label` saiu
+      `"construa. automatize. cresça."`, frase inteira, medido no Lighthouse —, mas
+      **falta ver se a animação de entrada continua idêntica** palavra a palavra.
+- [ ] **Contraste do âmbar sobre a cena.** `--color-accent` dá 8,61:1 sobre o fundo
+      sólido, mas a palavra destacada cai justamente em cima do objeto 3D. É o mesmo
+      teste do texto branco, com uma cor a menos de margem.
+- [ ] **O preto novo no resto da página.** `--color-bg` mudou global: conferir
+      Serviços e o header rolado (`bg-bg/90`) contra as superfícies, que NÃO mudaram
+      — a diferença entre fundo e `--color-surface` aumentou de propósito.
+- [ ] **Caixa alta com zoom de 200%** (WCAG 1.4.4): o `clamp` tem intercepto em
+      `rem`, então deve crescer — conferir que a headline não vaza da tela.
+
+## Dívida técnica registrada no refino do herói (cena WebGPU)
+
+- [ ] ⚠ **PROCEDÊNCIA DOS ASSETS DA CENA — resolver antes de publicar.**
+      `public/images/hero/scene-color.webp` e `scene-depth.webp` foram baixados de
+      `i.postimg.cc` (`img-4.png` / `raw-4.webp`), que vieram no componente de
+      referência que o Davi mandou. **A licença é desconhecida.** Não é violação do
+      §5 — são formas abstratas decorativas, não representam trabalho de cliente
+      nenhum e não passam por case —, mas é risco jurídico usar arte de terceiro sem
+      saber a licença no site da própria agência. Duas saídas: o Davi confirma a
+      origem/licença, ou a dupla é substituída por arte própria (qualquer par
+      cor + mapa de profundidade serve — só trocar `TEXTURE` em
+      `src/three/hero/config.ts`; nada mais no código conhece esses arquivos).
+      O PNG original (233 kB) foi convertido para WebP (48,7 kB, `sharp`, q86) e
+      descartado.
+- [ ] **`sharp` entrou como devDependency** só para essa conversão. Se ninguém mais
+      usar até F7, é candidato a corte — ou a virar o pipeline de imagem do §9 de
+      verdade, com um script `npm run images` para os screenshots de case (F4).
+- [ ] **O chunk da cena carrega DOIS builds do three** (`three` via
+      `@react-three/fiber` + `three/webgpu` via a cena): 1.540 kB min / 418,8 kB gzip,
+      com o núcleo duplicado dentro. **Tentei o alias `three` → `three/webgpu` e NÃO
+      funciona:** o `@react-three/drei` importa `WebGLCubeRenderTarget`, `ShaderChunk`
+      e `WebGLRenderer`, que o build WebGPU não exporta — 55 erros de link. (O
+      `@react-three/fiber` sozinho não referencia nenhum deles; o problema é só o
+      drei.) Para ligar o alias em F7 seria preciso largar o drei — hoje a cena usa
+      dele apenas `useTexture` e `useAspect`, que são ~30 linhas. **Só vale se a
+      vitrine de F4 também não precisar do drei.** Enquanto isso o custo é aceitável:
+      o chunk é 100% lazy e só desce depois do primeiro gesto.
+- [ ] **Sem WebGPU o `WebGPURenderer` cai para WebGL2 sozinho** — o mesmo grafo TSL
+      compila para GLSL. **Não testado num navegador sem WebGPU** (Safari/Firefox
+      antigo). Se falhar, o `SceneBoundary` já devolve o herói estático, mas o certo é
+      confirmar que o caminho WebGL2 renderiza igual.
+
+## Falta validar no navegador — o refino do herói (NADA foi visto)
+
+> ⚠ **A sessão que construiu a cena não tinha ferramenta de navegador.** Build,
+> typecheck, lint, Lighthouse e o HTML pré-renderizado foram verificados por
+> ferramenta; **a aparência da cena não foi vista por ninguém.** Tudo abaixo é
+> primeira validação, não revisão.
+
+- [ ] **A cena aparece?** Abrir a home, mover o mouse (ela só baixa no primeiro
+      gesto — é de propósito, ver `useHeroScene`) e esperar. Esperado: a forma 3D
+      surge em fade sobre o fundo estático, com pontos âmbar acendendo em fatias que
+      sobem e descem, e uma faixa turquesa varrendo a tela em sincronia com elas.
+- [ ] **CONTRASTE DO TEXTO SOBRE A CENA — o item mais importante.** O cálculo diz
+      ~5:1 no pico da forma antes do `.hero-scrim`, e ~12:1 depois dele. **É conta, não
+      medição.** Conferir com o color picker do DevTools no pior quadro (varredura no
+      meio da forma, atrás do `<h1>` e do subtítulo). Se reprovar: baixar
+      `SCENE.bodyGain` em `src/three/hero/config.ts` ou fortalecer o `.hero-scrim` em
+      `src/styles/hero.css` — as duas alavancas estão documentadas nos dois arquivos.
+- [ ] **Calibrar a cena.** `tiling`, `scanBand`, `sparkGain`, `scale` e `parallax`
+      foram escolhidos por raciocínio, não olhando. Todos estão em `config.ts`.
+- [ ] **60fps com a cena rodando**, junto de Lenis + ScrollTrigger no mesmo `rAF`
+      (DevTools ▸ Performance, com e sem throttle de CPU).
+- [ ] **A cena para de renderizar ao sair da dobra** (`frameloop="never"` via
+      IntersectionObserver). Conferir no Performance que o rAF silencia ao rolar.
+- [ ] **`prefers-reduced-motion` ligado no SO:** a cena **não pode nem baixar** (olhar
+      a aba Network — nenhum `HeroScene-*.js`), e o herói estático deve estar completo.
+- [ ] **Toque:** sem parallax de ponteiro (o listener está atrás de `(hover: hover)`),
+      e a cena baixando no primeiro `touchstart`/`scroll`.
+- [ ] **Entrada do título palavra a palavra** (SplitText `words,lines` + máscara), e
+      o CTA âmbar aparecendo cedo, sem esperar o título terminar.
+- [ ] **Herói com JS desligado:** kicker, título, subtítulo, CTA, faixa de serviços e
+      o link "Role para explorar" legíveis e clicáveis, sobre o fundo em CSS.
+- [ ] **Composição centralizada em 320 px e em 2560 px** — o bloco tem `max-w-hero`
+      (54rem) e a headline oficial foi escolhida para cair em duas linhas no desktop.
+
 ## Falta validar no navegador (F1 + F2 + F3, precisa de olho humano)
 
 De F1: contraste do painel Color, zoom de 200% no painel Type.
@@ -213,7 +506,10 @@ De F2 — o que a medição automática **não** cobre:
       do herói deve mover o foco para `#contato`, não deixá-lo no header.
 - [ ] **Herói com JS desligado:** título, subtítulo, CTA e faixa de serviços legíveis
       e clicáveis. Verificado no `dist/index.html`; falta ver no navegador.
-- [ ] **Bloom seguindo o ponteiro** só no desktop, e ausente em toque.
+- [x] ~~**Bloom seguindo o ponteiro** só no desktop, e ausente em toque.~~ —
+      **obsoleto:** o bloom que perseguia o ponteiro saiu no refino do herói. Quem
+      reage ao ponteiro agora é a cena (parallax por profundidade), e o teste
+      equivalente está na lista nova acima.
 
 ## Notas
 

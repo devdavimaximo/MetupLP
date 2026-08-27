@@ -39,43 +39,66 @@
   --animate-*: initial;
 
   /* ══ COR ════════════════════════════════════════════════════════════════════
-     Razões de contraste medidas contra --color-bg (#0c0e0d) pela fórmula de
+     Razões de contraste medidas contra --color-bg (#050605) pela fórmula de
      luminância relativa da WCAG. Ver painel Color do styleguide para o cálculo
-     ao vivo — estes números valem para cor sólida sobre cor sólida.             */
+     ao vivo — estes números valem para cor sólida sobre cor sólida.
+
+     ─── O PRETO CHEGOU AO PISO (2026-08-27, a pedido do Davi, três passes) ─────
+     #0c0e0d (grafite esverdeado de F0) → #050605 → #020302 → #000000. Não tem
+     como escurecer mais que isto — é preto puro.
+
+     O valor é GLOBAL de propósito — um herói mais escuro que o resto da página
+     deixaria um degrau visível na emenda com Serviços. `--color-surface-sunken`
+     era o único token abaixo de `--color-bg` na hierarquia de superfícies, e como
+     ele NUNCA teve um consumidor visual real no site (grep confirmado — só
+     aparece na lista do styleguide), os dois se fundiram em #000 sem perder
+     nenhuma distinção que existisse na tela.
+
+     ⚠ Se a dobra ainda parecer "não preta o bastante" depois disto, o culpado não
+     é mais este token — não tem margem que sobre aqui. É o `.hero-halo`, que soma
+     luz âmbar em `screen` por cima do fundo. Esse ajuste está em `styles/hero.css`.
+
+     Escurecer o fundo só MELHORA contraste — nenhuma razão abaixo caiu, todas
+     subiram (--color-fg foi de 16.98:1 em F0 para 18.41:1). Os números foram
+     recalculados com a própria `src/lib/contrast.ts`, não estimados.
+
+     Quem mexer aqui de novo: recalcule ESTES comentários. Eles são a razão de a
+     paleta ser auditável, e um número velho é pior que nenhum.                   */
 
   /* Primitivas para color-mix; nunca usar direto como cor de UI. */
   --color-white: #ffffff;
   --color-black: #000000;
 
-  /* Superfícies — do mais fundo ao mais alto */
-  --color-surface-sunken: #090b0a;
-  --color-bg: #0c0e0d;
+  /* Superfícies — do mais fundo ao mais alto. `--color-surface-sunken` e
+     `--color-bg` são o MESMO valor de propósito — ver a nota acima. */
+  --color-surface-sunken: #000000;
+  --color-bg: #000000;
   --color-surface: #161a17;
   --color-surface-raised: #1c211d;
 
   /* Texto */
-  --color-fg: #eef1ea; /* 16.98:1 — AAA, corpo e títulos */
-  --color-fg-muted: #b3b9b0; /*  9.67:1 — AAA, secundário PADRÃO */
-  --color-muted: #8a9089; /*  5.93:1 — AA, meta e rótulos */
-  --color-fg-faint: #6b7169; /*  3.87:1 — SÓ disabled/decorativo, nunca corpo */
-  --color-on-accent: #0c0e0d; /*  8.22:1 sobre âmbar — obrigatório, ver nota */
+  --color-fg: #eef1ea; /* 18.41:1 — AAA, corpo e títulos */
+  --color-fg-muted: #b3b9b0; /* 10.48:1 — AAA, secundário PADRÃO */
+  --color-muted: #8a9089; /*  6.43:1 — AA, meta e rótulos */
+  --color-fg-faint: #6b7169; /*  4.19:1 — SÓ disabled/decorativo, nunca corpo */
+  --color-on-accent: #000000; /*  8.91:1 sobre âmbar — obrigatório, ver nota */
 
   /* Linhas */
-  --color-line: #23261f; /*  1.26:1 — filete decorativo, nunca único indicador */
-  --color-line-strong: #616659; /*  3.28:1 — borda interativa (WCAG 1.4.11) */
+  --color-line: #23261f; /*  1.37:1 — filete decorativo, nunca único indicador */
+  --color-line-strong: #616659; /*  3.55:1 — borda interativa (WCAG 1.4.11) */
 
   /* Marca */
-  --color-accent: #ff8a1f; /*  8.22:1 como TEXTO — AAA */
+  --color-accent: #ff8a1f; /*  8.91:1 como TEXTO — AAA */
   --color-accent-hover: #ffa04a;
   --color-accent-active: #e2740c;
-  --color-accent-2: #4fd1c5; /* 10.39:1 — AAA */
+  --color-accent-2: #4fd1c5; /* 11.26:1 — AAA */
   --color-accent-2-hover: #74ded4;
   --color-accent-2-active: #35b3a8;
 
   /* Estado — consumidos em F6 (formulário de lead) */
-  --color-success: #5fd08a; /* 10.03:1 */
-  --color-danger: #ff5c72; /*  6.48:1 */
-  --color-focus: #4fd1c5; /* 10.39:1 vs bg; sempre com outline-offset positivo */
+  --color-success: #5fd08a; /* 10.88:1 */
+  --color-danger: #ff5c72; /*  7.03:1 */
+  --color-focus: #4fd1c5; /* 11.26:1 vs bg; sempre com outline-offset positivo */
 
   /* NOTA DE CONTRASTE (não negociável):
      `--color-fg` sobre âmbar dá 2.07:1 e REPROVA. Todo preenchimento âmbar usa
@@ -91,6 +114,21 @@
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-body: 'Work Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /**
+   * A voz da primeira dobra, e SÓ dela.
+   *
+   * Archivo ExtraBold (800) em caixa alta: grotesca desenhada para manchete, com
+   * caixa alta estreita o bastante para a headline caber numa linha só — que é o
+   * requisito que fez esta família entrar (ver `--text-hero`).
+   *
+   * ⚠ Por que NÃO substituiu `--font-display`: a Fraunces continua sendo a serifa
+   * dos `<h2>` das seções, e trocá-la aqui mudaria a identidade da página inteira
+   * — decisão maior do que "refinar o herói". Enquanto as duas convivem, esta é a
+   * face do enunciado (uma vez, no topo) e a Fraunces é a face do texto editorial.
+   * Se a direção for unificar, é uma linha: `--font-display: var(--font-hero)`.
+   */
+  --font-hero: 'Archivo', 'Work Sans', system-ui, sans-serif;
 
   /* Rótulo de terminal: mono, caixa alta, muito espaçado. Assinatura da direção. */
   --text-label: 0.75rem;
@@ -135,11 +173,36 @@
   --text-display--letter-spacing: -0.03em;
   --text-display--font-weight: 600;
 
-  /* Reservado para a primeira dobra em F2. */
-  --text-hero: clamp(3.25rem, 2.3214rem + 4.6429vw, 6.5rem);
-  --text-hero--line-height: 0.94;
-  --text-hero--letter-spacing: -0.035em;
-  --text-hero--font-weight: 600;
+  /**
+   * A headline do herói — DIMENSIONADA PARA CABER EM UMA LINHA, por medição.
+   *
+   * A largura da linha foi medida na própria Archivo ExtraBold com `fontkit`, não
+   * estimada: "CONSTRUA. AUTOMATIZE. CRESÇA." avança **18,63em**, que com o
+   * `letter-spacing` abaixo (−0,025em × 29 caracteres) fecha em **17,90em**.
+   * Daí saem os três números:
+   *
+   *   3.7vw   → a inclinação. Verificada largura a largura: a linha fica entre 74%
+   *             e 91% da largura ÚTIL (viewport menos as duas goteiras) de 768px a
+   *             3440px. Uma linha só em todo o desktop, sem encostar na goteira.
+   *   0.5rem  → o intercepto. Existe pela regra do bloco acima: `Nvw` puro reprova
+   *             a WCAG 1.4.4. É pequeno de propósito — quanto maior o intercepto,
+   *             mais a proporção com a viewport varia e mais cedo a linha quebra.
+   *   2.25rem → o piso. Abaixo de ~757px a headline quebra em três linhas (é o
+   *             desejado no mobile), e este valor é limitado pela MAIOR palavra,
+   *             "AUTOMATIZE." (6,98em): 6,98 × 36px = 251px contra 280px de largura
+   *             útil em 320px. Subir o piso aproxima do estouro na tela mais estreita.
+   *
+   * Nenhuma largura entre 320px e 3440px estoura: quando não cabe, o texto QUEBRA
+   * (é texto comum, sem `nowrap`), e a maior palavra sempre cabe sozinha — ou seja,
+   * não existe caminho para barra de rolagem horizontal.
+   *
+   * ⚠ Trocar a headline por uma mais longa quebra a promessa de "uma linha".
+   * Refaça a conta: `fontsize_max = largura_útil / (avanço_em − 0,025 × n_chars)`.
+   */
+  --text-hero: clamp(2.25rem, 0.5rem + 3.7vw, 7rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.025em;
+  --text-hero--font-weight: 800;
 
   --leading-tight: 1.1;
   --leading-snug: 1.3;
@@ -168,6 +231,12 @@
 
   /* ══ LARGURAS ═══════════════════════════════════════════════════════════════ */
   --container-narrow: 44rem; /* prosa longa, medida de leitura */
+  /* Medida do RODAPÉ do herói (faixa de serviços). A headline e o subtítulo não
+     usam mais isto: os dois precisam da largura cheia da goteira para caber numa
+     linha só, e quem os limita é o próprio `--text-hero`/`--text-lead`. O que ainda
+     precisa de medida é o filete da faixa de serviços — sem teto, ele atravessaria
+     um monitor de 2560px de ponta a ponta. */
+  --container-hero: 54rem;
   --container-content: 72rem; /* padrão das seções */
   --container-wide: 84rem; /* vitrines e grades largas */
 

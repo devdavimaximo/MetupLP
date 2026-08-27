@@ -5,17 +5,24 @@
  * ã õ ç á é í ó ú â ê ô à — então latin-ext, vietnamese e cyrillic eram peso
  * morto: 3 a 4 arquivos por peso, ~876 KB de fontes no build de F0.
  *
- * Pesos deliberadamente enxutos: Fraunces 600 (display e itálico de ênfase),
- * Work Sans 400/600 (corpo e ênfase), IBM Plex Mono 500 (rótulos de terminal).
- * Fraunces 700 não entra — em tamanho de display, o 600 já tem peso ótico de
- * sobra, e cada peso a mais é um arquivo bloqueante a mais.
+ * Pesos deliberadamente enxutos: Archivo 800 (a headline do herói), Fraunces 600
+ * (display das seções), Work Sans 400/600 (corpo e ênfase), IBM Plex Mono 500
+ * (rótulos de terminal). Fraunces 700 não entra — em tamanho de display, o 600 já
+ * tem peso ótico de sobra, e cada peso a mais é um arquivo bloqueante a mais.
  *
- * TODO(F7): avaliar @fontsource-variable/fraunces (eixos SOFT/WONK) — mais
- * expressivo para o display, mas é dependência nova; medir o payload antes.
+ * ─── TROCA DE 2026-08-27 ────────────────────────────────────────────────────────
+ * Entrou `archivo/latin-800` (a nova voz da primeira dobra, ver `--font-hero`) e
+ * SAIU `fraunces/latin-600-italic`. A troca é quase neutra em bytes de propósito: o
+ * itálico estava no build desde F0 sem um único consumidor — o `PENDENCIAS.md` já o
+ * listava para corte —, e a fonte da headline é o elemento de LCP, então acrescentar
+ * um arquivo sem devolver outro seria pagar no número mais apertado da página.
+ *
+ * TODO(F7): o preload da fonte do LCP continua sendo a maior alavanca isolada sobre
+ * o LCP mobile, e agora a fonte crítica é a Archivo 800 — não mais a Fraunces.
  */
 
+@import '@fontsource/archivo/latin-800.css';
 @import '@fontsource/fraunces/latin-600.css';
-@import '@fontsource/fraunces/latin-600-italic.css';
 @import '@fontsource/work-sans/latin-400.css';
 @import '@fontsource/work-sans/latin-600.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';

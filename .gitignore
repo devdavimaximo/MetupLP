@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Intermediário do vite-react-ssg (bundle de servidor usado só para pré-renderizar).
+# Fica para trás quando o build é interrompido; nunca deve ser versionado.
+.vite-react-ssg-temp
 *.local
 
 # Editor directories and files

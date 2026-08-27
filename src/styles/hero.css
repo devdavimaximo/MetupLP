@@ -1,0 +1,211 @@
+/**
+ * Atmosfera da primeira dobra.
+ *
+ * POR QUE É UM ARQUIVO DE CSS, e não classes utilitárias no componente: são
+ * gradientes de várias paradas mais máscaras radiais. Escritos como valores
+ * arbitrários do Tailwind virariam linhas de ~400 caracteres que ninguém revisa — e a
+ * diretriz do §7 é design intencional, o que exige código legível. As camadas ficam
+ * em `@layer components` para que qualquer utilitário no JSX ainda vença.
+ *
+ * ORÇAMENTO: tudo aqui é pintado UMA vez e vira textura no compositor. Nenhum
+ * `filter`, nenhum `box-shadow` animado, nenhuma imagem baixada da rede. O que se
+ * move é a cena WebGPU, e ela tem o próprio orçamento (ver `useHeroScene`).
+ *
+ * Importado por `index.css` — nunca direto por um módulo JS (ver a nota lá).
+ */
+
+@layer components {
+  /**
+   * A moldura vertical da primeira dobra — o que faz o TÍTULO ficar no meio real
+   * da tela, não o bloco de texto inteiro.
+   *
+   * ─── O MECANISMO ────────────────────────────────────────────────────────────────
+   * `my-auto`, no bloco de texto (Hero.tsx), centraliza esse bloco no espaço que
+   * SOBRA entre `padding-top` e a região do indicador de rolagem. Se as duas
+   * regiões forem IGUAIS, o CENTRO DO BLOCO cai exatamente no centro da viewport —
+   * matemática comprovada e medida (Puppeteer) nesta mesma tarefa.
+   *
+   * O problema é que o BLOCO não é simétrico por dentro: o que vem depois do título
+   * (subtítulo + CTA + faixa de serviços) pesa muito mais que o que vem antes (só o
+   * kicker). Com as duas regiões iguais, o título fica ~108–139px ACIMA do centro
+   * do próprio bloco — e como o bloco está centralizado, o título fica essa mesma
+   * distância acima do centro da TELA. Foi o defeito relatado.
+   *
+   * ─── `--hero-lift` ──────────────────────────────────────────────────────────────
+   * Em vez de igualar as duas regiões, a de CIMA fica `--hero-lift` px MAIOR que a
+   * de baixo. Isso desloca o bloco inteiro para baixo — e junto dele, o título —,
+   * compensando o desequilíbrio interno.
+   *
+   * É `clamp(0px, 26svh − 105px, 210px)`, escalado pela altura da viewport, e não um
+   * px fixo, porque o ORÇAMENTO disponível para esse deslocamento também escala com
+   * a altura: numa tela baixa (celular curto) o `my-auto` já não tem folga sobrando,
+   * então TODO o `--hero-lift` empurra o CTA para baixo sem desconto nenhum; numa
+   * tela alta, sobra folga e só METADE do lift chega a mover o título (a outra
+   * metade o `my-auto` "devolve" sozinho). Um valor fixo grande o bastante para
+   * ajudar o desktop derruba o CTA para fora da dobra num celular pequeno.
+   *
+   * Medido no navegador (Puppeteer, `getBoundingClientRect` do `<h1>` e do CTA) em
+   * 11 viewports, de 320×568 (iPhone SE 1ª geração) a 1920×1080. Resultado: o desvio
+   * do título caiu de −108/−139px para −5/−73px, com o CTA acima da dobra nas 11 —
+   * a tabela completa está em `PENDENCIAS.md`.
+   *
+   * Reajustado em 2026-08-27 (−105px → −92px de intercepto, teto 210→220px) quando
+   * o kicker ("Somos a Metup") saiu do herói: sem ele, o bloco perdeu a pouca massa
+   * que tinha ACIMA do título, e o desvio piorou ~10–15px em toda largura. O reforço
+   * devolveu o resultado à faixa original (−7 a −74px), reconferido pelo mesmo
+   * método, sem comer a margem do CTA no iPhone SE (continua ~24px).
+   *
+   * ⚠ NÃO É UMA FÓRMULA AUTOAJUSTÁVEL AO CONTEÚDO. Os coeficientes (26, 105, 210)
+   * foram tunados por tentativa medida para a copy e o espaçamento ATUAIS. Se o
+   * subtítulo mudar de tamanho, o CTA ganhar uma segunda linha ou o espaçamento
+   * entre os blocos mudar, remeça com o mesmo método — não com o olho.
+   *
+   * ─── POR QUE NÃO FOI ATÉ ZERAR O DESVIO ─────────────────────────────────────────
+   * Na tela mais curta testada (320×568), o CTA já sobra só 23px de folga até a
+   * borda da viewport com este valor. Zerar o desvio no desktop exigiria mais lift
+   * do que esse orçamento permite sem violar o §3 (CTA sempre alcançável) na tela
+   * mais curta. Decisão de segurança, não limitação técnica — se o Davi preferir
+   * centralização perfeita e aceitar risco de scroll mínimo em celular muito
+   * pequeno, o teto `210px` pode subir.
+   */
+  .hero-frame {
+    --hero-lift: clamp(0px, 26svh - 92px, 220px);
+    /* 0.9rem do rótulo (0.75rem × 1.2) + 0.75rem do gap + 2rem do filete. */
+    --hero-cue: 3.65rem;
+    /* Distância entre o fim do conteúdo e o indicador. */
+    --hero-cue-gap: 2.5rem;
+
+    padding-top: calc(
+      var(--hero-cue-gap) + var(--hero-cue) + var(--spacing-block) + var(--hero-lift)
+    );
+    padding-bottom: var(--spacing-block);
+  }
+
+  .hero-cue {
+    height: var(--hero-cue);
+    margin-top: var(--hero-cue-gap);
+  }
+
+  /**
+   * A cena WebGPU.
+   *
+   * Nasce invisível e só aparece quando o `ScanPipeline` confirma o PRIMEIRO quadro
+   * desenhado — nunca antes. Sem essa trava, o canvas entraria como um retângulo
+   * chapado na cor de fundo e a primeira dobra piscaria bem no momento em que ela
+   * mais precisa parecer inevitável.
+   *
+   * `opacity` e nada mais: é a única propriedade que o compositor resolve sozinho,
+   * sem repintar a página inteira por trás de um canvas em tela cheia.
+   */
+  .hero-scene {
+    opacity: 0;
+    transition: opacity var(--transition-duration-slow) var(--ease-out);
+  }
+
+  .hero-scene[data-ready='true'] {
+    opacity: 1;
+  }
+
+  /**
+   * A luz da cena — um único bloom âmbar, centrado atrás do objeto.
+   *
+   * `mix-blend-mode: screen` faz a camada SOMAR luz em vez de cobrir, então ela vale
+   * para os dois estados. Sobre a cena, é a atmosfera em volta do objeto; sem a cena
+   * (aparelho fraco, movimento reduzido), é a atmosfera inteira, sobre o `--color-bg`.
+   * Uma camada, dois cenários, nenhuma variante para manter em sincronia.
+   *
+   * ─── A CONTRALUZ TURQUESA SAIU ────────────────────────────────────────────────
+   * Havia um segundo radial em `--color-accent-2` no canto inferior direito, de
+   * quando o fundo era um grafite claro e o herói precisava fugir do monocromático.
+   * Com o preto novo ele passou a brigar com a varredura turquesa da cena — que é
+   * animada e cruza a tela inteira —, e duas fontes de turquesa na mesma dobra lêem
+   * como sujeira, não como paleta. O accent-2 continua na primeira dobra: quem o
+   * carrega agora é o movimento, não o cenário.
+   *
+   * ─── É AQUI QUE MORA A PERCEPÇÃO DE "PRETO" ───────────────────────────────────
+   * `--color-bg` já é #000 — não sobra token para escurecer. O que ainda lê como
+   * "não tão preto" é esta camada: qualquer radial em `screen` SOMA luz sobre o
+   * preto, e por definição nunca deixa a área coberta voltar a ser preto puro.
+   *
+   * Terceiro ajuste (era 50%×46% a 30%/10%, depois 38%×34% a 20%/6%): mais fechado
+   * e mais fraco de novo (32%×28%, 14%/4%). O objeto ainda recebe luz por trás —
+   * tirar o halo por completo o deixaria plano —, mas a área de preto puro ao redor
+   * dele cresce a cada passe, que é a direção pedida.
+   *
+   * Quem for reabrir isto: `screen` sobre preto devolve quase literalmente a cor da
+   * camada, então a porcentagem do `color-mix` é, na prática, o brilho final.
+   */
+  .hero-halo {
+    background-image: radial-gradient(
+      32% 28% at 50% 42%,
+      color-mix(in oklab, var(--color-accent) 14%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent) 4%, transparent) 45%,
+      transparent 100%
+    );
+    mix-blend-mode: screen;
+  }
+
+  /**
+   * O scrim — a camada de ACESSIBILIDADE do herói, não de estética.
+   *
+   * O título e o subtítulo (`--color-fg`/`--color-fg-muted`) passam por cima da
+   * forma 3D. Este radial devolve o fundo da página por baixo do bloco de texto,
+   * protegendo o contraste sem apagar os pontos âmbar que compõem a cena em volta —
+   * e é ele, não o brilho da forma, quem garante a WCAG 1.4.3 (ver `SCENE.bodyGain`
+   * em `three/hero/config.ts` para a conta completa).
+   *
+   * ─── REDESENHADO EM 2026-08-27 — MEDIDO, NÃO ESTIMADO ──────────────────────────
+   * A elipse antiga (64% de raio) chegava a alfa ZERO exatamente nas bordas
+   * verdadeiras do container: as letras mais externas de um título largo ficavam
+   * sem proteção nenhuma bem no momento em que a forma ficou mais brilhante
+   * (`SCENE.bodyGain` subiu de 0,9 para 2,4).
+   *
+   * Pior ainda: medindo com Puppeteer, o SUBTÍTULO — não o título — é quem chega
+   * mais perto da borda. Em telas de 768px para baixo ele estica até ~92–95% da
+   * largura da viewport, mais largo que o próprio `<h1>` nesses tamanhos. E o
+   * subtítulo usa `--color-fg-muted`, mais escuro que o título — na borda de
+   * verdade, com a elipse antiga, isso caía a **~2,5:1**, reprovando até o piso de
+   * texto grande. A correção teve DUAS pontas, não só o CSS: o subtítulo do herói
+   * passou a usar `tone="fg"` (ver `Hero.tsx`), e esta elipse ficou mais larga e
+   * mais forte na borda.
+   *
+   * Com raio 100% (a elipse só fica plenamente transparente ALÉM da borda visível)
+   * e o stop do meio movido para exatamente 50% — que cai bem em cima da borda
+   * verdadeira do container —, o alfa ali é 58% por construção, sem precisar
+   * interpolar. Contraste medido nesse ponto: **fg 5,33:1**. No centro (75%): **fg
+   * 8,9:1+**. Ambos folgados acima da AA normal (4,5:1) — a conta completa está
+   * em `SCENE.bodyGain` (`three/hero/config.ts`).
+   */
+  .hero-scrim {
+    background-image: radial-gradient(
+      100% 55% at 50% 44%,
+      color-mix(in oklab, var(--color-bg) 75%, transparent) 0%,
+      color-mix(in oklab, var(--color-bg) 58%, transparent) 50%,
+      color-mix(in oklab, var(--color-bg) 20%, transparent) 100%
+    );
+    opacity: 0;
+    transition: opacity var(--transition-duration-slow) var(--ease-out);
+  }
+
+  [data-hero-scene='true'] .hero-scrim {
+    opacity: 1;
+  }
+
+  /**
+   * Grão. `feTurbulence` inline em data-URI: nenhuma requisição, ~300 bytes, e o
+   * `overlay` faz a textura morder o grafite em vez de lavá-lo de cinza. Também é o
+   * que une o canvas ao CSS: sem ele, a cena renderizada lê como uma janela colada
+   * por cima da página em vez de fazer parte dela.
+   */
+  .hero-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    mix-blend-mode: overlay;
+    opacity: 0.055;
+  }
+
+  /** Dissolve o herói na seção seguinte, para o corte não virar uma linha dura. */
+  .hero-dissolve {
+    background-image: linear-gradient(to bottom, transparent 0%, var(--color-bg) 100%);
+  }
+}

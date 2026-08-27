@@ -55,7 +55,29 @@ export interface ServiceCopy {
 
 export interface SiteCopy {
   readonly hero: {
+    /**
+     * Kicker acima do título. OPCIONAL por decisão: é um reforço de composição, não
+     * um argumento — se o Davi apagar a linha de `copy.md`, o herói perde o kicker e
+     * o build continua passando. Campo obrigatório é para o que a seção não consegue
+     * existir sem.
+     */
+    readonly eyebrow?: CopyField;
     readonly headline: CopyField;
+    /**
+     * Trecho da headline que recebe a cor de destaque, escrito EXATAMENTE como
+     * aparece nela (`**Destaque:** automatize.`).
+     *
+     * É um campo, e não uma marcação inline tipo `*automatize.*`, por dois motivos.
+     * O primeiro é que `headline.value` continua sendo uma string limpa — é ela que
+     * vai para o `aria-label` que o SplitText gera e para o que o buscador indexa;
+     * marcação inline obrigaria todo consumidor a saber desmontá-la. O segundo é que
+     * a decisão "qual palavra brilha" é editorial, do Davi, e fica visível no
+     * `copy.md` em vez de escondida num componente (§4).
+     *
+     * Opcional: sem ele, ou com um trecho que não existe na headline, o título
+     * simplesmente sai inteiro na cor normal. Nunca quebra.
+     */
+    readonly headlineAccent?: CopyField;
     readonly subheadline: CopyField;
     readonly primaryCta: CopyField;
   };
@@ -197,7 +219,18 @@ function parseSectionBlocks(body: string): readonly Block[] {
     current = [];
   };
 
-  for (const line of body.split('\n')) {
+  /**
+   * `/\r?\n/` e NÃO `'\n'`.
+   *
+   * Com `core.autocrlf=true` (o default do Git no Windows, e é onde este projeto
+   * roda) um checkout entrega o markdown em CRLF. Dividindo só por `\n`, cada linha
+   * termina em `\r` — e aí `LABELED_RE` deixa de casar, porque `.` não casa `\r` e o
+   * `$` sem flag `m` só aceita o fim absoluto da string. O sintoma é cruel: o parser
+   * não acha NENHUM campo e o build morre acusando que a copy inteira está faltando,
+   * quando o arquivo está intacto. Aconteceu de verdade, num `git stash pop` que
+   * renormalizou o arquivo.
+   */
+  for (const line of body.split(/\r?\n/)) {
     if (isNoise(line)) continue;
     if (line.trim() === '') {
       flush();
@@ -261,6 +294,16 @@ function labeled(
   );
 }
 
+/** Campo que pode não existir. Ausente e vazio dão o mesmo resultado: `undefined`. */
+function optionalLabeled(
+  blocks: readonly Block[] | undefined,
+  label: string,
+): CopyField | undefined {
+  const block = labeled(blocks, label);
+  if (block === undefined || block.value === '') return undefined;
+  return toField(block.value);
+}
+
 function requireLabeled(
   blocks: readonly Block[] | undefined,
   label: string,
@@ -306,6 +349,8 @@ export function parseCopy(markdown: string): ParseResult {
 
   const copy: SiteCopy = {
     hero: {
+      eyebrow: optionalLabeled(heroBlocks, 'eyebrow'),
+      headlineAccent: optionalLabeled(heroBlocks, 'destaque'),
       headline: requireLabeled(heroBlocks, 'headline', 'hero.headline', '**Headline:**', '## Hero', collector),
       subheadline: requireLabeled(heroBlocks, 'subheadline', 'hero.subheadline', '**Subheadline:**', '## Hero', collector),
       primaryCta: requireLabeled(heroBlocks, 'cta-primario', 'hero.primaryCta', '**CTA primário:**', '## Hero', collector),

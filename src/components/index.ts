@@ -10,7 +10,13 @@ export { ContactCta, type ContactCtaProps } from './ContactCta';
 export { Container, type ContainerProps, type ContainerWidth } from './Container';
 export { Eyebrow, type EyebrowProps } from './Eyebrow';
 export { Header } from './Header';
-export { Heading, type HeadingLevel, type HeadingProps, type HeadingSize } from './Heading';
+export {
+  Heading,
+  type HeadingFont,
+  type HeadingLevel,
+  type HeadingProps,
+  type HeadingSize,
+} from './Heading';
 export { ArrowDownIcon, ArrowUpRightIcon, type IconProps } from './icons';
 export { Logo, type LogoProps } from './Logo';
 export { PendingContent, type PendingContentProps } from './PendingContent';

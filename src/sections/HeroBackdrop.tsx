@@ -1,34 +1,61 @@
-import { HERO_HOOK } from '../animations/hero';
+import { Suspense, lazy } from 'react';
+import { useHeroScene } from '../hooks/useHeroScene';
+import { SceneBoundary } from '../three/SceneBoundary';
 
 /**
- * Atmosfera da primeira dobra.
+ * `lazy` + `import()` é o que mantém `three/webgpu` (~670 KB min) FORA do bundle de
+ * entrada. O caminho tem que ser um literal estático para o Vite conseguir fatiar o
+ * chunk — nunca transforme isto numa variável.
+ */
+const HeroScene = lazy(() => import('../three/hero/HeroScene'));
+
+/**
+ * Atmosfera da primeira dobra — seis camadas, uma delas viva.
  *
- * Cinco camadas, todas decorativas e todas em CSS estático (`styles/hero-backdrop.css`):
- * malha de grafite, bloom âmbar, contraluz turquesa, grão e a dissolução para a
- * seção seguinte. Nenhuma imagem baixada, nenhum canvas, nenhum shader.
+ * ─── A PILHA, DE BAIXO PARA CIMA ────────────────────────────────────────────────
+ *  1. `hero-scene`    a cena WebGPU (só quando `useHeroScene` libera)
+ *  2. `hero-halo`     o bloom âmbar, em `screen`
+ *  3. `hero-scrim`    o que garante o contraste do texto (ver hero.css)
+ *  4. `hero-grain`    grão
+ *  5. `hero-dissolve` a passagem para a seção seguinte
  *
- * ─── POR QUE NÃO É UMA CENA 3D ──────────────────────────────────────────────────
- * O §6.2 manda cena pesada para FORA da primeira dobra e em lazy-load. O herói é a
- * primeira dobra: um `three.js` aqui contradiria a regra e cobraria o preço no LCP,
- * que é justamente o número que sustenta o argumento de venda desta página. A
- * `src/three/` fica reservada para a vitrine de cases (F4), abaixo da dobra e
- * montada por `useInView`.
+ * A malha de grafite (`hero-field`) saiu a pedido do Davi: sobre o preto novo e a
+ * headline em caixa alta, a grade competia com a malha de PONTOS da própria cena —
+ * duas retículas sobrepostas na mesma dobra. Quem carrega o registro de instrumento
+ * agora é a cena. O resto da página não usava a classe.
  *
- * `aria-hidden` + `pointer-events-none`: é cenário. Nada aqui é conteúdo, nada aqui
- * intercepta um clique destinado ao CTA.
+ * ─── DEGRADAÇÃO ─────────────────────────────────────────────────────────────────
+ * Tirando a camada 1, tudo aqui é CSS estático, pintado uma vez, sem requisição. Se a
+ * cena não carrega (aparelho fraco, sem GPU, movimento reduzido) ou quebra
+ * (`SceneBoundary`), o que sobra continua sendo uma primeira dobra desenhada — não um
+ * retângulo vazio. É a mesma regra do resto do projeto: degrada o efeito, nunca o
+ * conteúdo.
+ *
+ * `aria-hidden` + `pointer-events-none`: é cenário. Nada aqui é conteúdo e nada
+ * intercepta um clique destinado ao CTA (§3).
  */
 export function HeroBackdrop() {
+  const scene = useHeroScene();
+
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="hero-field absolute inset-0" />
+    <div
+      aria-hidden
+      // Lido pelo CSS: o scrim só existe para proteger o texto DA CENA, então ele
+      // aparece junto com ela e some junto. Ligá-lo sempre escureceria à toa a
+      // versão estática.
+      data-hero-scene={scene}
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+    >
+      {scene && (
+        <SceneBoundary>
+          <Suspense fallback={null}>
+            <HeroScene />
+          </Suspense>
+        </SceneBoundary>
+      )}
 
-      {/* Único elemento animado do backdrop: passeia com o ponteiro via transform. */}
-      <div
-        {...{ [HERO_HOOK.bloom]: true }}
-        className="hero-bloom absolute top-[-32%] left-[-16%] h-[100vmin] w-[100vmin] will-change-transform"
-      />
-
-      <div className="hero-bloom-2 absolute right-[-20%] bottom-[-24%] h-[72vmin] w-[72vmin]" />
+      <div className="hero-halo absolute inset-0" />
+      <div className="hero-scrim absolute inset-0" />
       <div className="hero-grain absolute inset-0" />
       <div className="hero-dissolve absolute inset-x-0 bottom-0 h-40" />
     </div>

@@ -15,6 +15,12 @@ export const uiStrings = {
   opensInNewTab: '(abre em nova aba)',
   loading: 'Carregando…',
   pendingContent: 'Conteúdo pendente',
+  /**
+   * Rótulo do indicador de rolagem do herói. Fica aqui, e não em `copy.md`, pelo
+   * mesmo critério do resto do arquivo: é uma instrução de navegação — diz o que
+   * FAZER com a página —, não uma afirmação sobre a Metup.
+   */
+  scrollCue: 'Role para explorar',
 } as const;
 
 export type UiStringKey = keyof typeof uiStrings;

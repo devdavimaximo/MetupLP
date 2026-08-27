@@ -2,25 +2,36 @@
  * Motion da primeira dobra.
  *
  * ─── DE ONDE VEM O ESPETÁCULO ───────────────────────────────────────────────────
- * Uma coisa só, feita bem: o título sobe de dentro da própria máscara, linha por
- * linha. `SplitText` com `mask: 'lines'` embrulha cada linha num contêiner com
- * `overflow: hidden` e anima só `yPercent` — ou seja, transform puro, no compositor,
- * sem tocar em layout. É o gesto mais caro de acertar e o mais barato de rodar.
+ * De duas coisas que se sustentam: a CENA (WebGPU, ver `src/three/hero/`) e a
+ * entrada do texto por cima dela. Aqui mora só a segunda.
+ *
+ * O gesto é o título subindo de dentro da própria máscara, PALAVRA por palavra.
+ * `SplitText` com `type: 'words,lines'` e `mask: 'lines'` embrulha cada linha num
+ * contêiner com `overflow: hidden` e deixa as palavras animarem `yPercent` lá dentro —
+ * transform puro, no compositor, sem tocar em layout. É a mesma cadência palavra a
+ * palavra da referência que originou este herói, mas sem o preço dela: lá, cada
+ * palavra era um `setState` com `setTimeout` e nascia em `opacity: 0`, o que significa
+ * HTML pré-renderizado com o <h1> invisível — some do Google e some de quem está com
+ * o JS falhando. Aqui o efeito é o mesmo e o texto continua no HTML.
  *
  * ─── A REGRA DE SSR, APLICADA ───────────────────────────────────────────────────
- * TODO tween aqui é `gsap.from()`. Nunca `set` + `fromTo`. O HTML pré-renderizado
- * sai com o herói inteiro visível e opaco; o GSAP empresta um estado inicial depois
- * do mount e devolve o elemento ao natural. Com JS desligado, com a hidratação
- * falhando ou com o tween morto no meio, o título continua legível — e indexável.
+ * TODO tween aqui é `gsap.from()`. Nunca `set` + `fromTo`. O HTML pré-renderizado sai
+ * com o herói inteiro visível e opaco; o GSAP empresta um estado inicial depois do
+ * mount e devolve o elemento ao natural. Com JS desligado, com a hidratação falhando
+ * ou com o tween morto no meio, o título continua legível — e indexável.
  *
  * ─── E O CTA ────────────────────────────────────────────────────────────────────
- * O §3 diz que o espetáculo nunca enterra o CTA. Aqui isso é uma posição na
- * timeline: o botão entra em ~0,3s, muito antes de o título terminar de se revelar.
- * Quem chegou para clicar não espera a animação acabar.
+ * O §3 diz que o espetáculo nunca enterra o CTA. Aqui isso é uma posição na timeline:
+ * o botão entra em ~0,4s, muito antes de o título terminar de se revelar e muito
+ * antes de a cena sequer começar a baixar. Quem chegou para clicar não espera nada.
+ *
+ * ─── O QUE SAIU DAQUI ───────────────────────────────────────────────────────────
+ * O bloom que perseguia o ponteiro. A cena faz isso agora, e melhor: o parallax é por
+ * PROFUNDIDADE, não por translação de um gradiente. Duas camadas reagindo ao mesmo
+ * cursor com leis diferentes lia como bug. O listener vive em `HeroScene`.
  */
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
-import { detectCapability } from '../lib/capability';
 import { revealCalm } from './entrance';
 import { DURATION, MEDIA, STAGGER, TRAVEL, gsapEase } from './motion';
 import { fadeUp, fromVars } from './presets';
@@ -33,17 +44,12 @@ import type { MotionSetup } from './useMotion';
 export const HERO_HOOK = {
   headline: 'data-hero-headline',
   reveal: 'data-hero-reveal',
-  bloom: 'data-hero-bloom',
 } as const;
 
 const SELECTOR = {
   headline: `[${HERO_HOOK.headline}]`,
   reveal: `[${HERO_HOOK.reveal}]`,
-  bloom: `[${HERO_HOOK.bloom}]`,
 } as const;
-
-/** Quanto o bloom passeia com o ponteiro, em px. Sutil de propósito: é atmosfera. */
-const DRIFT = { x: 72, y: 40 } as const;
 
 export const heroMotion: MotionSetup = (matchMedia, root) => {
   matchMedia.add({ ok: MEDIA.motion, calm: MEDIA.reduce }, (context) => {
@@ -51,7 +57,6 @@ export const heroMotion: MotionSetup = (matchMedia, root) => {
 
     const headline = root.querySelector<HTMLElement>(SELECTOR.headline);
     const reveals = gsap.utils.toArray<HTMLElement>(SELECTOR.reveal, root);
-    const bloom = root.querySelector<HTMLElement>(SELECTOR.bloom);
 
     // Variante calma: revela, não desloca. NUNCA "sem animação nenhuma" — ver o
     // contrato em presets.ts. Nada aqui pode deixar conteúdo invisível. O gesto é o
@@ -63,20 +68,15 @@ export const heroMotion: MotionSetup = (matchMedia, root) => {
 
     const timeline = gsap.timeline({ defaults: { ease: gsapEase('out') } });
 
-    // A luz nasce antes do texto: o herói "acende" e o título entra dentro dele.
-    if (bloom !== null) {
-      timeline.from(bloom, { opacity: 0, duration: DURATION.slow * 1.6 }, 0);
-    }
-
     if (headline !== null) {
       let hasRevealed = false;
 
       SplitText.create(headline, {
-        type: 'lines',
+        type: 'words,lines',
         mask: 'lines',
         // `aria: 'auto'` devolve o texto inteiro ao leitor de tela via aria-label.
         // Sem isso, o SplitText entrega o <h1> picotado em divs e alguns leitores
-        // anunciam linha por linha — o título vira uma lista de fragmentos.
+        // anunciam pedaço por pedaço — o título vira uma lista de fragmentos.
         aria: 'auto',
         // Re-divide quando a Fraunces carrega (font-display: swap) ou a largura
         // muda. É o que impede o título de ficar quebrado na medida da fonte de
@@ -89,15 +89,20 @@ export const heroMotion: MotionSetup = (matchMedia, root) => {
           hasRevealed = true;
 
           return timeline.from(
-            self.lines,
-            { yPercent: 108, duration: DURATION.slow, stagger: STAGGER.base },
+            self.words,
+            // `stagger` apertado de propósito: com seis palavras, a cadência larga
+            // da referência (0,6s por palavra) deixaria o título quase quatro
+            // segundos incompleto — tempo em que a headline não comunica nada.
+            { yPercent: 108, duration: DURATION.slow, stagger: STAGGER.tight },
             0,
           );
         },
       });
     }
 
-    // Subtítulo, CTA, faixa de serviços e indicador de rolagem, na ordem do DOM.
+    // Kicker, subtítulo, CTA, faixa de serviços e indicador de rolagem, na ordem do
+    // DOM. Começam com o título ainda subindo: o herói entra como UM movimento, não
+    // como uma fila de elementos esperando a vez.
     if (reveals.length > 0) {
       timeline.from(
         reveals,
@@ -105,38 +110,5 @@ export const heroMotion: MotionSetup = (matchMedia, root) => {
         0.22,
       );
     }
-  });
-
-  /**
-   * Bloom reativo ao ponteiro — o detalhe que faz a cena parecer viva.
-   *
-   * Fora do bloco acima porque as condições são outras: só onde existe ponteiro
-   * fino de verdade (nunca em toque, onde `pointermove` só dispara depois do
-   * toque), só com movimento permitido e só no tier `full` (§6.5).
-   *
-   * `quickTo` em vez de um tween novo por evento: reaproveita uma única instância e
-   * escreve só `transform`. E a posição vem de `window.innerWidth/Height`, não de
-   * `getBoundingClientRect()` — ler a caixa do elemento a cada movimento forçaria
-   * layout síncrono no meio do quadro.
-   */
-  matchMedia.add(`${MEDIA.hover} and ${MEDIA.motion}`, () => {
-    if (detectCapability(navigator, false) === 'lite') return;
-
-    const bloom = root.querySelector<HTMLElement>(SELECTOR.bloom);
-    if (bloom === null) return;
-
-    const driftX = gsap.quickTo(bloom, 'x', { duration: 1.1, ease: gsapEase('out') });
-    const driftY = gsap.quickTo(bloom, 'y', { duration: 1.1, ease: gsapEase('out') });
-
-    const onPointerMove = (event: PointerEvent): void => {
-      driftX((event.clientX / window.innerWidth - 0.5) * 2 * DRIFT.x);
-      driftY((event.clientY / window.innerHeight - 0.5) * 2 * DRIFT.y);
-    };
-
-    root.addEventListener('pointermove', onPointerMove, { passive: true });
-
-    return () => {
-      root.removeEventListener('pointermove', onPointerMove);
-    };
   });
 };

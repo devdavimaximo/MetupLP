@@ -8,13 +8,21 @@
 > e serão substituídos pela copy oficial depois. Nenhum número, métrica, depoimento ou
 > nome de cliente foi inventado: onde isso apareceria, fica `[ ... ]` esperando dado
 > real (regra da seção 4 do CLAUDE.md continua valendo mesmo em modo mock).
+>
+> **Hero reescrito em 2026-08-27, a pedido do Davi**, junto do refino da primeira
+> dobra. A headline encurtou para caber na composição centralizada em duas linhas e
+> guardou as palavras que o cliente procura (sites, apps, sistemas sob medida). O
+> `**Eyebrow:**` é novo e é opcional no parser — apagá-lo tira a linha do site sem
+> quebrar o build. Continua sendo MOCK: nenhuma frase aqui afirma resultado, prazo,
+> número ou nome de cliente.
 
 ## Hero
 
-**Headline:** Sites, apps e sistemas sob medida — construídos pra durar.
+**Headline:** construa. automatize. cresça.
 
-**Subheadline:** A Metup transforma ideia em produto digital rápido, bonito e pronto
-pra vender — do primeiro protótipo ao sistema em produção.
+**Destaque:** automatize.
+
+**Subheadline:** Criamos experiências sob medida tirando projetos do papel.
 
 **CTA primário:** Falar no WhatsApp
 

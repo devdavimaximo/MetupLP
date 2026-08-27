@@ -4,6 +4,7 @@ import { cn } from '../lib/cn';
 export type HeadingLevel = 1 | 2 | 3 | 4;
 export type HeadingSize = 'hero' | 'display' | 'display-sm' | 'title' | 'title-sm';
 export type HeadingTone = 'fg' | 'accent' | 'muted';
+export type HeadingFont = 'display' | 'hero';
 
 /**
  * Ganchos `data-*` de motion, e SÓ eles.
@@ -23,6 +24,16 @@ export interface HeadingProps extends MotionHooks {
   /** Tamanho VISUAL, independente do nível. */
   readonly size?: HeadingSize;
   readonly tone?: HeadingTone;
+  /**
+   * Família tipográfica. `display` é a Fraunces das seções; `hero` é a Archivo da
+   * primeira dobra.
+   *
+   * É uma PROP, e não uma classe passada por `className`, porque família de fonte é
+   * exatamente o caso em que duas utilitárias do Tailwind colidem: `font-display` e
+   * `font-hero` moram na mesma camada, e quem vence é a ordem no CSS gerado, não a
+   * ordem que alguém escreveu no JSX. O componente emite UMA e o conflito não existe.
+   */
+  readonly font?: HeadingFont;
   /** `text-wrap: balance` — evita viúva na última linha. Ligado por padrão. */
   readonly balance?: boolean;
   readonly id?: string;
@@ -44,6 +55,11 @@ const TONE: Record<HeadingTone, string> = {
   muted: 'text-fg-muted',
 };
 
+const FONT: Record<HeadingFont, string> = {
+  display: 'font-display',
+  hero: 'font-hero',
+};
+
 /**
  * Título da página.
  *
@@ -56,6 +72,7 @@ export function Heading({
   level,
   size = 'title',
   tone = 'fg',
+  font = 'display',
   balance = true,
   id,
   className,
@@ -68,7 +85,7 @@ export function Heading({
     <Tag
       {...motionHooks}
       id={id}
-      className={cn('font-display', SIZE[size], TONE[tone], balance ? 'text-balance' : 'text-wrap', className)}
+      className={cn(FONT[font], SIZE[size], TONE[tone], balance ? 'text-balance' : 'text-wrap', className)}
     >
       {children}
     </Tag>
