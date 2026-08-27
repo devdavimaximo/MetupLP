@@ -1,0 +1,22 @@
+/**
+ * Entrada CSS única da Metup — o ÚNICO css importado por um módulo JS.
+ *
+ * Por que existe: cada `import './x.css'` num módulo JS é uma raiz CSS separada
+ * para o plugin do Tailwind. Se `tokens.css` (que carrega o `@theme`) e o
+ * `@import 'tailwindcss'` vivessem em raízes diferentes, o tema NÃO se fundiria:
+ * `bg-surface` e `text-accent` simplesmente não existiriam — sem erro, sem aviso.
+ * Tudo passa por aqui para que o Tailwind veja um documento só.
+ */
+
+@import 'tailwindcss';
+@import './fonts.css';
+@import './tokens.css';
+@import './base.css';
+
+/**
+ * O styleguide é ferramenta de dev e nunca entra no build (é uma entrada HTML
+ * separada, não uma rota). Mas o Tailwind varre o projeto inteiro independente de
+ * dev/prod — sem esta linha, as classes usadas só lá vazariam para o CSS de
+ * produção. O chrome do styleguide é CSS puro justamente para não depender delas.
+ */
+@source not "../styleguide/**/*";

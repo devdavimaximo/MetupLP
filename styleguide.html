@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Styleguide — Metup (dev)</title>
+  </head>
+  <body>
+    <!--
+      Entrada HTML separada, NÃO uma rota.
+
+      É o que garante que o styleguide fique fora do build: o Rollup só constrói os
+      inputs configurados, e a raiz padrão do vite-react-ssg é apenas index.html.
+      Este arquivo nunca é input, então nunca existe em dist/ — sem depender de
+      eliminação de código morto nem de filtro de sitemap. Em dev, o Vite serve
+      qualquer .html da raiz automaticamente.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/styleguide/main.tsx"></script>
+  </body>
+</html>

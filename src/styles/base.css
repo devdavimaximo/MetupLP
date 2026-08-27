@@ -1,22 +1,84 @@
-@import 'tailwindcss';
+/**
+ * Camada base — o que vale para o documento inteiro, antes de qualquer componente.
+ * Importado por `index.css`; nunca direto por um módulo JS (ver nota lá).
+ */
 
 html {
   color-scheme: dark;
+  /* Âncoras de seção deslizam; desligado em reduced-motion mais abaixo. */
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
+/* Fraunces é o display; nunca herda por acidente. */
+:is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+  text-wrap: balance;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/**
+ * Anel de foco único do sistema.
+ *
+ * `outline-offset` POSITIVO não é estética: turquesa sobre o preenchimento âmbar
+ * dá 1.26:1 e reprovaria a WCAG 1.4.11. Com o afastamento, o anel encosta no fundo
+ * da página (10.39:1) e passa em qualquer variante de botão. Por isso também é
+ * proibido usar `box-shadow` inset como indicador de foco neste projeto.
+ */
+@utility focus-ring {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: inherit;
+}
+
+/* Nada de `:focus { outline: none }`. O default do navegador só sai onde um
+   `focus-visible:focus-ring` explícito entra no lugar. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/**
+ * prefers-reduced-motion — abordagem por TOKEN, não regra blanket.
+ *
+ * A versão anterior zerava `animation-duration`/`transition-duration` em `*` com
+ * `!important`. Isso era pior do que não fazer nada:
+ *   1. não afeta GSAP (rAF + estilo inline), então dava falsa conformidade;
+ *   2. a WCAG 2.3.3 fala de MOVIMENTO, não de toda transição — matar o fade de
+ *      cor do hover do CTA deixa a UI quebrada justo para quem pediu conforto;
+ *   3. `animation-iteration-count: 1 !important` quebra a variante calma legítima;
+ *   4. `!important` em `*` impedia qualquer componente de optar por voltar.
+ *
+ * Aqui as durações encurtam e o deslocamento vai a zero — o conteúdo continua
+ * aparecendo, só sem viagem. A a11y de verdade das animações vem de
+ * `gsap.matchMedia()` (ver src/animations/useMotion.ts). Em CSS, use os variantes
+ * `motion-safe:` / `motion-reduce:` para translate/scale.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+  :root {
+    --transition-duration-fast: 90ms;
+    --transition-duration-base: 120ms;
+    --transition-duration-slow: 150ms;
+    --default-transition-duration: 90ms;
+    --motion-travel: 0px;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }

@@ -1,0 +1,352 @@
+/**
+ * Chrome do styleguide — CSS PURO, sem nenhuma classe do Tailwind.
+ *
+ * Motivo: `index.css` traz uma diretiva `@source not` apontando para esta pasta,
+ * então o Tailwind não a varre e classes usadas só aqui não existiriam. Isso é proposital — é o
+ * que impede o chrome da ferramenta de dev de vazar para o CSS de produção.
+ * Os componentes REAIS renderizados nos painéis trazem suas próprias classes, que
+ * existem em produção de qualquer maneira.
+ *
+ * Consequência prática: nenhum painel pode usar classe do Tailwind. Onde seria
+ * natural usar (`p-6`, `mt-4`), use `.sg-pad`/estilo inline; e para exibir um token,
+ * leia `var(--token)` direto — é inclusive uma amostra mais honesta.
+ *
+ * Tudo abaixo consome os mesmos `var(--…)` do sistema, então o styleguide também é
+ * um teste de que os tokens estão realmente publicados em :root.
+ */
+
+.sg-body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+}
+
+.sg-shell {
+  margin: 0 auto;
+  max-width: 84rem;
+  padding: 3rem var(--spacing-gutter) 6rem;
+}
+
+.sg-header {
+  border-bottom: 1px solid var(--color-line);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.sg-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.sg-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+  line-height: 1.05;
+  margin: 0.5rem 0 0;
+}
+
+.sg-note {
+  color: var(--color-fg-muted);
+  font-size: 0.9375rem;
+  margin: 0.75rem 0 0;
+  max-width: 44rem;
+}
+
+.sg-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sg-nav a {
+  display: inline-block;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-xs);
+  padding: 0.375rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-fg-muted);
+}
+
+.sg-nav a:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.sg-section {
+  margin-top: 4rem;
+  scroll-margin-top: 2rem;
+}
+
+.sg-section > h2 {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+  border-bottom: 1px solid var(--color-line);
+  padding-bottom: 0.5rem;
+  margin: 0 0 1.5rem;
+}
+
+.sg-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── swatches de cor ─────────────────────────────────────────────────────── */
+
+.sg-swatch {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sg-swatch__chip {
+  height: 4.5rem;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.5rem;
+}
+
+.sg-swatch__meta {
+  padding: 0.625rem 0.75rem;
+  background-color: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+}
+
+.sg-swatch__name {
+  color: var(--color-fg);
+  display: block;
+}
+
+.sg-swatch__value {
+  color: var(--color-muted);
+  display: block;
+  text-transform: uppercase;
+}
+
+.sg-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.sg-badge {
+  border-radius: var(--radius-xs);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.sg-badge--pass {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.sg-badge--warn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.sg-badge--fail {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.sg-badge--info {
+  color: var(--color-muted);
+  border-color: var(--color-line-strong);
+}
+
+/* ── tabelas de token ────────────────────────────────────────────────────── */
+
+.sg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.sg-table th,
+.sg-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: middle;
+}
+
+.sg-table th {
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.sg-scroll {
+  overflow-x: auto;
+}
+
+/* ── painel de alerta (drift / placeholders) ─────────────────────────────── */
+
+.sg-alert {
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background-color: color-mix(in oklab, var(--color-danger) 10%, transparent);
+}
+
+.sg-ok {
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+/* ── amostras de espaço/raio ─────────────────────────────────────────────── */
+
+.sg-bar {
+  background-color: var(--color-accent);
+  height: 0.75rem;
+  border-radius: 1px;
+}
+
+.sg-box {
+  width: 5rem;
+  height: 5rem;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-line-strong);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+}
+
+/* ── motion ──────────────────────────────────────────────────────────────── */
+
+.sg-track {
+  position: relative;
+  height: 2.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+
+.sg-dot {
+  position: absolute;
+  top: 50%;
+  left: 0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: -0.625rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+}
+
+.sg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sg-button {
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface-raised);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.875rem;
+  cursor: pointer;
+}
+
+.sg-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.sg-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.sg-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── copy ────────────────────────────────────────────────────────────────── */
+
+.sg-copy-field {
+  border-left: 2px solid var(--color-line-strong);
+  padding-left: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.sg-copy-field--placeholder {
+  border-left-color: var(--color-accent);
+}
+
+.sg-copy-value {
+  margin: 0.25rem 0 0;
+  color: var(--color-fg);
+}
+
+.sg-copy-value--placeholder {
+  color: var(--color-accent);
+  font-style: italic;
+}
+
+/* Utilitários do chrome — substituem classes do Tailwind que não existem aqui,
+   já que src/styleguide/ está fora do @source. */
+.sg-pad {
+  padding: 1.5rem;
+}
+
+.sg-type-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}

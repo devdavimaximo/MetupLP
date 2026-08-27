@@ -1,9 +1,21 @@
-/* Auto-hospedadas via @fontsource — sem request a CDN externo (perf/CWV). */
-@import '@fontsource/fraunces/600.css';
-@import '@fontsource/fraunces/600-italic.css';
-@import '@fontsource/fraunces/700.css';
-@import '@fontsource/work-sans/400.css';
-@import '@fontsource/work-sans/500.css';
-@import '@fontsource/work-sans/600.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
+/**
+ * Fontes auto-hospedadas via @fontsource — zero request a CDN externo (CWV).
+ *
+ * SÓ o subset `latin`. O bloco latin (U+0000–00FF) já cobre todo o português —
+ * ã õ ç á é í ó ú â ê ô à — então latin-ext, vietnamese e cyrillic eram peso
+ * morto: 3 a 4 arquivos por peso, ~876 KB de fontes no build de F0.
+ *
+ * Pesos deliberadamente enxutos: Fraunces 600 (display e itálico de ênfase),
+ * Work Sans 400/600 (corpo e ênfase), IBM Plex Mono 500 (rótulos de terminal).
+ * Fraunces 700 não entra — em tamanho de display, o 600 já tem peso ótico de
+ * sobra, e cada peso a mais é um arquivo bloqueante a mais.
+ *
+ * TODO(F7): avaliar @fontsource-variable/fraunces (eixos SOFT/WONK) — mais
+ * expressivo para o display, mas é dependência nova; medir o payload antes.
+ */
+
+@import '@fontsource/fraunces/latin-600.css';
+@import '@fontsource/fraunces/latin-600-italic.css';
+@import '@fontsource/work-sans/latin-400.css';
+@import '@fontsource/work-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
