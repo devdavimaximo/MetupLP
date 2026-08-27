@@ -53,6 +53,7 @@ export function CopyPanel() {
 
         <div>
           <p className="sg-label">Serviços ({copy.services.items.length})</p>
+          <Field label="sectionTitle" field={copy.services.sectionTitle} />
           {copy.services.items.map((service) => (
             <Field key={service.title} label={service.title} field={service.description} />
           ))}

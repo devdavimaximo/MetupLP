@@ -3,12 +3,11 @@ import { App } from './app/App';
 // Entrada CSS única — ver o comentário em styles/index.css antes de dividir isto.
 import './styles/index.css';
 /**
- * Import de EFEITO COLATERAL: avalia content/copy.md durante o build e derruba o
- * `vite-react-ssg build` se faltar chave, em vez de publicar uma seção vazia.
- * Enquanto nenhuma seção importa `copy` (F1), esta linha é o que impede o Rollup de
- * remover o módulo. Sai naturalmente em F2, quando as seções passarem a usá-lo.
+ * O import de efeito colateral de `./lib/content` saiu aqui em F2, como previsto: o
+ * herói, o header e a âncora de contato importam `copy` de verdade, então o módulo
+ * é avaliado no build por uso real e continua derrubando o `vite-react-ssg build`
+ * se `content/copy.md` perder uma chave.
  */
-import './lib/content';
 
 if (import.meta.env.DEV) {
   void import('./animations/motion-sync').then((module) => {

@@ -10,6 +10,8 @@
  * fica vermelho até os dois baterem.
  */
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
 
 export type CubicBezier = readonly [number, number, number, number];
 
@@ -131,12 +133,23 @@ function cubicBezierEase(control: CubicBezier): (progress: number) => number {
 let registered = false;
 
 /**
- * Registra `metup.out`, `metup.in`, `metup.inOut` e `metup.spring` no GSAP.
+ * Prepara o GSAP para o projeto: as quatro curvas `metup.*` e os plugins.
  * Idempotente e client-only — nunca toca no GSAP durante o pré-render.
+ *
+ * Os plugins entram AQUI, e não em cada seção, por dois motivos:
+ *  - `registerPlugin` é o passo que o Rollup usa para não descartar o plugin em
+ *    tree-shaking; espalhá-lo é como se esquece um em produção;
+ *  - `ScrollTrigger` toca em `window`/`document` no registro, então precisa da
+ *    mesma guarda de SSR que as curvas.
+ *
+ * `SplitText` é gratuito desde o GSAP 3.13 (aqui roda 3.15) — sem plugin pago no
+ * projeto e sem CDN de membro.
  */
 export function registerMotion(): void {
   if (registered || typeof window === 'undefined') return;
   registered = true;
+
+  gsap.registerPlugin(ScrollTrigger, SplitText);
 
   for (const name of Object.keys(EASE) as readonly EaseName[]) {
     gsap.registerEase(`metup.${name}`, cubicBezierEase(EASE[name]));

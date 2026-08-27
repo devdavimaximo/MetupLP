@@ -150,6 +150,15 @@
   /* ══ ESPAÇO ═════════════════════════════════════════════════════════════════ */
   --spacing: 0.25rem; /* escalar: p-4 = 1rem, gap-6 = 1.5rem, mt-10 = 2.5rem */
 
+  /* Header fixo (F2). Fixo, não fluido: a altura entra em `scroll-margin` e no
+     offset de âncora do Lenis, e um valor que muda com a viewport faria a âncora
+     parar em lugar diferente a cada largura. */
+  --spacing-header: 4.5rem;
+  /* Onde uma âncora deve parar: livre do header, com respiro. Espelhado em JS pela
+     LEITURA do header em runtime (ver src/animations/anchor-scroll.ts) — não por um
+     número duplicado, que divergiria em silêncio. */
+  --spacing-anchor: 5.75rem;
+
   /* Ritmo estrutural fluido — o que F2–F8 precisam repetir sem divergir. */
   --spacing-gutter: clamp(1.25rem, 0.9286rem + 1.6071vw, 2.375rem);
   --spacing-stack: 1.5rem;
@@ -226,6 +235,29 @@
     56%,
     100% {
       opacity: 0;
+    }
+  }
+
+  /* Indicador de rolagem do herói: um segmento âmbar que desce pelo filete e some
+     por baixo. SÓ `transform` — fica no compositor e não custa quadro ao scroll.
+     Em CSS (e não em GSAP) porque um tween infinito manteria o rAF acordado à toa. */
+  --animate-scroll-cue: scroll-cue 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  @keyframes scroll-cue {
+    0% {
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+    40% {
+      transform: scaleY(1);
+      transform-origin: top;
+    }
+    60% {
+      transform: scaleY(1);
+      transform-origin: bottom;
+    }
+    100% {
+      transform: scaleY(0);
+      transform-origin: bottom;
     }
   }
 }

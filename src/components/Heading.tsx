@@ -5,7 +5,19 @@ export type HeadingLevel = 1 | 2 | 3 | 4;
 export type HeadingSize = 'hero' | 'display' | 'display-sm' | 'title' | 'title-sm';
 export type HeadingTone = 'fg' | 'accent' | 'muted';
 
-export interface HeadingProps {
+/**
+ * Ganchos `data-*` de motion, e SÓ eles.
+ *
+ * O `<h1>` do herói precisa ser alcançável pelo SplitText, e o gancho tem que ficar
+ * no próprio elemento de texto — num wrapper, o SplitText dividiria a caixa em volta
+ * do título em vez das linhas dele. Abrir a API para `ComponentProps<'h1'>` inteiro
+ * resolveria e traria junto `style`, `onClick` e todo o resto: em pouco tempo alguém
+ * passa `className="text-[40px]"` por fora do sistema. A chave template-literal
+ * deixa passar exatamente o que motion precisa e nada mais.
+ */
+type MotionHooks = Readonly<Record<`data-${string}`, string | boolean | undefined>>;
+
+export interface HeadingProps extends MotionHooks {
   /** Nível SEMÂNTICO: vira <h1>…<h4>. Só um <h1> na página inteira (§6.3). */
   readonly level: HeadingLevel;
   /** Tamanho VISUAL, independente do nível. */
@@ -48,11 +60,13 @@ export function Heading({
   id,
   className,
   children,
+  ...motionHooks
 }: HeadingProps) {
   const Tag = `h${String(level)}` as 'h1' | 'h2' | 'h3' | 'h4';
 
   return (
     <Tag
+      {...motionHooks}
       id={id}
       className={cn('font-display', SIZE[size], TONE[tone], balance ? 'text-balance' : 'text-wrap', className)}
     >

@@ -34,6 +34,25 @@ function calmFade(duration: number = DURATION.fast): MotionVariant {
   };
 }
 
+/**
+ * Converte um `MotionVariant` nas vars de um `gsap.from()`.
+ *
+ * ─── POR QUE `from` E NÃO `fromTo` ──────────────────────────────────────────────
+ * É a REGRA DE SSR do §12 virada em ferramenta. Num `fromTo`, o estado final mora no
+ * JS: se a hidratação falhar depois que o `gsap.set` inicial rodou, o elemento fica
+ * em `opacity: 0` para sempre. Num `from`, o estado final é o que já está no HTML
+ * pré-renderizado — o GSAP só empresta um estado inicial e devolve o elemento ao
+ * natural. Sem JS, sem hidratação ou com o tween interrompido no meio, o conteúdo
+ * está visível e indexável.
+ *
+ * Por isso só as chaves de TEMPO (`duration`, `stagger`) viajam do `to`: os valores
+ * de destino são justamente o que não deve ser escrito por JS nenhum.
+ */
+export function fromVars(variant: MotionVariant, extra: gsap.TweenVars = {}): gsap.TweenVars {
+  const { duration, stagger } = variant.to;
+  return { ...variant.from, duration, stagger, ...extra };
+}
+
 export interface FadeUpOptions {
   readonly travel?: number;
   readonly duration?: number;
@@ -65,6 +84,36 @@ export function fadeIn(options: FadeInOptions = {}): MotionPreset {
     full: {
       from: { opacity: 0 },
       to: { opacity: 1, duration, stagger },
+    },
+    calm: calmFade(),
+  };
+}
+
+export interface DrawLineOptions {
+  readonly duration?: number;
+  readonly stagger?: number;
+}
+
+/**
+ * Filete que se desenha da esquerda para a direita.
+ *
+ * `scaleX` e não `width`: largura é layout e custaria reflow a cada quadro (§6.4);
+ * escala fica no compositor. O preço é que o elemento precisa ser um NÓ próprio
+ * (um `<span>`), não um `border-top` — não se anima a borda de outra coisa.
+ *
+ * O elemento tem que carregar `origin-left` no CSS. O GSAP não escreve
+ * `transform-origin` em elemento HTML quando ninguém pede, então quem esquecer a
+ * classe vê o filete crescer a partir do centro. Deixar a origem no CSS (e não nas
+ * vars) é de propósito: num `gsap.from()` ela viraria um valor INICIAL a ser
+ * animado até o computado, que é o oposto do que se quer.
+ */
+export function drawLine(options: DrawLineOptions = {}): MotionPreset {
+  const { duration = DURATION.slow, stagger = STAGGER.base } = options;
+
+  return {
+    full: {
+      from: { scaleX: 0 },
+      to: { scaleX: 1, duration, stagger },
     },
     calm: calmFade(),
   };

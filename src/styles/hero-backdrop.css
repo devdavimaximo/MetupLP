@@ -1,0 +1,77 @@
+/**
+ * Atmosfera da primeira dobra — "Terminal Precision" desenhado em CSS puro.
+ *
+ * POR QUE É UM ARQUIVO DE CSS, e não classes utilitárias no componente: são quatro
+ * gradientes de várias paradas mais uma máscara radial. Escritos como valores
+ * arbitrários do Tailwind virariam uma linha de ~400 caracteres que ninguém revisa —
+ * e a diretriz do §7 é design intencional, o que exige código legível. As camadas
+ * ficam em `@layer components` para que qualquer utilitário no JSX ainda vença.
+ *
+ * ORÇAMENTO: tudo aqui é pintado UMA vez e vira textura no compositor. Nenhum
+ * `filter`, nenhum `box-shadow` animado, nenhuma imagem baixada da rede. O que se
+ * move é `transform` numa única camada (o bloom), e só onde o §6.5 permite.
+ *
+ * Importado por `index.css` — nunca direto por um módulo JS (ver a nota lá).
+ */
+
+@layer components {
+  /**
+   * Malha de grafite. Duas famílias de filetes de 1px numa célula de 72px,
+   * mascaradas por um radial que nasce no canto superior esquerdo (onde o título
+   * começa) e some antes da dobra — a grade sugere sistema sem virar papel milimetrado.
+   */
+  .hero-field {
+    background-image:
+      linear-gradient(to right, var(--color-line) var(--hairline), transparent var(--hairline)),
+      linear-gradient(to bottom, var(--color-line) var(--hairline), transparent var(--hairline));
+    background-size: 72px 72px;
+    background-position: -1px -1px;
+    mask-image: radial-gradient(
+      125% 95% at 15% 0%,
+      rgb(0 0 0 / 100%) 0%,
+      rgb(0 0 0 / 100%) 32%,
+      rgb(0 0 0 / 0%) 76%
+    );
+  }
+
+  /**
+   * Bloom de fósforo âmbar — a fonte de luz da cena, atrás do título.
+   * Sem `filter: blur()` de propósito: o gradiente radial já é macio, e um blur
+   * grande recalcularia a textura a cada movimento em vez de só transladá-la.
+   */
+  .hero-bloom {
+    background-image: radial-gradient(
+      closest-side,
+      color-mix(in oklab, var(--color-accent) 38%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent) 14%, transparent) 42%,
+      transparent 100%
+    );
+    opacity: 0.55;
+  }
+
+  /** Contraluz turquesa: dá a segunda nota da paleta e afasta o herói do monocromático. */
+  .hero-bloom-2 {
+    background-image: radial-gradient(
+      closest-side,
+      color-mix(in oklab, var(--color-accent-2) 22%, transparent) 0%,
+      transparent 100%
+    );
+    opacity: 0.5;
+  }
+
+  /**
+   * Grão. `feTurbulence` inline em data-URI: nenhuma requisição, ~300 bytes, e o
+   * `overlay` faz a textura morder o grafite em vez de lavá-lo de cinza.
+   */
+  .hero-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    mix-blend-mode: overlay;
+    opacity: 0.055;
+  }
+
+  /** Dissolve o herói na seção seguinte, para o corte não virar uma linha dura. */
+  .hero-dissolve {
+    background-image: linear-gradient(to bottom, transparent 0%, var(--color-bg) 100%);
+  }
+}

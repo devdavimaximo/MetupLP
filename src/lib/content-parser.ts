@@ -60,6 +60,7 @@ export interface SiteCopy {
     readonly primaryCta: CopyField;
   };
   readonly services: {
+    readonly sectionTitle: CopyField;
     readonly items: readonly ServiceCopy[];
   };
   readonly cases: {
@@ -309,7 +310,10 @@ export function parseCopy(markdown: string): ParseResult {
       subheadline: requireLabeled(heroBlocks, 'subheadline', 'hero.subheadline', '**Subheadline:**', '## Hero', collector),
       primaryCta: requireLabeled(heroBlocks, 'cta-primario', 'hero.primaryCta', '**CTA primário:**', '## Hero', collector),
     },
-    services: { items: serviceItems },
+    services: {
+      sectionTitle: requireLabeled(servicesBlocks, 'titulo-da-secao', 'services.sectionTitle', '**Título da seção:**', '## Serviços', collector),
+      items: serviceItems,
+    },
     cases: {
       sectionTitle: requireLabeled(casesBlocks, 'titulo-da-secao', 'cases.sectionTitle', '**Título da seção:**', '## Cases', collector),
       intro: requireLabeled(casesBlocks, 'intro', 'cases.intro', '**Intro:**', '## Cases', collector),

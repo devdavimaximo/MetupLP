@@ -10,6 +10,23 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/**
+ * Lenis × scroll nativo (F2).
+ *
+ * Quando o Lenis está ativo ele mesmo interpola a rolagem; deixar
+ * `scroll-behavior: smooth` ligado faz o navegador animar POR CIMA da interpolação
+ * do Lenis em cada clique de âncora — duas animações disputando a mesma posição,
+ * que é aquele "solavanco no fim do scroll" difícil de diagnosticar.
+ *
+ * O `.lenis` é posto no <html> pelo próprio Lenis, então isto só vale quando ele
+ * realmente subiu. Sem JS, com movimento reduzido ou no tier `lite`, o
+ * `scroll-behavior: smooth` acima continua sendo o comportamento — e as âncoras
+ * seguem funcionando nativamente.
+ */
+html.lenis {
+  scroll-behavior: auto;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-fg);

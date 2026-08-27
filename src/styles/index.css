@@ -12,6 +12,10 @@
 @import './fonts.css';
 @import './tokens.css';
 @import './base.css';
+/* Folha oficial do Lenis (altura do <html>, data-lenis-prevent, iframes). Importada
+   da dependência em vez de recopiada, para não divergir num upgrade. */
+@import 'lenis/dist/lenis.css';
+@import './hero-backdrop.css';
 
 /**
  * O styleguide é ferramenta de dev e nunca entra no build (é uma entrada HTML
