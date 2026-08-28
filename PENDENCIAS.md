@@ -252,6 +252,220 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       2,3–2,4 s. **Regra para F4+: medir com nada mais rodando e repetir 3×** — uma
       execução isolada não distingue regressão de ruído.
 
+## Tempo até a cena aparecer no celular (2026-08-28)
+
+> Relato do Davi: *"no mobile a animação não está pesada, ela acontece tranquilo, porém
+> demora bastante para ela aparecer pela primeira vez"*. Ele estava certo, e a causa não
+> era a cena — era o portão que decide quando baixá-la (`src/hooks/useHeroScene.ts`).
+>
+> **Método:** build de produção servido por `vite preview`, Chrome via CDP em 393×852
+> com **CPU 4× mais lenta e rede 4G** (e uma passada em 3G), instrumentado com
+> `PerformanceObserver` + `MutationObserver` marcando cada etapa (`load`, portão,
+> canvas montado, primeiro quadro) e `resource timing` de cada arquivo. O gesto
+> sintético é uma SEQUÊNCIA de eventos a cada 300 ms — um dedo real não produz um
+> evento só, e medir com um só dava um resultado falso.
+
+- [x] ~~Um gesto anterior ao `load` era jogado fora~~ — **a causa principal.** Os
+      listeners de gesto só eram registrados dentro do `afterLoad`, e a hidratação num
+      celular termina por volta de **1,9 s**. Quem tocasse a tela antes disso não
+      acordava nada e esperava os **6 s** inteiros do `SETTLE_MS` — e tocar/rolar antes
+      do `load` é o comportamento comum no celular, não a exceção. Agora "presença" e
+      "página carregada" são condições independentes: o gesto é ouvido desde o mount e a
+      cena começa no MAIOR dos dois, preservando a garantia de não disputar banda nem
+      thread com o carregamento crítico.
+- [x] ~~Gesto anterior à própria hidratação~~ — sobra uma janela (~0,7 s a 1,9 s) em que
+      nem os listeners existem. Coberta pelo rastro mais barato que existe: se
+      `window.scrollY > 0` no mount, alguém já rolou a página. Cobre o gesto mais comum
+      do celular; um toque isolado sem rolagem nessa janela ainda se perde (aceito — o
+      dedo seguinte resolve).
+- [x] ~~O download só começava DEPOIS do portão abrir~~ — 406 kB do chunk da cena mais
+      59 kB de textura, ~1,2 s de 4G somados ao tempo de aparecer. Agora saem da frente
+      logo após o `load`, por `<link rel="prefetch">` (chunk) e `Image()` (texturas):
+      **rede apenas, sem executar nada**. O custo de thread que derrubou o Lighthouse na
+      tentativa antiga com `requestIdleCallback` é de análise/compilação — prefetch não
+      analisa nem compila. A URL com hash do chunk vem de uma `<meta>` escrita no build
+      pelo plugin `metup:hero-scene-prefetch` (`vite.config.ts`); sem ela o hook segue
+      sem prefetch, mais lento e nunca quebrado.
+- [x] ~~⚠ O teardown abortava o próprio prefetch~~ — achado só na medição, e é o tipo de
+      "asseio" que custa caro: quando o gesto chegava DURANTE o prefetch, o portão abria,
+      o `useEffect` removia o `<link>` e o Chrome **cancelava o download pela metade** —
+      166 ms jogados fora e os 406 kB baixados de novo do zero. O `<link>` agora fica
+      onde está, e o `import()` reaproveita a requisição em andamento (**medido:
+      `transferSize` 0 no segundo pedido**). Ver a nota no arquivo antes de "limpar"
+      isso de novo.
+
+      | cenário (CPU 4×) | portão abria | 1º quadro | agora |
+      |---|---|---|---|
+      | 4G, com gesto | 8,5 s | **11,1 s** | **4,4 s** (4 execuções: 4,19/4,39/4,48/4,64) |
+      | 3G, com gesto | — | — | 7,3 s |
+      | 4G, sem gesto nenhum | 8,0 s | 10,2 s | 10,0 s (o `SETTLE_MS` domina) |
+
+      ⚠ Uma quinta execução deu 7,2 s com a máquina ocupada (Lighthouse rodando em
+      paralelo) — **medir isto com a máquina limpa**, como o resto. Os números acima
+      são de execuções isoladas.
+
+- [ ] **`SETTLE_MS` (6 s) continua sendo o teto de quem NÃO interage — e mexer nele é
+      decisão do Davi, não técnica.** Com o prefetch, o que falta depois do timer são
+      ~2 s de análise/compilação/primeiro quadro. Baixar o timer para ~3 s tiraria uns
+      3 s de quem só olha a dobra sem tocar — mas o valor 6 s foi escolhido justamente
+      para o trabalho cair FORA da janela que o Lighthouse observa (a tentativa com
+      `requestIdleCallback` mediu TBT 30→350 ms e nota 96→86). **Não baixar sem rodar
+      Lighthouse com a máquina limpa, 3×, antes e depois.**
+- [ ] ⚠ **A nota de Lighthouse deste dia NÃO vale como aferição** — a variância já
+      registrada na dívida de F3 apareceu de novo: 85–87 com FCP 2,4 s / LCP 3,7 s,
+      contra os 96–97 / LCP 2,3 s do baseline em máquina limpa. Com o servidor de
+      preview, a sessão de trabalho e Chromes do CDP vivos, o número é do AMBIENTE.
+      O que dá para afirmar é o **A/B feito nas mesmas condições, alternando
+      com/sem a `<meta>` do prefetch**: 86/86 contra 87/86, LCP 3675/3687 ms contra
+      3623/3670 ms, TBT dentro do ruído — ou seja, **o prefetch não custa nota**.
+      **Falta refazer a medição absoluta com a máquina limpa** antes de dar F7 por
+      fechada.
+- [ ] **O chunk da cena tem 1,5 MB (406 kB comprimidos)** e é ele quem manda no tempo em
+      rede lenta (2,6 s só de download em 3G). Nada disso é gordura nossa: é
+      `three/webgpu` + o nó TSL do bloom. Se algum dia isso precisar cair, a única
+      alavanca real é abrir mão do pós-processamento — decisão de direção de arte, não
+      de performance.
+- [ ] **A cortina de entrada da cena são mais 900 ms** (`--transition-duration-slow` em
+      `.hero-scene`). Não é espera "morta" — ela começa no primeiro quadro e a forma já
+      aparece durante —, mas se o Davi quiser a cena "chegando" mais rápido, esse é o
+      último número da fila.
+
+## Redistribuição do herói no mobile (2026-08-28)
+
+> Pedido do Davi: "no mobile está ruim a hero" (desktop e as demais larguras, segundo
+> ele, estavam certas). Foram DUAS rodadas no mesmo dia — a primeira consertou os
+> defeitos, a segunda (mais abaixo) recompôs a dobra. Tudo MEDIDO no Chrome via
+> `puppeteer-core`, em 8 viewports de 320×568 a 768×1024, antes e depois: posições por
+> `getBoundingClientRect()`, vãos óticos por `canvas.measureText()` e contraste pelo
+> pixel real com a cena renderizando. Nada foi ajustado no olho.
+>
+> **Escopo:** um único bloco `@media (max-width: 47.9375rem)` no fim de
+> `src/styles/hero.css`. De 768px para cima **nada mudou** — reconferido duas vezes:
+> em 768×1024 o `<h1>`, o CTA, a faixa e o indicador ficaram no mesmo pixel de antes, e
+> a captura de 1440×900 bateu **pixel a pixel** com a de antes das mudanças (0 canais
+> diferentes em 15.552.000).
+
+- [x] ~~O subtítulo encostava na headline~~ — o defeito do print do Davi. Com a
+      headline em três linhas, a cedilha de "CRESÇA." cai no MEIO da última linha,
+      exatamente sobre o subtítulo (que no celular ocupa ~89% da largura da tela). O
+      `-mt-4` que vinha do JSX foi calibrado para a headline de UMA linha do desktop,
+      onde a cedilha fica na ponta direita e o subtítulo, mais estreito, passa longe.
+      Vão ÓTICO (tinta a tinta, não caixa a caixa) medido: **−10px** — sobreposição
+      real. Agora **+10,6 a +11,6px** (≈0,53em do subtítulo) de 320 a 700px.
+- [x] ~~O CTA caía fora da dobra em 320×568~~ — terminava **29px abaixo** da borda da
+      viewport, violação direta do §3 do CLAUDE.md. Hoje sobra 119px.
+- [x] ~~O herói transbordava a tela em todo celular~~ — o `padding-top` fixo
+      (`--hero-lift` + reserva do indicador) foi medido para um bloco de desktop; no
+      celular o bloco é ~2× mais alto (headline em 3 linhas, subtítulo em 2–3, faixa em
+      2–3 fileiras) e estourava o `min-h-svh`, deixando ~270px de vazio no topo com
+      tudo espremido embaixo. `--hero-lift: 0` no mobile e `padding-top` reduzido ao
+      que a região de cima realmente precisa garantir (o header fixo, para o texto não
+      entrar por baixo dele); o resto passou a ser distribuído pelo próprio flex — e
+      isso se adapta a qualquer altura de tela, ao contrário de uma constante medida.
+- [x] ~~Respiros de página larga dentro de uma tela de 5"~~ — `--spacing-section`
+      entre subtítulo e CTA media 76–79px no celular (13% da dobra num vão vazio,
+      enquanto o subtítulo colidia com o título logo acima). Agora 2rem. A faixa de
+      serviços e o indicador também encolheram (`1,75rem`/`1,25rem` e `1,5rem`).
+      O `column-gap` de 1,75rem da faixa FICOU: apertá-lo trocava o 2+2 equilibrado dos
+      telefones de 390px+ por um 3+1 torto, sem poupar fileira nas telas menores.
+
+### Segunda rodada, no mesmo dia: as três zonas
+
+> O Davi olhou o resultado acima e apontou o que ainda faltava: *"a animação está muito
+> boa, deve ganhar mais espaço e presença, talvez levando a headline um pouco mais pra
+> cima; o botão do WhatsApp e a parte que diz Sites/Aplicativos/… está muito no meio da
+> tela mobile, pode ir mais pra baixo"*. Os três apontam para a mesma estrutura.
+
+- [x] ~~O bloco continuava CENTRALIZADO como no desktop~~ — e essa era a raiz das três
+      queixas ao mesmo tempo. Centralizar funciona em tela larga, onde a cena aparece
+      nas laterais que sobram; num retrato de 390px não sobra lateral, então o texto
+      caía exatamente em cima da forma 3D — escondendo a cena e obrigando o scrim a
+      apagá-la. Agora o celular tem composição própria, em três zonas: **enunciado
+      ancorado no alto, cena ocupando toda a folga do meio, ação (CTA + faixa +
+      indicador) ancorada embaixo, na zona do polegar**. O mecanismo é `display:
+      contents` no `.hero-block` + `margin-top: auto` no CTA — uma linha de CSS divide a
+      tela em três, sem markup duplicado e colapsando sozinha quando a tela é curta.
+- [x] ~~Headline mais para cima~~ — de 226–324px do topo (antes de tudo) para **96px
+      fixos** em qualquer telefone. Saíram dois desperdícios: o `--hero-lift` e os 2rem
+      de `mt-8` do `<h1>`, que existiam para separá-lo do kicker — kicker que foi
+      removido do herói em 2026-08-27 e nunca teve o respiro revisto. O valor **não foi
+      apagado**, só zerado no mobile (`.hero-headline`): quando `content/copy.md`
+      declarar um `**Eyebrow:**`, ele volta com o respiro certo.
+- [x] ~~Faixa livre para a cena~~ — de **~0** (o texto cobria a forma inteira) para
+      **263–351px** nos telefones correntes.
+- [x] ~~O scrim apagava justamente a cena~~ — a outra metade do "mais presença", e a
+      menos óbvia. A elipse do desktop é mais forte no CENTRO (75% de mistura), que era
+      onde o texto estava; na composição nova o centro é onde a FORMA está e onde não há
+      texto nenhum. No mobile ela virou **duas faixas** ancoradas nas bordas (uma desce
+      do topo, outra sobe do rodapé), e no meio as duas já são transparentes. No centro
+      da forma a mistura caiu de **75% para ~10%**. Camadas separadas em vez de um
+      gradiente só porque, numa tela curta, as paradas ficariam fora de ordem e o CSS
+      criaria uma emenda dura no meio da tela — em camadas elas se sobrepõem e compõem
+      alfa, que é a degradação certa (mais proteção onde a tela é apertada), sem
+      depender de media query de altura (no iOS a MQ mede a viewport GRANDE, não o
+      `svh`, então seria não confiável).
+
+      | viewport | folga do CTA até a dobra | herói além do `svh` | faixa livre p/ a cena |
+      |---|---|---|---|
+      | 320×568 | −30px → **+119px** | +304px → +95px | 0 → 32px |
+      | 360×740 | +93px → +215px | +184px → 0 | 0 → 108px |
+      | 375×667 | +67px → +215px | +211px → 0 | 0 → 64px |
+      | 390×844 | +196px → +192px | +56px → 0 | 0 → **263px** |
+      | 393×852 | +202px → +192px | +51px → 0 | 0 → **271px** |
+      | 412×915 | +247px → +192px | +7px → 0 | 0 → **334px** |
+      | 430×932 | +256px → +192px | 0 → 0 | 0 → **351px** |
+      | 768×1024 | +344px (intacto) | 0 → 0 | — (composição do desktop) |
+
+- [x] ~~Contraste conferido COM A CENA RODANDO, não no papel~~ — método novo, e melhor
+      que o das rodadas anteriores: o Chrome renderiza a cena de verdade (SwiftShader), o
+      script **esconde a tinta mantendo o layout**, fotografa 8 quadros da varredura e
+      mede o **pior pixel de fundo dentro do retângulo real da tinta** (via `Range`, não
+      a caixa do elemento — a caixa do botão é bem maior que o rótulo). Contraste pela
+      mesma fórmula de `src/lib/contrast.ts`. Pior caso em 5 telefones:
+
+      | zona | pior contraste | piso |
+      |---|---|---|
+      | headline | 5,86–11,23:1 | 3,0 (texto grande) ✓ |
+      | subtítulo | 5,70–6,54:1 | 4,5 ✓ |
+      | CTA | 8,02–9,89:1 | 4,5 ✓ |
+      | faixa de serviços | 6,09–6,12:1 | 4,5 ✓ |
+      | indicador | 6,15–6,42:1 | 4,5 ✓ |
+
+- [x] ~~O rótulo do CTA reprovava nas telas curtas~~ — achado por essa medição, não a
+      olho: **3,59:1 em 360×740** e **4,03:1 em 320×568**, porque ali a faixa livre
+      colapsa e o botão sobe para cima do núcleo aceso da forma (nas telas altas o mesmo
+      botão media 9,4–9,9:1). Reforçar a faixa de baixo do scrim resolveria e custaria
+      caro no lugar errado — para cobrir o botão nas telas curtas ela teria que subir
+      ~150px, apagando a metade de baixo da forma nas telas altas. A correção é local:
+      um colchão radial (`.hero-cta-slot::before`) de ~90px em volta do botão, borda
+      dissolvida, atrás dele e à frente da cena. Levou os dois casos para **8,35** e
+      **8,02:1** sem tocar no resto da dobra. Sobre o fundo estático é invisível
+      (`--color-bg` sobre `--color-bg`).
+- [ ] ⚠ **VER NUM APARELHO SEM A CENA (tier `lite`).** Quem está em movimento reduzido,
+      economia de dados, rede lenta ou aparelho de ≤4 GB não baixa a cena — e nesses
+      casos a faixa do meio fica VAZIA (só o halo dourado). Nas capturas isso lê como
+      espaço negativo intencional, não como buraco, mas é julgamento de tela e o Davi
+      precisa ver. **Não tentar "consertar" trocando a composição quando a cena não
+      carrega:** o atributo `data-hero-scene` vira `true` só depois do primeiro gesto,
+      então a troca aconteceria com a pessoa lendo — layout shift na primeira dobra,
+      exatamente o que o §6.2 proíbe (CLS ≤ 0,1). Se incomodar, a alavanca certa é o
+      `.hero-halo` (paint, não layout).
+- [ ] ⚠ **Em 320×568 o herói ainda é ~95px mais alto que a dobra** — a faixa de
+      serviços e o indicador ficam logo abaixo dela. É prioridade, não descuido:
+      headline, subtítulo e CTA cabem com folga e essa é a hierarquia da dobra (§3).
+      Fechar os 103px restantes exigiria encolher a headline, que é justamente o que
+      impressiona ali. **Se o Davi quiser a dobra inteira mesmo no iPhone SE**, as
+      alavancas são, nesta ordem: esconder a faixa de serviços abaixo de ~640px de
+      altura (o conteúdo dela se repete na seção Serviços logo abaixo) ou baixar o piso
+      de `--text-hero` de 4rem — as duas custam presença.
+- [ ] **A headline não cresce entre 375 e 430px de largura** (o piso de `--text-hero`
+      é fixo em 4rem até ~746px). Em 320px ela ocupa 89% da largura útil; em 430px,
+      só 71%. Cabe um piso um pouco maior nos telefones grandes, mas isso mexe na conta
+      de encaixe documentada em `tokens.css` — só com remedição pelo mesmo método
+      (`fontkit`), não no olho.
+- [ ] **O CTA do header continua quebrando em duas linhas até 375px** — já registrado
+      na dívida de F3 acima; é copy do Davi e não pode encolher aqui.
+
 ## Três fileiras em qualquer aparelho + corte do scroll morto (2026-08-28)
 
 > Pedido do Davi depois de testar em duas telas e um celular: as três fileiras do deck
@@ -524,6 +738,11 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       | 375×812   | −63px | 229px |
       | 320×690   | −35px | 113px |
       | 320×568   | −5px  | **23px** ← o limite que travou o ajuste |
+
+      ⚠ **A coluna da direita vale só de 768px para cima desde 2026-08-28.** Abaixo
+      disso `--hero-lift` é 0 e a margem do CTA é outra (ver "Redistribuição do herói
+      no mobile", acima): em 320×568 ela passou de 23px para 111px. Quem for reajustar
+      o lift agora só decide o desktop — o celular não depende mais dele.
 
       Método: `node` + `puppeteer-core` (instalado com `--no-save`, não ficou no
       projeto), `page.setViewport` + `getBoundingClientRect()` no `#hero-titulo` e no
