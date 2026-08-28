@@ -1,6 +1,6 @@
 /**
  * Design tokens — Metup · direção de arte "Terminal Precision"
- * (grafite + âmbar de fósforo + turquesa; Fraunces display / Work Sans corpo /
+ * (preto + dourado + turquesa; Fraunces display / Work Sans corpo /
  * IBM Plex Mono para rótulos e sinais de terminal).
  *
  * Fonte única de cor, tipo, espaço e motion. Importado por `index.css` — nunca
@@ -39,28 +39,54 @@
   --animate-*: initial;
 
   /* ══ COR ════════════════════════════════════════════════════════════════════
-     Razões de contraste medidas contra --color-bg (#050605) pela fórmula de
+     Razões de contraste medidas contra --color-bg (#060606) pela fórmula de
      luminância relativa da WCAG. Ver painel Color do styleguide para o cálculo
      ao vivo — estes números valem para cor sólida sobre cor sólida.
 
-     ─── O PRETO CHEGOU AO PISO (2026-08-27, a pedido do Davi, três passes) ─────
-     #0c0e0d (grafite esverdeado de F0) → #050605 → #020302 → #000000. Não tem
-     como escurecer mais que isto — é preto puro.
+     ─── REPAINT COMPLETO: "TERMINAL PRECISION" → DOURADO + CREME (2026-08-27,
+     a pedido do Davi) ──────────────────────────────────────────────────────
+     O âmbar de fósforo saiu; a marca agora é um dourado sólido sobre preto quase
+     absoluto (#050505/#060606) e texto creme (#F4F1EA). ⚠ O hex do dourado citado
+     nas notas abaixo (#C4A455) é HISTÓRICO — foi substituído por #E8AB30 no mesmo
+     dia (ver o comentário "SEGUNDO AJUSTE" em `--color-accent`, mais abaixo, para o
+     porquê e a conta de contraste). O raciocínio de derivação desta seção continua
+     válido, só o valor final do dourado mudou. A turquesa
+     (`--color-accent-2`) FICA — o Davi pediu explicitamente para mantê-la como
+     2º acento (anel de foco), então só a família âmbar foi substituída. Ela
+     também varria a tela na cena 3D do herói; essa faixa foi removida a pedido
+     do Davi (ver `ScanPipeline.tsx`) — o acento continua vivo só no foco.
 
-     O valor é GLOBAL de propósito — um herói mais escuro que o resto da página
-     deixaria um degrau visível na emenda com Serviços. `--color-surface-sunken`
-     era o único token abaixo de `--color-bg` na hierarquia de superfícies, e como
-     ele NUNCA teve um consumidor visual real no site (grep confirmado — só
-     aparece na lista do styleguide), os dois se fundiram em #000 sem perder
-     nenhuma distinção que existisse na tela.
+     Cinco valores vieram prontos do Davi: os dois pretos (superfícies), o tom
+     de card, a borda e o dourado. O resto foi DERIVADO a partir deles, nunca
+     estimado às cegas:
 
-     ⚠ Se a dobra ainda parecer "não preta o bastante" depois disto, o culpado não
-     é mais este token — não tem margem que sobre aqui. É o `.hero-halo`, que soma
-     luz âmbar em `screen` por cima do fundo. Esse ajuste está em `styles/hero.css`.
+     • `--color-surface-sunken` (#050505) e `--color-bg` (#060606) — os dois
+       pretos que o Davi deu, na ordem "mais fundo → página". Diferença de 1
+       passo de canal, imperceptível a olho nu, mas restaura a hierarquia de
+       duas camadas que documentação anterior tinha fundido em um valor só.
+     • `--color-surface` e `--color-surface-raised` — o Davi deu UM tom de
+       card (#0D0F10); os dois usam o mesmo valor, e a elevação continua vindo
+       de `--shadow-raised`/`--shadow-panel` (já existiam, não dependem de cor).
+     • `--color-fg-muted`/`--color-muted`/`--color-fg-faint` — a escala de texto
+       secundário NÃO foi dada, então foi recalculada por INTERPOLAÇÃO entre
+       `--color-fg` e `--color-bg` (não entre os grafites antigos, que eram
+       verdes e brigariam com o dourado), mirando as MESMAS faixas de contraste
+       que a escala anterior já garantia (AAA ~10:1, AA ~6:1, faint ~4:1).
+     • `--color-line-strong` — o Davi deu UMA cor de borda (#1A1A1A), mas ela
+       dá 1.17:1 contra o fundo — falha o piso de 3:1 que a WCAG 1.4.11 exige
+       para borda de elemento interativo (`Surface` força essa borda em cards
+       clicáveis). #1A1A1A virou `--color-line` (decorativo, contraste baixo é
+       o esperado); `--color-line-strong` foi clareado para um marrom-acinzentado
+       da MESMA família (não um cinza genérico) até bater 3.39:1.
+     • `--color-accent-hover`/`--color-accent-active` — clareado/escurecido do
+       dourado em ~15%, no mesmo padrão que já existia para `--color-accent-2`.
+     • `--color-on-accent`, `--color-success/-danger/-focus`, e toda a família
+       `--color-accent-2-*` NÃO mudaram de valor — só a nota de contraste foi
+       recalculada contra o novo `--color-bg`.
 
-     Escurecer o fundo só MELHORA contraste — nenhuma razão abaixo caiu, todas
-     subiram (--color-fg foi de 16.98:1 em F0 para 18.41:1). Os números foram
-     recalculados com a própria `src/lib/contrast.ts`, não estimados.
+     ⚠ Se a dobra ainda parecer "não preta o bastante", o culpado não é este
+     token. É o `.hero-halo`, que soma luz por cima do fundo em `screen`. Esse
+     ajuste está em `styles/hero.css`.
 
      Quem mexer aqui de novo: recalcule ESTES comentários. Eles são a razão de a
      paleta ser auditável, e um número velho é pior que nenhum.                   */
@@ -69,42 +95,65 @@
   --color-white: #ffffff;
   --color-black: #000000;
 
-  /* Superfícies — do mais fundo ao mais alto. `--color-surface-sunken` e
-     `--color-bg` são o MESMO valor de propósito — ver a nota acima. */
-  --color-surface-sunken: #000000;
-  --color-bg: #000000;
-  --color-surface: #161a17;
-  --color-surface-raised: #1c211d;
+  /* Superfícies — do mais fundo ao mais alto. */
+  --color-surface-sunken: #050505;
+  --color-bg: #060606;
+  --color-surface: #0d0f10;
+  --color-surface-raised: #0d0f10;
 
   /* Texto */
-  --color-fg: #eef1ea; /* 18.41:1 — AAA, corpo e títulos */
-  --color-fg-muted: #b3b9b0; /* 10.48:1 — AAA, secundário PADRÃO */
-  --color-muted: #8a9089; /*  6.43:1 — AA, meta e rótulos */
-  --color-fg-faint: #6b7169; /*  4.19:1 — SÓ disabled/decorativo, nunca corpo */
-  --color-on-accent: #000000; /*  8.91:1 sobre âmbar — obrigatório, ver nota */
+  --color-fg: #f4f1ea; /* 17.96:1 — AAA, corpo e títulos */
+  --color-fg-muted: #b9b6b1; /* 10.02:1 — AAA, secundário PADRÃO */
+  --color-muted: #908e8a; /*  6.19:1 — AA, meta e rótulos */
+  --color-fg-faint: #71706d; /*  4.09:1 — SÓ disabled/decorativo, nunca corpo */
+  --color-on-accent: #000000; /* 10.36:1 sobre dourado — obrigatório, ver nota */
 
   /* Linhas */
-  --color-line: #23261f; /*  1.37:1 — filete decorativo, nunca único indicador */
-  --color-line-strong: #616659; /*  3.55:1 — borda interativa (WCAG 1.4.11) */
+  --color-line: #1a1a1a; /*  1.17:1 — filete decorativo, nunca único indicador */
+  --color-line-strong: #6b6259; /*  3.39:1 — borda interativa (WCAG 1.4.11); ver nota */
 
-  /* Marca */
-  --color-accent: #ff8a1f; /*  8.91:1 como TEXTO — AAA */
-  --color-accent-hover: #ffa04a;
-  --color-accent-active: #e2740c;
-  --color-accent-2: #4fd1c5; /* 11.26:1 — AAA */
+  /* Marca
+     ─── SEGUNDO AJUSTE DO DOURADO (2026-08-27, mesmo pedido "quero as cores bem
+     presentes") ──────────────────────────────────────────────────────────────────
+     O Davi mandou um print de referência (dashboard SaaS alheio) pedindo só o TOM,
+     não o layout/conteúdo. O dourado de lá é visivelmente mais saturado que o nosso
+     #c4a455 — não é ilusão de renderização (isso já foi auditado e corrigido em
+     `hero.css`/`config.ts` numa rodada anterior desta mesma conversa): o TOKEN em si
+     era mais "bronze opaco" que "dourado vívido".
+
+     #e8ab30 foi o primeiro candidato, medido no mesmo HSL da referência (~H40° S80%
+     L55%). Passou no contraste, mas o Davi pediu um dourado "ainda mais forte, ainda
+     mais aparente" — então subiu mais um degrau de saturação: #f5a623 (~H37° S91%
+     L55%, o amber "cheio" em vez do amber "empoeirado"). CONFERIDO contra
+     `src/lib/contrast.ts` antes de entrar, não só olhando a tela:
+       • como TEXTO sobre `--color-bg`: 10.00:1 (era 8.48:1 no dourado original,
+         9.94:1 no primeiro ajuste) — AAA, folgado.
+       • `--color-on-accent` (preto) sobre o preenchimento: 10.36:1 (era 8.79:1,
+         depois 10.30:1).
+     Os dois pares só MELHORARAM a cada passo — mais saturação não custou contraste
+     aqui porque quem cedeu luminância foi o VERDE do canal (G caiu), não o vermelho
+     nem a leitura geral de brilho. `--color-accent-hover`/`-active` foram
+     recalculados no mesmo método de sempre (~15% mais claro/escuro), não herdados
+     do valor anterior. */
+  --color-accent: #f5a623; /* 10.00:1 como TEXTO — AAA */
+  --color-accent-hover: #f7b344;
+  --color-accent-active: #d08d1e;
+  --color-accent-2: #4fd1c5; /* 10.87:1 — AAA; mantida a pedido do Davi (ver nota) */
   --color-accent-2-hover: #74ded4;
   --color-accent-2-active: #35b3a8;
 
   /* Estado — consumidos em F6 (formulário de lead) */
-  --color-success: #5fd08a; /* 10.88:1 */
-  --color-danger: #ff5c72; /*  7.03:1 */
-  --color-focus: #4fd1c5; /* 11.26:1 vs bg; sempre com outline-offset positivo */
+  --color-success: #5fd08a; /* 10.49:1 */
+  --color-danger: #ff5c72; /*  6.78:1 */
+  --color-focus: #4fd1c5; /* 10.87:1 vs bg; sempre com outline-offset positivo */
 
   /* NOTA DE CONTRASTE (não negociável):
-     `--color-fg` sobre âmbar dá 2.07:1 e REPROVA. Todo preenchimento âmbar usa
-     `--color-on-accent` como tinta. O anel de foco turquesa sobre âmbar dá 1.26:1,
+     `--color-fg` sobre dourado dá 1.80:1 e REPROVA. Todo preenchimento dourado usa
+     `--color-on-accent` como tinta. O anel de foco turquesa sobre dourado dá 1.09:1,
      por isso `focus-ring` usa outline-offset positivo: o anel encosta no fundo da
-     página (10.39:1), nunca no fill. */
+     página (10.87:1), nunca no fill. (Números recalculados para o dourado #f5a623,
+     ver nota em `--color-accent`; a conclusão — os dois pares reprovam sobre o fill —
+     não mudou, só ficou mais folgada.) */
 
   /* ══ TIPOGRAFIA ═════════════════════════════════════════════════════════════
      Escala fluida 320px → 1440px. Nomes semânticos, não t-shirt sizes:
@@ -116,19 +165,27 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
   /**
-   * A voz da primeira dobra, e SÓ dela.
+   * A voz da primeira dobra, e SÓ dela — e o PADRÃO explícito da família de
+   * headline (a pedido do Davi: "coloque como padrão a Bebas Neue").
    *
-   * Archivo ExtraBold (800) em caixa alta: grotesca desenhada para manchete, com
-   * caixa alta estreita o bastante para a headline caber numa linha só — que é o
-   * requisito que fez esta família entrar (ver `--text-hero`).
+   * ─── TROCA DE 2026-08-28 (a pedido do Davi, com referência visual) ─────────────
+   * Saiu Archivo ExtraBold (passou por Anton no meio do caminho, também saiu),
+   * entrou Bebas Neue — condensada, caixa-alta, peso único (a família só publica
+   * 400; não force 700/800 aqui, o navegador faria bold sintético e distorceria o
+   * desenho; ela também não tem minúscula própria — a caixa-alta do CSS já cobre
+   * isso). MAIS JUNTA por desenho: o avanço da headline cai de 18,63em (Archivo)
+   * para 9,96em com tracking — a mais condensada das candidatas testadas —, o que
+   * abre espaço para um `--text-hero` bem maior sem estourar a linha (é dali que
+   * vem a maior parte do "mais alta" pedido; o cap-height do glifo em si, 0,70em,
+   * é próximo do da Archivo). `--text-hero`, abaixo, refaz a conta de encaixe
+   * numa linha só com esses números.
    *
    * ⚠ Por que NÃO substituiu `--font-display`: a Fraunces continua sendo a serifa
    * dos `<h2>` das seções, e trocá-la aqui mudaria a identidade da página inteira
    * — decisão maior do que "refinar o herói". Enquanto as duas convivem, esta é a
    * face do enunciado (uma vez, no topo) e a Fraunces é a face do texto editorial.
-   * Se a direção for unificar, é uma linha: `--font-display: var(--font-hero)`.
    */
-  --font-hero: 'Archivo', 'Work Sans', system-ui, sans-serif;
+  --font-hero: 'Bebas Neue', 'Archivo Black', 'Impact', system-ui, sans-serif;
 
   /* Rótulo de terminal: mono, caixa alta, muito espaçado. Assinatura da direção. */
   --text-label: 0.75rem;
@@ -176,33 +233,47 @@
   /**
    * A headline do herói — DIMENSIONADA PARA CABER EM UMA LINHA, por medição.
    *
-   * A largura da linha foi medida na própria Archivo ExtraBold com `fontkit`, não
-   * estimada: "CONSTRUA. AUTOMATIZE. CRESÇA." avança **18,63em**, que com o
-   * `letter-spacing` abaixo (−0,025em × 29 caracteres) fecha em **17,90em**.
-   * Daí saem os três números:
+   * ─── REFEITA PARA A BEBAS NEUE (2026-08-28) ────────────────────────────────────
+   * Mesmo método de sempre — `fontkit` contra o arquivo real, nunca estimativa —,
+   * refeito porque a troca de fonte (ver nota em `--font-hero`) muda o avanço da
+   * linha por inteiro. "CONSTRUA. AUTOMATIZE. CRESÇA." avança **10,10em** na Bebas
+   * Neue (era 18,63em na Archivo), que com o `letter-spacing` abaixo (−0,005em ×
+   * 29 caracteres — tracking mínimo de propósito: a Bebas Neue já nasce colada,
+   * ainda mais que a Anton que passou por aqui antes; apertar mais arrisca as
+   * letras se tocarem) fecha em **9,96em**.
    *
-   *   3.7vw   → a inclinação. Verificada largura a largura: a linha fica entre 74%
-   *             e 91% da largura ÚTIL (viewport menos as duas goteiras) de 768px a
-   *             3440px. Uma linha só em todo o desktop, sem encostar na goteira.
-   *   0.5rem  → o intercepto. Existe pela regra do bloco acima: `Nvw` puro reprova
-   *             a WCAG 1.4.4. É pequeno de propósito — quanto maior o intercepto,
-   *             mais a proporção com a viewport varia e mais cedo a linha quebra.
-   *   2.25rem → o piso. Abaixo de ~757px a headline quebra em três linhas (é o
-   *             desejado no mobile), e este valor é limitado pela MAIOR palavra,
-   *             "AUTOMATIZE." (6,98em): 6,98 × 36px = 251px contra 280px de largura
-   *             útil em 320px. Subir o piso aproxima do estouro na tela mais estreita.
+   * Em vez de re-otimizar a inclinação do zero, ela foi ESCALADA pelo fator exato
+   * entre os dois avanços — `k = 17,90 / 9,96 ≈ 1,798` — sobre os quatro números
+   * da versão Archivo original. Escalar por esse fator preserva EXATAMENTE a
+   * largura em pixels da linha em cada viewport (a Archivo antiga tinha essa
+   * largura provada segura entre 320px e 3440px), então o texto fica maior — mais
+   * alto — sem reabrir risco de estouro:
    *
-   * Nenhuma largura entre 320px e 3440px estoura: quando não cabe, o texto QUEBRA
-   * (é texto comum, sem `nowrap`), e a maior palavra sempre cabe sozinha — ou seja,
-   * não existe caminho para barra de rolagem horizontal.
+   *   6.65vw  → inclinação (3.7vw × k). Verificado de novo, largura a largura: a
+   *             linha fica entre 76,7% e 92,1% da largura ÚTIL de 746px a 3440px —
+   *             a mesmíssima faixa de antes (74–91%), só que com letras maiores.
+   *   0.9rem  → intercepto (0.5rem × k). Mesma razão do bloco de cima: `Nvw` puro
+   *             reprova a WCAG 1.4.4.
+   *   4rem    → o piso. Abaixo de ~746px a headline quebra em três linhas (mesmo
+   *             comportamento de antes), e o valor é limitado pela MAIOR palavra,
+   *             "AUTOMATIZE." (3,87em já com tracking): 3,87 × 64px = 248px contra
+   *             280px de largura útil em 320px (89% — mesma margem que a versão
+   *             Archivo tinha, 90%).
+   *   12.5rem → o teto (7rem × k, arredondado). Não é limitante: mesmo no maior
+   *             monitor testado (3440px) a linha para bem antes de encostar nele.
    *
-   * ⚠ Trocar a headline por uma mais longa quebra a promessa de "uma linha".
-   * Refaça a conta: `fontsize_max = largura_útil / (avanço_em − 0,025 × n_chars)`.
+   * Nenhuma largura entre 320px e 3440px estoura — verificado por amostragem densa
+   * (script Node ad-hoc com `fontkit`, não só os pontos de quebra), replicando a
+   * mesma garantia que a versão Archivo já tinha.
+   *
+   * ⚠ Trocar a headline por uma mais longa OU trocar a fonte de novo quebra a
+   * promessa de "uma linha". Refaça a conta: meça o avanço em em da fonte nova com
+   * `fontkit`, ache `k = avanço_antigo / avanço_novo`, escale os quatro números.
    */
-  --text-hero: clamp(2.25rem, 0.5rem + 3.7vw, 7rem);
-  --text-hero--line-height: 0.95;
-  --text-hero--letter-spacing: -0.025em;
-  --text-hero--font-weight: 800;
+  --text-hero: clamp(4rem, 0.9rem + 6.65vw, 12.5rem);
+  --text-hero--line-height: 0.9;
+  --text-hero--letter-spacing: -0.005em;
+  --text-hero--font-weight: 400;
 
   --leading-tight: 1.1;
   --leading-snug: 1.3;
@@ -307,7 +378,7 @@
     }
   }
 
-  /* Indicador de rolagem do herói: um segmento âmbar que desce pelo filete e some
+  /* Indicador de rolagem do herói: um segmento dourado que desce pelo filete e some
      por baixo. SÓ `transform` — fica no compositor e não custa quadro ao scroll.
      Em CSS (e não em GSAP) porque um tween infinito manteria o rAF acordado à toa. */
   --animate-scroll-cue: scroll-cue 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;

@@ -177,7 +177,7 @@ export default function HeroScene() {
           <Suspense fallback={null}>
             <ScanClock state={state} />
             <DepthField state={state} />
-            <ScanPipeline state={state} onReady={handleReady} onFailure={handleFailure} />
+            <ScanPipeline onReady={handleReady} onFailure={handleFailure} />
           </Suspense>
         </Canvas>
       )}

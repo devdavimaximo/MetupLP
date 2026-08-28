@@ -28,7 +28,7 @@ export interface TextSegment {
 /**
  * Recorta `text` em volta da PRIMEIRA ocorrência de `accent`.
  *
- * Serve à headline do herói, onde uma palavra brilha em âmbar (a palavra vem de
+ * Serve à headline do herói, onde uma palavra brilha em dourado (a palavra vem de
  * `**Destaque:**` no `copy.md`, nunca de código). Devolve sempre pelo menos um
  * segmento, então o consumidor não precisa de caminho alternativo.
  *

@@ -21,7 +21,7 @@ function Field({ label, field }: { label: string; field: CopyField }) {
  * A copy parseada, exibida como o sistema realmente a enxerga.
  *
  * Serve para duas coisas: revisar o texto do Davi dentro da escala tipográfica real
- * e ver, de relance, tudo que ainda está esperando dado real — os campos em âmbar
+ * e ver, de relance, tudo que ainda está esperando dado real — os campos em dourado
  * são os `[ ... ]`, que em produção não renderizam nada.
  */
 export function CopyPanel() {

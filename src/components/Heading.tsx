@@ -25,8 +25,8 @@ export interface HeadingProps extends MotionHooks {
   readonly size?: HeadingSize;
   readonly tone?: HeadingTone;
   /**
-   * Família tipográfica. `display` é a Fraunces das seções; `hero` é a Archivo da
-   * primeira dobra.
+   * Família tipográfica. `display` é a Fraunces das seções; `hero` é a Bebas Neue
+   * da primeira dobra.
    *
    * É uma PROP, e não uma classe passada por `className`, porque família de fonte é
    * exatamente o caso em que duas utilitárias do Tailwind colidem: `font-display` e

@@ -107,7 +107,7 @@
   }
 
   /**
-   * A luz da cena — um único bloom âmbar, centrado atrás do objeto.
+   * A luz da cena — um único bloom dourado, centrado atrás do objeto.
    *
    * `mix-blend-mode: screen` faz a camada SOMAR luz em vez de cobrir, então ela vale
    * para os dois estados. Sobre a cena, é a atmosfera em volta do objeto; sem a cena
@@ -117,29 +117,33 @@
    * ─── A CONTRALUZ TURQUESA SAIU ────────────────────────────────────────────────
    * Havia um segundo radial em `--color-accent-2` no canto inferior direito, de
    * quando o fundo era um grafite claro e o herói precisava fugir do monocromático.
-   * Com o preto novo ele passou a brigar com a varredura turquesa da cena — que é
-   * animada e cruza a tela inteira —, e duas fontes de turquesa na mesma dobra lêem
-   * como sujeira, não como paleta. O accent-2 continua na primeira dobra: quem o
-   * carrega agora é o movimento, não o cenário.
+   * Com o preto novo ele passou a brigar com a varredura turquesa animada da cena
+   * 3D — duas fontes de turquesa na mesma dobra lêem como sujeira, não como
+   * paleta. Essa varredura da cena foi removida depois (ver `ScanPipeline.tsx`),
+   * mas o radial aqui não voltou: sem ele, quem carrega o accent-2 na primeira
+   * dobra é só o anel de foco, e é isso que se quer.
    *
    * ─── É AQUI QUE MORA A PERCEPÇÃO DE "PRETO" ───────────────────────────────────
-   * `--color-bg` já é #000 — não sobra token para escurecer. O que ainda lê como
-   * "não tão preto" é esta camada: qualquer radial em `screen` SOMA luz sobre o
-   * preto, e por definição nunca deixa a área coberta voltar a ser preto puro.
+   * `--color-bg` já é #060606 — quase não sobra token para escurecer. O que ainda
+   * lê como "não tão preto" é esta camada: qualquer radial em `screen` SOMA luz
+   * sobre o fundo, e por definição nunca deixa a área coberta voltar a ser tão
+   * escura quanto o `--color-bg` puro.
    *
-   * Terceiro ajuste (era 50%×46% a 30%/10%, depois 38%×34% a 20%/6%): mais fechado
-   * e mais fraco de novo (32%×28%, 14%/4%). O objeto ainda recebe luz por trás —
-   * tirar o halo por completo o deixaria plano —, mas a área de preto puro ao redor
-   * dele cresce a cada passe, que é a direção pedida.
+   * Quarto ajuste (era 50%×46% a 30%/10%, depois 38%×34% a 20%/6%, depois 32%×28% a
+   * 14%/4%) — mais fechado e mais fraco de novo (26%×22%, 8%/2%), a pedido do Davi
+   * ("quero as cores bem presentes", 2026-08-27: o preto da dobra ainda lia como
+   * "não tão preto"). O objeto ainda recebe luz por trás — tirar o halo por completo
+   * o deixaria plano —, mas a área de preto puro ao redor dele cresce a cada passe,
+   * que é a direção pedida.
    *
    * Quem for reabrir isto: `screen` sobre preto devolve quase literalmente a cor da
    * camada, então a porcentagem do `color-mix` é, na prática, o brilho final.
    */
   .hero-halo {
     background-image: radial-gradient(
-      32% 28% at 50% 42%,
-      color-mix(in oklab, var(--color-accent) 14%, transparent) 0%,
-      color-mix(in oklab, var(--color-accent) 4%, transparent) 45%,
+      26% 22% at 50% 42%,
+      color-mix(in oklab, var(--color-accent) 8%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent) 2%, transparent) 45%,
       transparent 100%
     );
     mix-blend-mode: screen;
@@ -150,7 +154,7 @@
    *
    * O título e o subtítulo (`--color-fg`/`--color-fg-muted`) passam por cima da
    * forma 3D. Este radial devolve o fundo da página por baixo do bloco de texto,
-   * protegendo o contraste sem apagar os pontos âmbar que compõem a cena em volta —
+   * protegendo o contraste sem apagar os pontos dourados que compõem a cena em volta —
    * e é ele, não o brilho da forma, quem garante a WCAG 1.4.3 (ver `SCENE.bodyGain`
    * em `three/hero/config.ts` para a conta completa).
    *

@@ -252,6 +252,44 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       2,3–2,4 s. **Regra para F4+: medir com nada mais rodando e repetir 3×** — uma
       execução isolada não distingue regressão de ruído.
 
+## Troca da seção de Serviços pelo deck em parallax (2026-08-28)
+
+> Pedido do Davi: substituir o índice editorial de F3 pelo componente `HeroParallax`
+> (Aceternity UI), "implementar primeiro, ajustar fonte/cor/copy depois". O que ficou
+> aberto por causa dessa troca está aqui.
+
+- [ ] ⚠ **As 15 miniaturas do deck são PLACEHOLDER do design system.** Não existe
+      screenshot real de projeto no repositório, e o §5 proíbe stock/IA fingindo case.
+      Cada painel é um bloco geométrico gerado em `src/lib/showcase-placeholder.ts`
+      (SVG data URI, ~0,5 kB cada) e os quatro serviços se repetem em ciclo pelas
+      quinze posições. **Quando os assets reais do Davi chegarem:** trocar a
+      `thumbnail` de cada item por `/images/...` (AVIF/WebP, `srcset`, dimensões
+      declaradas) e **apagar o módulo inteiro**. Os hexadecimais dele são cópia de
+      `tokens.css` — um data URI não enxerga `var(--color-*)` do documento — então
+      qualquer repaint da paleta precisa passar por lá enquanto ele existir.
+- [ ] ⚠ **CONFLITO COM O §6.4 (animação é GSAP): o deck é framer-motion.** Entrou uma
+      dependência nova (`framer-motion`) por pedido explícito do Davi. O gesto —
+      `rotateX`/`rotateZ`/`translateY`/`opacity` do deck e o `x` das fileiras, todos
+      amarrados ao progresso de rolagem com mola — é **portável para ScrollTrigger sem
+      perda visual**; o que a mola do framer faz, um `scrub` numérico faz. Decidir:
+      manter as duas libs ou portar e remover a dependência. **Medir o custo no
+      orçamento de JS antes de F7** (o cabeçalho da seção continua em GSAP).
+- [ ] **Ainda não medido:** o efeito do deck no Lighthouse/CWV. A seção fica abaixo da
+      dobra (não deve tocar o LCP), mas ela agora tem **300vh de altura** e roda
+      transformações em 15 cartões durante a rolagem inteira. Rodar a receita de
+      sempre (máquina limpa, 3–5 execuções) e **anotar o tamanho dos chunks**, como a
+      nota de F3 pediu a partir de F4.
+- [ ] **Falta ver no navegador:** 60fps com o deck rolando (CPU throttle 4×); o corte
+      lateral dos cartões em 320px e em 2560px; `prefers-reduced-motion` ligado no SO
+      (esperado: sem transformação, altura colapsa para `h-auto` via CSS e as fileiras
+      viram uma grade estática); e se o cabeçalho + CTA continuam confortáveis acima
+      do deck em telas curtas (§3 — o CTA não pode depender de atravessar 300vh).
+- [x] ~~O índice editorial de F3 (`src/sections/ServiceRow.tsx`)~~ — **removido** junto
+      com a troca; o `IndexRule` (filete com cabeça dourada, alvo do preset `drawLine`)
+      migrou para dentro de `src/sections/Services.tsx` e continua em uso. Os quatro
+      serviços com a frase de cada um **não se perderam**: continuam em texto, agora no
+      cabeçalho da seção — é o conteúdo acessível, já que o deck é `aria-hidden`.
+
 ## Kicker removido do herói (2026-08-27)
 
 - [x] ~~"Somos a Metup" acima do título~~ — removido a pedido do Davi. Só a linha

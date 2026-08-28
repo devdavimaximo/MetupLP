@@ -77,8 +77,8 @@ const BASE = cn(
 );
 
 const VARIANT: Record<ButtonVariant, string> = {
-  // Tinta escura sobre âmbar não é escolha estética: texto claro sobre #ff8a1f dá
-  // 2.07:1 e reprova. `text-on-accent` existe para tirar essa decisão do caminho.
+  // Tinta escura sobre dourado não é escolha estética: texto claro sobre #f5a623 dá
+  // 1.80:1 e reprova. `text-on-accent` existe para tirar essa decisão do caminho.
   primary: cn(
     'bg-accent text-on-accent inset-shadow-hairline',
     'hover:bg-accent-hover active:bg-accent-active',

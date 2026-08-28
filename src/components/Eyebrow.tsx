@@ -24,7 +24,7 @@ const RULE = 'h-px w-6 shrink-0 bg-accent';
 /**
  * Kicker acima do título — a assinatura visual da direção "Terminal Precision".
  *
- * Mono em caixa alta com tracking largo, ladeado por filete âmbar: lê como prompt de
+ * Mono em caixa alta com tracking largo, ladeado por filete dourado: lê como prompt de
  * terminal em vez de "label de seção" genérico. É um dos poucos lugares onde a
  * identidade aparece sem custar nada em performance ou a11y.
  */

@@ -13,7 +13,7 @@ export interface LogoProps {
  * não ficar sem âncora de marca enquanto a identidade real não chega. O §5 proíbe
  * forjar TRABALHO DE CLIENTE — desenho autoral da própria casa é o que ele permite.
  *
- * O caret âmbar é o mesmo gesto do `Button variant="ghost"` e do token
+ * O caret dourado é o mesmo gesto do `Button variant="ghost"` e do token
  * `--animate-caret`: é a assinatura "Terminal Precision" aparecendo onde custa zero
  * em performance. Piscar fica atrás de `motion-safe:`, então some para quem pediu
  * movimento reduzido.

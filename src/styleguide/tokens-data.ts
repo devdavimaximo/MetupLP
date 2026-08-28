@@ -17,7 +17,7 @@ export interface ColorToken {
   /**
    * Token cujo par real NÃO é o fundo da página. `--color-on-accent` é o caso: medido
    * contra `--color-bg` daria 1.00:1 e acusaria uma reprovação que não existe — ele
-   * só é usado sobre o preenchimento âmbar, onde dá 8.21:1.
+   * só é usado sobre o preenchimento dourado, onde dá 10.36:1.
    */
   readonly measureAgainst?: string;
   readonly note?: string;
@@ -37,7 +37,7 @@ export const COLOR_TOKENS: readonly ColorToken[] = [
     name: '--color-on-accent',
     role: 'text',
     measureAgainst: '--color-accent',
-    note: 'tinta obrigatória sobre âmbar',
+    note: 'tinta obrigatória sobre dourado',
   },
 
   { name: '--color-line', role: 'line', nonText: true, note: 'filete decorativo' },

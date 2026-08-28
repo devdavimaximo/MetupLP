@@ -5,23 +5,28 @@
  * ã õ ç á é í ó ú â ê ô à — então latin-ext, vietnamese e cyrillic eram peso
  * morto: 3 a 4 arquivos por peso, ~876 KB de fontes no build de F0.
  *
- * Pesos deliberadamente enxutos: Archivo 800 (a headline do herói), Fraunces 600
- * (display das seções), Work Sans 400/600 (corpo e ênfase), IBM Plex Mono 500
- * (rótulos de terminal). Fraunces 700 não entra — em tamanho de display, o 600 já
- * tem peso ótico de sobra, e cada peso a mais é um arquivo bloqueante a mais.
+ * Pesos deliberadamente enxutos: Bebas Neue 400 (a headline do herói — único peso
+ * que a família publica, ver nota em `--font-hero`), Fraunces 600 (display das
+ * seções), Work Sans 400/600 (corpo e ênfase), IBM Plex Mono 500 (rótulos de
+ * terminal). Fraunces 700 não entra — em tamanho de display, o 600 já tem peso
+ * ótico de sobra, e cada peso a mais é um arquivo bloqueante a mais.
  *
- * ─── TROCA DE 2026-08-27 ────────────────────────────────────────────────────────
- * Entrou `archivo/latin-800` (a nova voz da primeira dobra, ver `--font-hero`) e
- * SAIU `fraunces/latin-600-italic`. A troca é quase neutra em bytes de propósito: o
- * itálico estava no build desde F0 sem um único consumidor — o `PENDENCIAS.md` já o
- * listava para corte —, e a fonte da headline é o elemento de LCP, então acrescentar
- * um arquivo sem devolver outro seria pagar no número mais apertado da página.
+ * ─── TROCA DE 2026-08-28 (a pedido do Davi: fonte da headline "mais alta, mais
+ * junta" — escolha final Bebas Neue, como padrão explícito) ─────────────────────
+ * Saiu `archivo/latin-800` (passou por `anton/latin-400` no meio do caminho, que
+ * também saiu), entrou `bebas-neue/latin-400` como a voz da primeira dobra e
+ * PADRÃO da família de headline. Medido com `fontkit` contra o arquivo real: o
+ * avanço da própria headline cai de 18,63em (Archivo) para 9,96em com tracking —
+ * a mais condensada das três candidatas —, o que permite um `--text-hero` bem
+ * maior sem estourar a linha (a conta completa está em `tokens.css`). Cap-height
+ * é 0,70em (contra 0,686 da Archivo): o ganho de "altura" vem sobretudo do
+ * tamanho maior que a condensação permite, não do desenho do glifo em si.
  *
  * TODO(F7): o preload da fonte do LCP continua sendo a maior alavanca isolada sobre
- * o LCP mobile, e agora a fonte crítica é a Archivo 800 — não mais a Fraunces.
+ * o LCP mobile, e a fonte crítica continua sendo a da headline — agora Bebas Neue.
  */
 
-@import '@fontsource/archivo/latin-800.css';
+@import '@fontsource/bebas-neue/latin-400.css';
 @import '@fontsource/fraunces/latin-600.css';
 @import '@fontsource/work-sans/latin-400.css';
 @import '@fontsource/work-sans/latin-600.css';

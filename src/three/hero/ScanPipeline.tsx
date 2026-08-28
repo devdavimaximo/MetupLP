@@ -1,14 +1,11 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js';
-import { abs, oneMinus, pass, smoothstep, uv, vec4 } from 'three/tsl';
+import { pass, vec4 } from 'three/tsl';
 import { RenderPipeline, type WebGPURenderer } from 'three/webgpu';
-import { BLOOM, SCENE_COLOR, SWEEP } from './config';
-import type { SceneState } from './scene-state';
-import { linearColor } from './tsl-color';
+import { BLOOM } from './config';
 
 export interface ScanPipelineProps {
-  readonly state: SceneState;
   /** Chamado UMA vez, no primeiro quadro que realmente foi para a tela. */
   readonly onReady: () => void;
   /** Chamado se o render falhar (perda de contexto/dispositivo). Ver o try/catch. */
@@ -18,14 +15,12 @@ export interface ScanPipelineProps {
 /**
  * Pós-processamento — a segunda metade do efeito.
  *
- * ─── DUAS VARREDURAS, UM RELÓGIO ────────────────────────────────────────────────
- * O material acende os pontos por PROFUNDIDADE (dentro do objeto); aqui uma faixa
- * turquesa desce a TELA inteira. As duas leem o mesmo `state.scan`, então a linha
- * cruza a tela no exato momento em que aquela fatia do objeto acende. Essa
- * coincidência é o efeito inteiro: sem ela são dois enfeites em paralelo.
- *
- * A divisão de cor também é intencional e vem dos tokens: turquesa é o instrumento
- * que varre, âmbar é o que ele encontra.
+ * O material (`DepthField`) já acende os pontos por PROFUNDIDADE, lendo
+ * `state.scan` diretamente; este componente só aplica o bloom por cima do que a
+ * cena renderizou. Havia também uma faixa turquesa em ESPAÇO DE TELA aqui, somada
+ * ao resultado final — removida a pedido do Davi. O gancho com `state.scan` que a
+ * sincronizava com o material foi embora junto; não reintroduzir sem o mesmo
+ * relógio compartilhado (`ScanClock`), ou as duas leituras saem de fase.
  *
  * ─── ESTE COMPONENTE ASSUME O LOOP DE RENDER ────────────────────────────────────
  * `useFrame(…, 1)` com prioridade > 0 desliga o render automático do r3f: a partir
@@ -33,7 +28,7 @@ export interface ScanPipelineProps {
  * prioridade 0, ou seja, o relógio é escrito ANTES deste quadro ser desenhado —
  * ordem que o r3f garante por ordenação crescente de prioridade.
  */
-export function ScanPipeline({ state, onReady, onFailure }: ScanPipelineProps) {
+export function ScanPipeline({ onReady, onFailure }: ScanPipelineProps) {
   /**
    * O r3f tipa `RootState.gl` como `WebGLRenderer` porque é o build de `three` que
    * ELE importa. O objeto em tempo de execução é o `WebGPURenderer` devolvido pela
@@ -49,17 +44,12 @@ export function ScanPipeline({ state, onReady, onFailure }: ScanPipelineProps) {
     const color = scenePass.getTextureNode('output');
     const glow = bloom(color, BLOOM.strength, BLOOM.radius, BLOOM.threshold);
 
-    // Faixa em Y de tela, centrada em `scan`. `oneMinus(smoothstep(…))` dá 1 no
-    // centro e 0 na borda — a mesma forma da fatia de profundidade do material.
-    const band = oneMinus(smoothstep(0, SWEEP.width, abs(uv().y.sub(state.scan))));
-    const sweep = linearColor(SCENE_COLOR.sweep).mul(band).mul(SWEEP.gain);
-
     const next = new RenderPipeline(renderer);
     // Alfa preservado da cena (opaca, ver `HeroScene`): o bloom soma LUZ, não
     // transparência, e reescrever o alfa aqui abriria buraco no canvas.
-    next.outputNode = vec4(color.rgb.add(sweep).add(glow.rgb), color.a);
+    next.outputNode = vec4(color.rgb.add(glow.rgb), color.a);
     return next;
-  }, [renderer, scene, camera, state]);
+  }, [renderer, scene, camera]);
 
   useEffect(() => {
     return () => {

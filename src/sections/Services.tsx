@@ -1,39 +1,67 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { SERVICES_HOOK, servicesMotion } from '../animations/services';
 import { useMotion } from '../animations/useMotion';
-import { ContactCta, Eyebrow, Heading, PendingContent, Section } from '../components';
+import { ContactCta, Eyebrow, Heading, PendingContent, Section, Text } from '../components';
+import { HeroParallax, type ShowcaseItem } from '../components/ui/hero-parallax';
+import { cn } from '../lib/cn';
 import { copy } from '../lib/content';
 import { padIndex } from '../lib/format';
-import { IndexRule, ServiceRow } from './ServiceRow';
+import { showcasePanel } from '../lib/showcase-placeholder';
 
-/** `id` da âncora. É para cá que o menu do header vai apontar em F5. */
+/** `id` da âncora. É para cá que o indicador de rolagem do herói aponta. */
 export const SERVICES_SECTION_ID = 'servicos';
 
 const HEADING_ID = 'servicos-titulo';
 
+/** Três fileiras de cinco painéis — a forma do deck de parallax. */
+const DECK_SIZE = 15;
+
+export interface IndexRuleProps {
+  readonly className?: string;
+}
+
 /**
- * Serviços — o que a Metup faz, em linguagem de cliente.
+ * Filete com o segmento dourado na cabeça.
  *
- * ─── O PROBLEMA QUE ESTA SEÇÃO RESOLVE ──────────────────────────────────────────
- * O herói JÁ lista os quatro títulos numa faixa mono. Repeti-los em cards maiores
- * seria redundância, não seção. O que F3 acrescenta é a `description` de cada item —
- * uma frase por serviço, que é o que existe de copy real (§4). O formato foi
- * escolhido a partir dessa restrição, não apesar dela.
+ * É um NÓ próprio, e não um `border-t`, porque só assim pode ser desenhado por
+ * `scaleX` — ver o preset `drawLine`. O segmento dourado é o mesmo gesto do
+ * `<Eyebrow>` e da faixa de serviços do herói.
+ */
+export function IndexRule({ className }: IndexRuleProps) {
+  return (
+    <span
+      aria-hidden
+      {...{ [SERVICES_HOOK.rule]: true }}
+      className={cn('h-px origin-left bg-line', className)}
+    >
+      <span className="block h-full w-10 bg-accent" />
+    </span>
+  );
+}
+
+/**
+ * Serviços — o que a Metup faz.
  *
- * ─── ÍNDICE EDITORIAL ───────────────────────────────────────────────────────────
- * Quatro linhas full-bleed dentro da medida: número mono, título grande em Fraunces
- * e a frase numa coluna deslocada para a direita (col-start-8, não col-start-7 — a
- * assimetria é o que separa "grade intencional" de "duas colunas"). Uma frase é
- * exatamente o conteúdo daquela coluna; o layout cabe no conteúdo real em vez de
- * pedir texto inventado.
+ * ─── A TROCA (pedido do Davi) ───────────────────────────────────────────────────
+ * O índice editorial de F3 (quatro linhas full-bleed) saiu inteiro; no lugar entra o
+ * deck em parallax do Aceternity UI, com o cabeçalho editorial por cima e os painéis
+ * correndo em perspectiva conforme a página rola. O componente adotado está isolado
+ * em `components/ui/hero-parallax.tsx`, com a lista do que mudou nele.
  *
- * SEM pictograma, por decisão: um ícone de "site" ou "app" não diz nada que o título
- * já não diga, e o §12 manda não colocar nesse caso. O número é o grafismo.
+ * ─── O QUE **NÃO** MUDOU ────────────────────────────────────────────────────────
+ *  · Toda a copy continua vindo de `content/copy.md` — título da seção, os quatro
+ *    serviços com a frase de cada um, rótulo do CTA. Nada foi escrito em código (§4).
+ *  · A seção continua terminando em ação: o `ContactCta` fecha o cabeçalho, ANTES do
+ *    deck, então ele está visível no instante em que a seção entra na tela. O
+ *    espetáculo fica embaixo; o CTA nunca depende de atravessar 300vh (§3).
+ *  · A entrada do cabeçalho continua em GSAP (`servicesMotion`), com os mesmos ganchos
+ *    `data-services-*` e o mesmo cleanup. O parallax é a única coisa em framer-motion.
  *
- * ─── A SEÇÃO TERMINA PUXANDO PARA A AÇÃO (§3) ───────────────────────────────────
- * O CTA usa `ContactCta` — o destino único de `lib/contact.ts` —, alinhado com a
- * coluna das frases. Nenhum `href` novo nasce aqui: ver o bloqueio nº 1 do
- * `PENDENCIAS.md`.
+ * ─── OS PAINÉIS SÃO PLACEHOLDER, E ISSO É DELIBERADO ────────────────────────────
+ * O deck pede 15 miniaturas e não existe screenshot real de projeto no repositório.
+ * Em vez de stock/IA fingindo case — proibido pelo §5 —, cada painel é um bloco
+ * geométrico do design system (`lib/showcase-placeholder.ts`), e os quatro serviços
+ * se repetem em ciclo pelas quinze posições. Está em `PENDENCIAS.md`.
  */
 export function Services() {
   const ref = useRef<HTMLElement>(null);
@@ -42,56 +70,98 @@ export function Services() {
   const { sectionTitle, items } = copy.services;
   const { primaryCta } = copy.hero;
 
+  /**
+   * Os quatro serviços em ciclo pelas quinze posições. Ciclar é honesto: o deck é
+   * ilustração (`aria-hidden` no componente), então a repetição não vira conteúdo
+   * duplicado nem promete quinze trabalhos que não existem.
+   */
+  const deck = useMemo<readonly ShowcaseItem[]>(
+    () =>
+      Array.from({ length: DECK_SIZE }, (_, index) => ({
+        title: items[index % items.length].title,
+        thumbnail: showcasePanel(index + 1),
+      })),
+    [items],
+  );
+
   return (
-    <Section ref={ref} id={SERVICES_SECTION_ID} labelledBy={HEADING_ID} rhythm="lg">
-      <div {...{ [SERVICES_HOOK.block]: true }}>
-        {/* Legenda do índice, não copy: "01 — 04" é a extensão da lista, derivada do
-            próprio conteúdo. `aria-hidden` porque o <ol> abaixo já anuncia a contagem
-            — para quem ouve, isto seria só ruído. É o primeiro consumidor do
-            <Eyebrow>, e o filete âmbar dele volta em cada linha da lista. */}
-        <div aria-hidden {...{ [SERVICES_HOOK.fade]: true }}>
-          <Eyebrow>{`${padIndex(1)} — ${padIndex(items.length)}`}</Eyebrow>
-        </div>
-
-        {sectionTitle.kind === 'text' ? (
-          <Heading
-            level={2}
-            size="display"
-            id={HEADING_ID}
-            className="mt-6"
-            {...{ [SERVICES_HOOK.fade]: true }}
+    <Section
+      ref={ref}
+      id={SERVICES_SECTION_ID}
+      labelledBy={HEADING_ID}
+      rhythm="flush"
+      width="full"
+    >
+      <HeroParallax
+        items={deck}
+        header={
+          <header
+            {...{ [SERVICES_HOOK.block]: true }}
+            className="relative mx-auto w-full max-w-content pt-section"
           >
-            {sectionTitle.value}
-          </Heading>
-        ) : (
-          <PendingContent hint={sectionTitle.hint} />
-        )}
-      </div>
+            {/* Legenda do índice, não copy: "01 — 04" é a extensão da lista, derivada
+                do próprio conteúdo. `aria-hidden` porque a lista abaixo já anuncia a
+                contagem — para quem ouve, isto seria só ruído. */}
+            <div aria-hidden {...{ [SERVICES_HOOK.fade]: true }}>
+              <Eyebrow>{`${padIndex(1)} — ${padIndex(items.length)}`}</Eyebrow>
+            </div>
 
-      {/* `<ol>`: a ordem é informação (é um índice), e o Tailwind zera o marcador —
-          daí o `role="list"`, que devolve a semântica que o Safari descarta quando
-          `list-style: none` está ligado. */}
-      <ol role="list" className="mt-block">
-        {items.map((service, index) => (
-          <ServiceRow key={service.title} service={service} position={index + 1} />
-        ))}
-      </ol>
-
-      {/* Fecho do índice: o filete que faltava (sem ele o bloco terminaria em aberto)
-          e o CTA, alinhado com a coluna das frases. */}
-      <div {...{ [SERVICES_HOOK.block]: true }}>
-        <IndexRule className="block w-full" />
-
-        <div className="mt-block md:grid md:grid-cols-12">
-          <div {...{ [SERVICES_HOOK.fade]: true }} className="md:col-span-5 md:col-start-8">
-            {primaryCta.kind === 'text' ? (
-              <ContactCta label={primaryCta.value} />
+            {sectionTitle.kind === 'text' ? (
+              <Heading
+                level={2}
+                size="display"
+                id={HEADING_ID}
+                className="mt-6 max-w-narrow"
+                {...{ [SERVICES_HOOK.fade]: true }}
+              >
+                {sectionTitle.value}
+              </Heading>
             ) : (
-              <PendingContent hint={primaryCta.hint} />
+              <PendingContent hint={sectionTitle.hint} />
             )}
-          </div>
-        </div>
-      </div>
+
+            <IndexRule className="mt-block block w-full" />
+
+            {/* Aqui vive o conteúdo ACESSÍVEL da seção: o deck ilustra, esta lista
+                informa. `<ol>` porque a ordem é informação (é um índice), e
+                `role="list"` devolve a semântica que o Safari descarta quando o
+                marcador é removido. */}
+            <ol role="list" className="mt-block grid gap-x-gutter gap-y-block md:grid-cols-2">
+              {items.map((service, index) => (
+                <li key={service.title} className="flex flex-col gap-3">
+                  <div
+                    {...{ [SERVICES_HOOK.cluster]: true }}
+                    className="flex items-baseline gap-4"
+                  >
+                    <span aria-hidden className="font-mono text-label text-muted">
+                      {padIndex(index + 1)}
+                    </span>
+                    <Heading level={3} size="title-sm">
+                      {service.title}
+                    </Heading>
+                  </div>
+
+                  <div {...{ [SERVICES_HOOK.body]: true }}>
+                    {service.description.kind === 'text' ? (
+                      <Text>{service.description.value}</Text>
+                    ) : (
+                      <PendingContent hint={service.description.hint} />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div {...{ [SERVICES_HOOK.fade]: true }} className="mt-block">
+              {primaryCta.kind === 'text' ? (
+                <ContactCta label={primaryCta.value} />
+              ) : (
+                <PendingContent hint={primaryCta.hint} />
+              )}
+            </div>
+          </header>
+        }
+      />
     </Section>
   );
 }

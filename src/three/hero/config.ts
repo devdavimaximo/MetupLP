@@ -34,13 +34,11 @@ export const SOURCE = { width: 626, height: 626 } as const;
  */
 export const SCENE_COLOR = {
   /** `--color-accent` — os pontos que a varredura acende. */
-  spark: '#ff8a1f',
-  /** `--color-accent-2` — a linha que varre a tela no pós-processamento. */
-  sweep: '#4fd1c5',
+  spark: '#f5a623',
   /** `--color-bg` — fundo da cena. Igual ao da página, para o canvas emendar nela.
    *  Se `--color-bg` mudar em `tokens.css`, ESTE valor muda junto — senão aparece um
    *  retângulo de outro preto no meio da primeira dobra. */
-  background: '#000000',
+  background: '#060606',
   /** Tinta fria do corpo da forma. Ver `bodyGain` para o porquê de ela ser apagada. */
   body: '#8fa39b',
 } as const;
@@ -59,10 +57,29 @@ export const SCENE = {
   /** Fração da viewport ocupada pelo plano. */
   scale: 0.46,
   /**
-   * Ganho dos pontos acesos. Alto de propósito: é o que ultrapassa o `threshold` do
-   * bloom e vira brilho de fósforo em vez de pontinho laranja.
+   * Ganho dos pontos acesos. Precisa ultrapassar o `threshold` do bloom (ver
+   * `BLOOM`) para virar brilho, mas SEM saturar as três bandas de cor — senão vira
+   * literalmente branco/amarelo, não dourado.
+   *
+   * ─── RECALCULADO EM 2026-08-27, DUAS VEZES, JUNTO DO `--color-accent` ───────────
+   * 1ª rodada (9 → 2,5): calibrada para o dourado ANTIGO (#c4a455) — ficou obsoleta
+   * assim que o token virou #e8ab30, porque o mesmo gain estourava duas bandas.
+   * 2ª rodada (2,5 → 1,6): calibrada para #e8ab30.
+   *
+   * Esta é a 3ª: o Davi pediu um dourado "ainda mais forte", e o token virou #f5a623
+   * (mais saturado ainda — ver nota em `tokens.css`). `--color-accent` decodificado
+   * de sRGB agora é ≈ (0,913, 0,381, 0,017) — o CANAL VERMELHO já nasce quase no teto
+   * (0,913), bem diferente do dourado anterior (0,807). Isso muda a física do
+   * clamping: não precisa de tanto gain para o R estourar, e um gain alto demais
+   * agora estouraria o G também (o limite é 1/0,381 ≈ 2,62).
+   *
+   * Em 1,4: R estoura (0,913×1,4=1,28→1), G fica em 0,53 (não estoura), B em 0,02.
+   * Resultado exibido ≈ (255, 193, 42) — um dourado ainda mais denso que o do ajuste
+   * anterior, não mais lavado. A luminância HDR pré-clamp fica ~0,65; `BLOOM.threshold`
+   * desceu de 0,65 para 0,55 para manter a margem de disparo do bloom com esse novo
+   * teto.
    */
-  sparkGain: 9,
+  sparkGain: 1.4,
   /**
    * Ganho do corpo da forma — o número mais importante desta lista, e ele é de
    * ACESSIBILIDADE, não só de estética. O título e o subtítulo (`--color-fg` /
@@ -98,13 +115,13 @@ export const SCENE = {
   bodyGain: 2.4,
 } as const;
 
-/** `bloom(node, strength, radius, threshold)`. */
-export const BLOOM = { strength: 0.85, radius: 0.5, threshold: 0.92 } as const;
-
-/** A varredura em ESPAÇO DE TELA, aplicada depois da cena (ver `ScanPipeline`). */
-export const SWEEP = {
-  /** Meia-altura da faixa, em UV de tela. */
-  width: 0.06,
-  /** Intensidade. Baixa: é um sinal de instrumento, não um flash. */
-  gain: 0.22,
-} as const;
+/**
+ * `bloom(node, strength, radius, threshold)`.
+ *
+ * `threshold` baixou duas vezes em 2026-08-27, sempre acompanhando `SCENE.sparkGain`
+ * (ver a nota lá): primeiro 0,92 → 0,65 (dourado #e8ab30), depois 0,65 → 0,55
+ * (dourado #f5a623, gain 1,4, luminância de pico ~0,65). O padrão é sempre o mesmo —
+ * o gain é escolhido para preservar o matiz dourado do ponto, não para maximizar
+ * luminância, então o threshold é quem se adapta para o bloom continuar disparando.
+ */
+export const BLOOM = { strength: 0.85, radius: 0.5, threshold: 0.55 } as const;

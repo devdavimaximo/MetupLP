@@ -93,7 +93,7 @@ export function ColorPanel() {
         <div className="sg-scroll">
           <table className="sg-table">
             <caption className="sg-label" style={{ textAlign: 'left', paddingBottom: '0.5rem' }}>
-              Par crítico: o que pode e o que não pode ir sobre o preenchimento âmbar
+              Par crítico: o que pode e o que não pode ir sobre o preenchimento dourado
             </caption>
             <thead>
               <tr>

@@ -1,60 +1,76 @@
 /**
  * Camada base — o que vale para o documento inteiro, antes de qualquer componente.
  * Importado por `index.css`; nunca direto por um módulo JS (ver nota lá).
- */
-
-html {
-  color-scheme: dark;
-  /* Âncoras de seção deslizam; desligado em reduced-motion mais abaixo. */
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-}
-
-/**
- * Lenis × scroll nativo (F2).
  *
- * Quando o Lenis está ativo ele mesmo interpola a rolagem; deixar
- * `scroll-behavior: smooth` ligado faz o navegador animar POR CIMA da interpolação
- * do Lenis em cada clique de âncora — duas animações disputando a mesma posição,
- * que é aquele "solavanco no fim do scroll" difícil de diagnosticar.
- *
- * O `.lenis` é posto no <html> pelo próprio Lenis, então isto só vale quando ele
- * realmente subiu. Sem JS, com movimento reduzido ou no tier `lite`, o
- * `scroll-behavior: smooth` acima continua sendo o comportamento — e as âncoras
- * seguem funcionando nativamente.
+ * ─── POR QUE AS REGRAS SOLTAS ABAIXO ESTÃO EM `@layer base` (2026-08-28) ────────
+ * Este arquivo inteiro é importado SEM camada (`@import './base.css'` — CSS
+ * comum, não `@import ... layer(...)`), e CSS sem camada sempre vence QUALQUER
+ * regra dentro de `@layer`, não importa a especificidade. Isso incluía as
+ * utilities do Tailwind: `:is(h1..h6) { font-family: var(--font-display) }`
+ * batia `.font-hero` em silêncio — achado ao trocar a fonte do herói (2026-08-28):
+ * o `<h1>` nunca renderizava a fonte que `--font-hero` prometia, fosse Archivo,
+ * Anton ou qualquer outra. `@layer base { ... }` aqui devolve essas regras para a
+ * camada que o Tailwind já reserva pra elas (`@layer theme, base, components,
+ * utilities` — base perde de utilities), sem embrulhar o arquivo inteiro: o
+ * `@utility focus-ring` mais abaixo TEM que ficar fora de qualquer `@layer`
+ * explícito (o Tailwind já o posiciona sozinho; aninhado, ele quebra o build com
+ * "`@utility` cannot be nested").
  */
-html.lenis {
-  scroll-behavior: auto;
-}
+@layer base {
+  html {
+    color-scheme: dark;
+    /* Âncoras de seção deslizam; desligado em reduced-motion mais abaixo. */
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
 
-body {
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-  font-family: var(--font-body);
-  font-size: var(--text-body);
-  line-height: var(--text-body--line-height);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+  /**
+   * Lenis × scroll nativo (F2).
+   *
+   * Quando o Lenis está ativo ele mesmo interpola a rolagem; deixar
+   * `scroll-behavior: smooth` ligado faz o navegador animar POR CIMA da
+   * interpolação do Lenis em cada clique de âncora — duas animações disputando a
+   * mesma posição, que é aquele "solavanco no fim do scroll" difícil de
+   * diagnosticar.
+   *
+   * O `.lenis` é posto no <html> pelo próprio Lenis, então isto só vale quando ele
+   * realmente subiu. Sem JS, com movimento reduzido ou no tier `lite`, o
+   * `scroll-behavior: smooth` acima continua sendo o comportamento — e as âncoras
+   * seguem funcionando nativamente.
+   */
+  html.lenis {
+    scroll-behavior: auto;
+  }
 
-/* Fraunces é o display; nunca herda por acidente. */
-:is(h1, h2, h3, h4, h5, h6) {
-  font-family: var(--font-display);
-  text-wrap: balance;
-}
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 
-::selection {
-  background-color: var(--color-accent);
-  color: var(--color-on-accent);
+  /* Fraunces é o display; nunca herda por acidente. */
+  :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
 }
 
 /**
  * Anel de foco único do sistema.
  *
- * `outline-offset` POSITIVO não é estética: turquesa sobre o preenchimento âmbar
- * dá 1.26:1 e reprovaria a WCAG 1.4.11. Com o afastamento, o anel encosta no fundo
- * da página (10.39:1) e passa em qualquer variante de botão. Por isso também é
+ * `outline-offset` POSITIVO não é estética: turquesa sobre o preenchimento dourado
+ * dá 1.09:1 e reprovaria a WCAG 1.4.11. Com o afastamento, o anel encosta no fundo
+ * da página (10.87:1) e passa em qualquer variante de botão. Por isso também é
  * proibido usar `box-shadow` inset como indicador de foco neste projeto.
  */
 @utility focus-ring {

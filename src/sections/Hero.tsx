@@ -49,17 +49,17 @@ const HEADING_ID = 'hero-titulo';
  *
  * ─── A LINHA ÚNICA É ESTRUTURA, NÃO SORTE ───────────────────────────────────────
  * Headline e subtítulo cabem numa linha só no desktop porque foram DIMENSIONADOS
- * para isso: o avanço da headline em Archivo ExtraBold foi medido com `fontkit` e
- * virou a inclinação em `vw` de `--text-hero` (a conta inteira está em `tokens.css`).
+ * para isso: o avanço da headline na Bebas Neue foi medido com `fontkit` e virou a
+ * inclinação em `vw` de `--text-hero` (a conta inteira está em `tokens.css`).
  * Por isso os dois blocos são FULL-BLEED — `width="full"` na <Section> — em vez de
  * viverem dentro de uma medida: uma largura máxima em `rem` quebraria a linha
  * exatamente onde o `vw` prometeu que ela caberia. O que ainda tem medida é a faixa
  * de serviços, e por outro motivo (o filete precisa de fim).
  *
  * Centralizar é o default de template que o §7 exclui, então o que tira este herói
- * do default é a tensão entre as três vozes: a grotesca extrabold em caixa alta
- * enunciando, o mono do kicker e da faixa marcando o registro de terminal, e o
- * âmbar caindo numa palavra só. Nada de moldura de vidro, nada de card.
+ * do default é a tensão entre as três vozes: a condensada em caixa alta enunciando,
+ * o mono do kicker e da faixa marcando o registro de terminal, e o dourado caindo
+ * numa palavra só. Nada de moldura de vidro, nada de card.
  *
  * ─── A COPY É DO DAVI, TODA ─────────────────────────────────────────────────────
  * Cada string editorial visível aqui vem de `content/copy.md` — kicker, título, qual
@@ -73,7 +73,7 @@ const HEADING_ID = 'hero-titulo';
  * a reescrever a copy.
  *
  * ─── CTA ────────────────────────────────────────────────────────────────────────
- * Um só, âmbar, no maior contraste da tela, acima da dobra em qualquer viewport, e
+ * Um só, dourado, no maior contraste da tela, acima da dobra em qualquer viewport, e
  * entrando cedo na timeline. O destino vem de `lib/contact.ts` — ver lá por que ele
  * hoje aponta para `#contato` em vez do WhatsApp.
  *
@@ -144,7 +144,7 @@ export function Hero() {
             <PendingContent hint={headline.hint} />
           )}
 
-          <div {...{ [HERO_HOOK.reveal]: true }} className="mt-8">
+          <div {...{ [HERO_HOOK.reveal]: true }} className="-mt-4">
             {subheadline.kind === 'text' ? (
               // `tone="fg"` em vez do padrão `fg-muted` do <Text> — exceção medida,
               // não estética. Puppeteer mostrou o subtítulo esticando até ~95% da
@@ -162,7 +162,7 @@ export function Hero() {
             )}
           </div>
 
-          <div {...{ [HERO_HOOK.reveal]: true }} className="mt-block">
+          <div {...{ [HERO_HOOK.reveal]: true }} className="mt-section">
             {primaryCta.kind === 'text' ? (
               <ContactCta label={primaryCta.value} size="lg" variant="secondary" />
             ) : (
@@ -171,7 +171,7 @@ export function Hero() {
           </div>
 
           {/* O que a Metup faz, em quatro palavras do próprio Davi. Sem separador de
-              texto: o filete âmbar de cada item é o mesmo gesto do <Eyebrow>. */}
+              texto: o filete dourado de cada item é o mesmo gesto do <Eyebrow>. */}
           <ul
             {...{ [HERO_HOOK.reveal]: true }}
             className="mt-block flex w-full max-w-hero flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t border-line pt-7"
@@ -191,7 +191,7 @@ export function Hero() {
         {/* Indicador de rolagem. É um LINK de verdade para a próxima seção, e não um
             enfeite: quem navega por teclado ganha um atalho real, e quem clica no
             gesto que a página inteira sugere é atendido. `text-muted` mantém a
-            hierarquia — ele nunca disputa a atenção com o CTA âmbar (§3). */}
+            hierarquia — ele nunca disputa a atenção com o CTA dourado (§3). */}
         <a
           href={`#${SERVICES_SECTION_ID}`}
           {...{ [HERO_HOOK.reveal]: true }}

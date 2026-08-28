@@ -14,7 +14,7 @@ const HeroScene = lazy(() => import('../three/hero/HeroScene'));
  *
  * ─── A PILHA, DE BAIXO PARA CIMA ────────────────────────────────────────────────
  *  1. `hero-scene`    a cena WebGPU (só quando `useHeroScene` libera)
- *  2. `hero-halo`     o bloom âmbar, em `screen`
+ *  2. `hero-halo`     o bloom dourado, em `screen`
  *  3. `hero-scrim`    o que garante o contraste do texto (ver hero.css)
  *  4. `hero-grain`    grão
  *  5. `hero-dissolve` a passagem para a seção seguinte

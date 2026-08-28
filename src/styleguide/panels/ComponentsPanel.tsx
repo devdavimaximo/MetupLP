@@ -79,7 +79,7 @@ export function ComponentsPanel() {
         <div>
           <p className="sg-label" style={{ marginBottom: '0.75rem' }}>
             Botão — tabule por eles e confirme que o anel de foco fica legível TAMBÉM sobre o
-            preenchimento âmbar (é o outline-offset que salva)
+            preenchimento dourado (é o outline-offset que salva)
           </p>
           {VARIANTS.map((variant) => (
             <ButtonRow key={variant} variant={variant} />
@@ -114,7 +114,7 @@ export function ComponentsPanel() {
               <Text size="body-sm">raised</Text>
             </Surface>
             <Surface elevation="panel" glow="accent" className="sg-pad">
-              <Text size="body-sm">panel · glow âmbar</Text>
+              <Text size="body-sm">panel · glow dourado</Text>
             </Surface>
             <Surface interactive as="article" className="sg-pad">
               <Text size="body-sm">interactive (tabule até aqui)</Text>
