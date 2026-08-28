@@ -58,7 +58,7 @@ export function IndexRule({ className }: IndexRuleProps) {
  * O deck pede 15 miniaturas e não existe screenshot real de projeto no repositório.
  * Em vez de stock/IA fingindo case — proibido pelo §5 —, cada painel é um bloco
  * geométrico do design system (`lib/showcase-placeholder.ts`), e os quatro serviços
- * se repetem em ciclo pelas quinze posições. Está em `PENDENCIAS.md`.
+ * se repetem em ciclo pelas posições sem arquivo. Está em `PENDENCIAS.md`.
  */
 export function Services() {
   const ref = useRef<HTMLElement>(null);
@@ -68,7 +68,7 @@ export function Services() {
   const { primaryCta } = copy.hero;
 
   /**
-   * As quinze posições do deck. Quem decide o que entra em cada uma é `lib/showcase.ts`
+   * As posições do deck. Quem decide o que entra em cada uma é `lib/showcase.ts`
    * — inclusive o reenquadramento das pontas quando os screenshots reais chegarem.
    * Aqui só passam os rótulos de reserva: os quatro serviços, em ciclo, que são copy
    * do Davi. O deck é `aria-hidden` no componente, então a repetição é ilustração e

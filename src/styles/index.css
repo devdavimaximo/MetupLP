@@ -16,6 +16,7 @@
    da dependência em vez de recopiada, para não divergir num upgrade. */
 @import 'lenis/dist/lenis.css';
 @import './hero.css';
+@import './showcase.css';
 
 /**
  * O styleguide é ferramenta de dev e nunca entra no build (é uma entrada HTML

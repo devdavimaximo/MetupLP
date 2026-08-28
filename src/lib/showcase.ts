@@ -1,84 +1,102 @@
 /**
- * O deck da vitrine — quais arquivos entram em quais das 15 posições.
+ * O deck da vitrine — quais arquivos entram em quais das 21 posições.
  *
- * ─── O MAPA DE POSIÇÕES VEIO DE OBSERVAÇÃO, NÃO DE PALPITE ──────────────────────
- * O Davi rolou a página e anotou o que realmente se vê: no desktop, a fileira de cima
- * entrega 02/03/04, a do meio 07/08/09 e a de baixo 12/13/14; no celular só sobram
- * inteiras a 02, a 07 e a 12 (mais um pedaço grande da 13). As outras seis posições
- * aparecem só de canto, em qualquer largura.
+ * ─── O MAPA DE POSIÇÕES É MEDIDO, NUNCA PALPITADO ───────────────────────────────
+ * Nem toda posição do deck é vista por inteiro: cada fileira é mais larga que a tela
+ * de propósito, e as pontas cortadas fazem a vitrine sugerir mais trabalho do que
+ * mostra — o que serve a uma agência que constrói dashboard, CRM e ERP e não pode
+ * abrir a tela de cliente. Saber QUAIS posições são lidas é o que permite gastar um
+ * screenshot só onde ele é visto.
  *
- * Isso é do layout, não é defeito: cada fileira é mais larga que a tela de propósito,
- * e as pontas cortadas fazem o deck sugerir mais trabalho do que mostra — exatamente
- * o que serve a uma agência que constrói dashboard, CRM e ERP e não pode abrir a tela
- * de cliente.
+ * A primeira versão do mapa veio da observação do Davi rolando a página (fileiras de
+ * 5). Com fileiras de 7, ele foi REMEDIDO no Chrome — 9 viewports, varredura de
+ * 40–60px — e as posições mudaram. Os números estão em `VISIBLE_SLOTS`,
+ * `MOBILE_SLOTS` e `HIDDEN_SLOTS`.
  *
  * A consequência é o desenho deste módulo:
  *
- *  · `READING_SLOTS` (9) recebem os screenshots reais, inteiros.
- *  · `FLANK_SLOTS` (6) NÃO recebem arquivo novo. Cada ponta reaproveita o master de
- *    uma posição de leitura vizinha com outro enquadramento (`objectPosition` + zoom).
- *    Mesma URL ⇒ **zero byte a mais** (o navegador já tem o arquivo em cache), tile
- *    visualmente diferente, e um pedaço ampliado de tela entrega menos ainda de
- *    informação do cliente. É por isso que as pontas não são painel abstrato: num
- *    monitor de 2560px+ elas aparecem mais, e precisam aguentar ser vistas.
- *  · As três posições que o celular lê — 02, 07 e 12 — são as primeiras de cada trinca
- *    do desktop. Uma ordenação só serve aos dois breakpoints: os projetos mais fortes
- *    vão para elas, e nenhuma reordenação por media query é necessária.
+ *  · `VISIBLE_SLOTS` (13) têm prioridade para receber arquivo próprio. Hoje existem 12
+ *    arquivos, então 12 delas têm o seu e uma repete.
+ *  · `HIDDEN_SLOTS` (8) recebem cópias. Enquanto houver menos arquivos que posições, é
+ *    onde a repetição custa menos — nenhum desktop mostra essas por inteiro.
+ *  · A posição 2 de cada fileira é a ÚNICA que o celular lê inteira. Como ela também é
+ *    lida no desktop, uma ordenação só serve aos dois — os projetos mais fortes vão
+ *    para ela, e nenhuma reordenação por media query é necessária.
  *
- * ─── ENQUANTO NÃO CHEGAM OS ARQUIVOS ────────────────────────────────────────────
- * `projects` está vazio e as 15 posições caem no painel numerado do design system
- * (`showcase-placeholder.ts`), cada uma com o próprio número. É de propósito: mantém
- * o deck navegável para teste visual E preserva a numeração que o Davi usa para dar
- * feedback ("a 07 está escura demais"). O reenquadramento das pontas só entra em cena
- * quando existir master de verdade para reenquadrar.
+ * **Para acabar com a repetição são precisos 21 arquivos** (ou 24, se o alvo passar a
+ * incluir monitor ultrawide de 3440px, que hoje mostra buraco na lateral — ver
+ * `PENDENCIAS.md`).
+ *
+ * ─── SEM ARQUIVO PARA UMA POSIÇÃO ───────────────────────────────────────────────
+ * Se `projects` e `REPEAT_SOURCE` não cobrirem um slot, ele cai no painel numerado do
+ * design system (`showcase-placeholder.ts`), com o próprio número — o que mantém o
+ * deck navegável e preserva a numeração usada para dar feedback.
  */
 import type { ShowcaseItem } from '../components/ui/hero-parallax';
 import { showcaseAssets, type ShowcaseSlug } from './showcase-assets';
 import { showcasePanel } from './showcase-placeholder';
 
-/** Três fileiras de cinco. Ver `HeroParallax`. */
-export const DECK_SIZE = 15;
-
-/** Posições lidas inteiras. Recebem screenshot real, uma imagem cada. */
-export const READING_SLOTS = [2, 3, 4, 7, 8, 9, 12, 13, 14] as const;
-
-/** As três que o celular lê. Reservadas aos projetos mais fortes. */
-export const MOBILE_SLOTS = [2, 7, 12] as const;
-
-/** Posições que só aparecem de canto. Não recebem arquivo próprio. */
-export const FLANK_SLOTS = [1, 5, 6, 10, 11, 15] as const;
-
-interface FlankFraming {
-  /** De qual posição de leitura a ponta empresta o arquivo. */
-  readonly from: number;
-  /**
-   * Canto para onde o zoom converge (`transform-origin`).
-   *
-   * ⚠ Não é `object-position`: o cartão e o master têm a MESMA proporção (16:10), então
-   * o `object-fit: cover` não sobra nada para reposicionar e `object-position` seria
-   * inerte. Quem cria o recorte é a ampliação; a origem decide qual pedaço fica.
-   */
-  readonly origin: string;
-  /** Ampliação. Acima de ~1,8 o texto da UI no screenshot começa a mostrar pixel. */
-  readonly zoom: number;
-}
+/** Três fileiras de sete. O porquê do sete está em `HeroParallax`. */
+export const DECK_SIZE = 21;
 
 /**
- * Cada ponta empresta do vizinho MAIS PRÓXIMO na mesma fileira e puxa um canto
- * diferente do dele — assim o par nunca lê como a mesma imagem duas vezes, nem quando
- * os dois aparecem juntos num monitor largo.
+ * Posições que aparecem INTEIRAS em algum desktop. Medido no Chrome, varredura de
+ * scroll de 40–60px, 9 viewports de 1280×720 a 1920×1080:
+ *   1920×1080 e 1440×900 → 2,3,4 · 9,10,11 · 16,17,18
+ *   1920×950, 1366×768 e 1280×720 → acrescentam 5, 8, 12 e 19
+ * São 13 posições. Elas têm prioridade na hora de gastar um arquivo próprio.
  */
-const FLANK_FRAMING: Readonly<Record<number, FlankFraming>> = {
-  1: { from: 2, origin: '100% 0%', zoom: 1.7 },
-  5: { from: 4, origin: '0% 100%', zoom: 1.7 },
-  6: { from: 7, origin: '100% 100%', zoom: 1.6 },
-  10: { from: 9, origin: '0% 0%', zoom: 1.6 },
-  11: { from: 12, origin: '100% 0%', zoom: 1.7 },
-  15: { from: 14, origin: '0% 100%', zoom: 1.6 },
+export const VISIBLE_SLOTS = [2, 3, 4, 5, 8, 9, 10, 11, 12, 16, 17, 18, 19] as const;
+
+/** As três que o CELULAR lê. Reservadas aos projetos mais fortes. */
+export const MOBILE_SLOTS = [2, 9, 16] as const;
+
+/**
+ * Posições que NENHUM desktop mostra por completo. É para cá que vai a repetição:
+ * enquanto houver menos arquivos que slots, é aqui que ela custa menos.
+ */
+export const HIDDEN_SLOTS = [1, 6, 7, 13, 14, 15, 20, 21] as const;
+
+/**
+ * Qual posição cada slot sem arquivo próprio REPETE, inteira.
+ *
+ * ─── A TENTATIVA ANTERIOR, E POR QUE ELA CAIU ───────────────────────────────────
+ * Estes slots já foram RECORTES AMPLIADOS do vizinho (`transform-origin` + zoom). A
+ * ideia era "mesmo arquivo, tile diferente, zero byte a mais". Não sobreviveu ao teste
+ * do Davi no desktop: o recorte lê como **imagem cortada**, e como repetia um cartão
+ * ali perto, o olho ligava os dois. Um deck que existe para provar capricho não pode
+ * ter tile que pareça erro de enquadramento. Hoje todo cartão mostra o screenshot
+ * inteiro.
+ *
+ * ─── AS DUAS REGRAS QUE GOVERNAM ESTE MAPA ──────────────────────────────────────
+ * 1. **Nenhum arquivo aparece duas vezes na MESMA fileira.** Cada fileira mostra 7
+ *    arquivos distintos — a cópia sempre cai noutra fileira, deslocada na horizontal,
+ *    que é onde ela some.
+ * 2. **A repetição mora em `HIDDEN_SLOTS`.** Com 12 arquivos para 21 posições sobram 9
+ *    repetições; 8 delas cabem exatamente nos slots que nenhum desktop mostra
+ *    inteiros. Só UMA sobra para posição visível (hoje o `sistemas-11`, nos slots 5 e
+ *    19, em fileiras diferentes e distantes).
+ *
+ * O valor é a POSIÇÃO de origem, não o arquivo: assim `projects` continua sendo o
+ * único lugar onde a ordem mora, e trocar dois slugs lá reposiciona as cópias sozinho.
+ */
+const REPEAT_SOURCE: Readonly<Record<number, number>> = {
+  // Fileira 1 — slots 1–7.
+  1: 8,
+  6: 16,
+  7: 11,
+  // Fileira 2 — slots 8–14.
+  13: 4,
+  14: 17,
+  // Fileira 3 — slots 15–21.
+  15: 10,
+  19: 5,
+  20: 2,
+  21: 3,
 };
 
 export interface ShowcaseProject {
-  /** Posição no deck. Tem que ser uma de `READING_SLOTS`. */
+  /** Posição no deck. Deve ser uma de `VISIBLE_SLOTS` enquanto sobrarem posições lá. */
   readonly slot: number;
   /** Master em `assets/projetos/`, já processado por `npm run images`. */
   readonly slug: ShowcaseSlug;
@@ -91,45 +109,76 @@ export interface ShowcaseProject {
 }
 
 /**
- * Os 9 projetos, um por posição de leitura.
+ * Os 12 arquivos, um por posição visível (das 13 — sobra uma, que repete).
  *
- * ─── A ORDEM EM VIGOR É DO DAVI, VENDO A TELA ───────────────────────────────────
- * A proposta inicial vinha de duas restrições cruzadas:
+ * ─── A ORDEM DAS 9 PRIMEIRAS É DO DAVI, VENDO A TELA ────────────────────────────
+ * A proposta inicial vinha de duas restrições cruzadas: os três SISTEMAS nas posições
+ * que o celular lê (02, 09, 16), e nunca dois screenshots claros juntos. O Davi rolou
+ * a página e trocou quatro pares. **Julgamento visual na tela real ganha da regra
+ * escrita antes de ver** — os slots 2, 3, 4, 9, 10, 11, 16, 17 e 18 são a ordem dele e
+ * não foram tocados desde então.
  *
- *  1. as três posições que o celular lê (02, 07, 12) receberiam os três SISTEMAS —
- *     CRM, ERP e o dashboard de ordens de serviço —, porque é o argumento do "não
- *     construímos só site" e é o que o visitante de celular vê inteiro;
- *  2. um screenshot claro por fileira, nunca dois juntos: três dos nove têm fundo
- *     branco e, numa página quase preta, são de longe o ponto mais luminoso da tela.
+ * ⚠ CORREÇÃO DE UM DADO QUE ESTAVA ERRADO AQUI: eu havia registrado TRÊS screenshots
+ * claros (`-2`, `-6`, `-7`). Medindo a luminância média de cada master, são **dois**:
+ * `sistemas-2` (198) e `sistemas-6` (219). O `sistemas-7` é escuro (29). Consequência
+ * real: os dois únicos claros estão nas posições 03 e 04, vizinhas e as duas visíveis
+ * em qualquer desktop — o ponto que o Davi já tinha estranhado, e que continua sendo
+ * decisão dele.
  *
- * O Davi rolou a página e trocou quatro pares (`sistemas-1` ↔ `-6`, `-9` ↔ `-7`,
- * `-7` ↔ `-3` e `-5` ↔ `-9`). **Julgamento visual na tela real ganha da regra escrita antes
- * de ver** — a ordem abaixo é a dele. Mas as duas restrições deixaram de valer, e isso
- * fica registrado para ninguém "corrigir" de volta sem saber o que está trocando:
+ * ─── OS TRÊS NOVOS (2026-08-28) ─────────────────────────────────────────────────
+ * Entraram nos slots 5, 8 e 12 — as posições que só notebook largo e baixo mostra
+ * inteiras. É onde um arquivo novo rende mais sem mexer na ordem já aprovada.
  *
- *  · o celular passa a ler 1 sistema e 2 sites (era 3 sistemas);
- *  · as posições 03 e 04 ficaram claras e VIZINHAS, e a fileira 2 ficou toda escura.
+ * ⚠ `sistemas-10` é o MESMO dashboard do `sistemas-7` (ClimaTech, "Bom dia, Gabriel",
+ * os mesmos 28/16/42/7), noutra variação de tema. Foi posto no slot 12 (fileira 2)
+ * para ficar o mais longe possível do `-7` (fileira 3), mas os dois APARECEM na mesma
+ * tela em notebook largo. Se ler como enchimento, o certo é trocá-lo por uma cópia e
+ * mandar outro projeto no lugar.
  *
- * Trocar a ordem é trocar o `slug` de duas linhas aqui. Nada mais no código depende
- * dela — as pontas se reenquadram sozinhas.
+ * Trocar a ordem é trocar o `slug` de duas linhas aqui. Nada mais depende dela.
  */
 export const projects: readonly ShowcaseProject[] = [
-  // Fileira 1 — claras na 03 e na 04.
+  // Fileira 1 — as duas claras estão em 03 e 04.
   { slot: 2, slug: 'sistemas-9', label: '' },
   { slot: 3, slug: 'sistemas-6', label: '' },
   { slot: 4, slug: 'sistemas-2', label: '' },
-  // Fileira 2 — toda escura.
-  { slot: 7, slug: 'sistemas-1', label: '' },
-  { slot: 8, slug: 'sistemas-3', label: '' },
-  { slot: 9, slug: 'sistemas-8', label: '' },
-  // Fileira 3 — clara na 13.
-  { slot: 12, slug: 'sistemas-5', label: '' },
-  { slot: 13, slug: 'sistemas-7', label: '' },
-  { slot: 14, slug: 'sistemas-4', label: '' },
+  { slot: 5, slug: 'sistemas-11', label: '' },
+  // Fileira 2.
+  { slot: 8, slug: 'sistemas-12', label: '' },
+  { slot: 9, slug: 'sistemas-1', label: '' },
+  { slot: 10, slug: 'sistemas-3', label: '' },
+  { slot: 11, slug: 'sistemas-8', label: '' },
+  { slot: 12, slug: 'sistemas-10', label: '' },
+  // Fileira 3.
+  { slot: 16, slug: 'sistemas-5', label: '' },
+  { slot: 17, slug: 'sistemas-7', label: '' },
+  { slot: 18, slug: 'sistemas-4', label: '' },
 ];
 
-/** Largura CSS do cartão (`w-120` = 30rem). É o que o `sizes` precisa declarar. */
-const CARD_WIDTH = 480;
+/**
+ * `sizes` — o MESMO para todo cartão, e cada número foi medido.
+ *
+ * A largura do cartão sai de `clamp(9rem, 26svh, 18,75rem) × 1,6` (ver
+ * `styles/showcase.css`), então quem manda é a ALTURA da tela — daí `max-height`.
+ * Cada faixa declara o TOPO dela, nunca menos que o real: declarar a menos faria o
+ * navegador escolher um arquivo pequeno demais e o cartão sairia borrado.
+ *
+ * ⚠ Um `sizes` por cartão seria pior, e isso foi medido: quando cada um declarava um
+ * tamanho diferente, o mesmo master vinha em DUAS larguras na mesma página — 18
+ * requisições onde deviam existir 9. Com um valor único, o navegador escolhe um
+ * arquivo por master.
+ *
+ * Os números encolheram quando as pontas deixaram de ser recortes ampliados: antes
+ * era preciso declarar `largura × 1,7` para o zoom não borrar, e o desktop em 2×
+ * baixava 660 kB. Sem zoom, o cartão pede exatamente a largura que ocupa e o mesmo
+ * desktop baixa 336 kB.
+ */
+const SIZES = [
+  '(max-width: 640px) 320px',
+  '(max-height: 700px) 320px',
+  '(max-height: 900px) 400px',
+  '480px',
+].join(', ');
 
 function srcSetFor(slug: ShowcaseSlug, format: 'avif' | 'webp'): string {
   return showcaseAssets[slug].widths
@@ -142,9 +191,8 @@ function srcSetFor(slug: ShowcaseSlug, format: 'avif' | 'webp'): string {
  * `<img>` apontando para um WebP de 960px — o tamanho que uma tela 2× pediria — para
  * o caso de o navegador ignorar os dois `<source>`.
  */
-function imageFor(slug: ShowcaseSlug, framing?: FlankFraming): ShowcaseItem {
+function imageFor(slug: ShowcaseSlug): ShowcaseItem {
   const asset = showcaseAssets[slug];
-  const rendered = Math.round(CARD_WIDTH * (framing?.zoom ?? 1));
   const fallback = asset.widths.find((width) => width >= 960) ?? asset.widths[asset.widths.length - 1];
 
   return {
@@ -154,18 +202,14 @@ function imageFor(slug: ShowcaseSlug, framing?: FlankFraming): ShowcaseItem {
       { type: 'image/avif', srcSet: srcSetFor(slug, 'avif') },
       { type: 'image/webp', srcSet: srcSetFor(slug, 'webp') },
     ],
-    // A ampliação das pontas não muda o tamanho de LAYOUT do <img>, então o navegador
-    // escolheria uma largura pequena demais e a ponta sairia borrada. O `sizes` declara
-    // o tamanho RENDERIZADO, que é o que ele precisa saber.
-    sizes: `${String(rendered)}px`,
+    sizes: SIZES,
     width: asset.width,
     height: asset.height,
-    framing: framing === undefined ? undefined : { origin: framing.origin, zoom: framing.zoom },
   };
 }
 
 /**
- * Monta as 15 posições do deck.
+ * Monta as 21 posições do deck.
  *
  * `fallbackLabels` são os rótulos usados enquanto não há projeto real — hoje os quatro
  * serviços, que são copy do Davi. Nenhum texto nasce aqui dentro.
@@ -181,13 +225,13 @@ export function buildDeck(fallbackLabels: readonly string[]): readonly ShowcaseI
       return { ...imageFor(project.slug), title: project.label };
     }
 
-    const flank = FLANK_FRAMING[slot];
-    const source = flank === undefined ? undefined : bySlot.get(flank.from);
+    const from = REPEAT_SOURCE[slot];
+    const source = from === undefined ? undefined : bySlot.get(from);
 
-    if (flank !== undefined && source !== undefined) {
-      // Sem rótulo: a ponta é um recorte de um projeto que já tem cartão próprio, e
-      // nomeá-la de novo faria o mesmo trabalho parecer dois.
-      return imageFor(source.slug, flank);
+    if (source !== undefined) {
+      // Sem rótulo: este slot repete um projeto que já tem cartão próprio, e nomeá-lo
+      // de novo faria o mesmo trabalho parecer dois.
+      return imageFor(source.slug);
     }
 
     // Sem arquivo real para esta posição: painel numerado do design system.

@@ -15,6 +15,9 @@ export interface ShowcaseAsset {
 
 export const showcaseAssets = {
   'sistemas-1': { width: 1586, height: 992, widths: [640, 960, 1280, 1586] },
+  'sistemas-10': { width: 1586, height: 992, widths: [640, 960, 1280, 1586] },
+  'sistemas-11': { width: 1586, height: 992, widths: [640, 960, 1280, 1586] },
+  'sistemas-12': { width: 2560, height: 1600, widths: [640, 960, 1280, 1600] },
   'sistemas-2': { width: 1586, height: 992, widths: [640, 960, 1280, 1586] },
   'sistemas-3': { width: 2560, height: 1600, widths: [640, 960, 1280, 1600] },
   'sistemas-4': { width: 2560, height: 1600, widths: [640, 960, 1280, 1600] },

@@ -252,6 +252,104 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       2,3–2,4 s. **Regra para F4+: medir com nada mais rodando e repetir 3×** — uma
       execução isolada não distingue regressão de ruído.
 
+## Três fileiras em qualquer aparelho + corte do scroll morto (2026-08-28)
+
+> Pedido do Davi depois de testar em duas telas e um celular: as três fileiras do deck
+> deviam aparecer em qualquer dispositivo, e a seção devia terminar quando o deck
+> termina. Tudo abaixo foi MEDIDO no Chrome (puppeteer-core instalado com `--no-save`,
+> 9 viewports, varredura de scroll de 40–60px), não estimado.
+>
+> **Como reproduzir:** `npm run build && npm run preview`, e um script ad-hoc que
+> percorre o scroll lendo `getBoundingClientRect()` de cada cartão. O script não ficou
+> no repositório de propósito (depende de uma dependência que não é do projeto).
+
+- [x] ~~Três fileiras inteiras em qualquer tela~~ — **feito e conferido nas 9
+      viewports.** A causa era o cartão fixo em 480×300: o deck tinha sempre ~1028px de
+      altura enquanto a viewport varia de 640 a 1080px. Agora a altura do cartão sai de
+      `26svh` (`src/styles/showcase.css`) e o deck fecha em 85% da tela, seja ela qual
+      for. Antes: 3 fileiras só em 1920×1080, 2 na maioria, 1 num celular de 640px.
+- [x] ~~Cinco cartões por fileira~~ — **passaram a sete, por aritmética.** Encolher o
+      cartão para caber 3 fileiras encolhe a FILEIRA junto, e ela precisa continuar mais
+      larga que a tela + o curso lateral, senão a ponta entra em quadro. Simulado: com 5
+      faltavam 106–385px em 1280×720, 1366×768 e 1920×950; com 6 ainda faltavam ~120px;
+      com 7 a pior sobra é +181px. **Conferido depois no navegador: vão lateral de 0px
+      com o deck em repouso, em todas as 9 viewports** (o vão de 46–117px que aparecia
+      na primeira medição era a entrada inclinada, `rotateZ` 20°, não buraco).
+- [x] ~~Scroll morto no fim da seção~~ — **zerado.** Era de 1000 a 2040px (1 a 2 telas
+      de nada acontecendo). Agora o deck ainda está saindo de quadro quando a seção
+      acaba: 0px em todas as viewports.
+- [x] ~~⚠ `h-[200vh]` quebrou o celular, e só a medição pegou~~ — com altura fixa em
+      `vh`, o cabeçalho (que no celular é muito mais alto: título + quatro serviços
+      empilhados + CTA) mais a queda mais o deck não cabiam na caixa, e o
+      `overflow-hidden` cortava a terceira fileira — exatamente o que o pedido queria
+      mostrar. Corrigido com altura de CONTEÚDO + piso (`min-h-[150vh]`) e
+      `padding-bottom` reservando o repouso do `translateY`. **Não voltar para altura
+      fixa em `vh` sem remedir o celular.**
+- [x] ~~O ritmo da animação~~ — **preservado, e isso foi conta, não sorte.** Encurtar a
+      seção sozinho aceleraria tudo. As posições da timeline foram refeitas para manter
+      px de movimento por px de rolagem: a queda ocupava 0,2 × 300vh = 60vh e continua
+      em 60vh (0,3 de ~200vh); o arrasto lateral caiu de 1000px para 660px na mesma
+      proporção. As molas, os ângulos e a ordem das fileiras não mudaram.
+- [x] ~~Cada master estava sendo baixado em DUAS larguras~~ — achado na medição de
+      rede: 18 requisições onde deviam existir 9, porque o cartão de leitura e a ponta
+      que reaproveita o mesmo arquivo declaravam `sizes` diferentes. Unificado. Bytes
+      do deck hoje, medidos com o Chrome:
+
+      | | @1× | @2× | @3× |
+      |---|---|---|---|
+      | Desktop / notebook | 336 kB | 660 kB | — |
+      | Celular | 185 kB | 185 kB | 336 kB |
+
+      No celular o `sizes` declara a largura seca do cartão (sem o zoom das pontas),
+      porque lá **nenhuma ponta aparece inteira** — medido. É a única troca de nitidez
+      por bytes do arquivo, e ela vale 660 → 336 kB em 3×.
+- [x] ~~Pontas como RECORTE AMPLIADO do vizinho~~ — **abandonado depois do teste do
+      Davi no desktop.** A ideia era "mesmo arquivo, tile diferente, zero byte a mais"
+      (`transform-origin` + zoom 1,5–1,7). Na tela real o recorte lê como **imagem
+      cortada**, e como ele repetia um cartão visível ali perto, o olho ligava os dois:
+      "as que ficam cortadas são as que repetem". Num deck cujo argumento é capricho de
+      execução, tile que parece erro de enquadramento é pior que repetição honesta.
+      **Agora todo cartão mostra o screenshot inteiro.** A repetição continua (21
+      posições, 9 arquivos) mas passou a ser governada por duas regras, as duas
+      conferidas no HTML gerado:
+        · **nenhum arquivo aparece duas vezes na mesma fileira** — cada fileira mostra 7
+          dos 9, e a duplicata sempre cai noutra fileira, deslocada na horizontal;
+        · os três arquivos que aparecem 3× (`sistemas-4`, `-8`, `-9`, todos escuros) só
+          repetem em posição que NENHUM desktop mostra inteira (1, 6, 7, 13, 14, 15, 20,
+          21 — medido).
+      **Bônus medido:** sem o zoom, o `sizes` pede exatamente a largura que o cartão
+      ocupa, e o desktop em 2× caiu de **660 kB para 336 kB** (185 kB em 1×). Continuam
+      9 requisições, uma por arquivo.
+- [ ] ⚠ **FALTAM 9 IMAGENS para acabar com a repetição** (ou 12, se ultrawide entrar no
+      alvo — ver item abaixo). São 21 posições; hoje existem 12 arquivos. Com os três
+      novos (`sistemas-10/11/12`, entregues em 2026-08-28) a repetição VISÍVEL caiu de
+      4 para **1** — só o `sistemas-11`, nos slots 5 e 19, em fileiras diferentes. As
+      outras 8 cópias estão todas em `HIDDEN_SLOTS`, que nenhum desktop mostra inteiras.
+- [ ] ⚠ **`sistemas-10` não é um projeto novo:** é o MESMO dashboard do `sistemas-7`
+      (ClimaTech, "Bom dia, Gabriel", os mesmos 28/16/42/7) noutra variação de tema.
+      Está no slot 12 e o `-7` no 17 — fileiras diferentes, mas os dois aparecem juntos
+      em notebook largo. **Decisão do Davi:** se ler como enchimento, ele vira cópia e
+      entra outro projeto no lugar.
+- [ ] ⚠ **Buraco em monitor ultrawide de 3440px** — medido: vão lateral de 238px (200px
+      além da goteira). 1920×1080, 2560×1440 e 2560×1080 estão limpos. A correção é 8
+      cartões por fileira (24 posições, 24 arquivos). **Pendente:** confirmar com o Davi
+      se alguma das telas dele é ultrawide; se não for, isto pode esperar F8.
+- [x] ~~Eu havia registrado TRÊS screenshots claros~~ — **errado, são dois.** Luminância
+      média medida por arquivo: `sistemas-2` (198) e `sistemas-6` (219) são claros;
+      `sistemas-7`, que eu tinha classificado como claro, dá 29 — é escuro, como todos
+      os outros. Consequência real: a regra "um claro por fileira" nunca foi cumprida —
+      **os dois únicos claros estão em 03 e 04, vizinhos**, e são visíveis em qualquer
+      desktop. O Davi já tinha estranhado esse par; a decisão continua sendo dele.
+- [ ] **Custo aceito, para ficar registrado:** em 1280×720 o cartão cai para 300×187px
+      e em 360×640 para 266×166px. Um dashboard nesse tamanho vira textura — a UI
+      dentro dele deixa de ser legível. Foi o preço combinado das três fileiras sempre
+      visíveis. Se incomodar quando o Davi vir, o caminho de volta é limitar o
+      encolhimento (`26svh` → um piso maior) e aceitar 2,5 fileiras em tela baixa.
+- [ ] **Falta ver no navegador:** 60fps com o deck rolando em 21 cartões (CPU throttle
+      4×) — o número de cartões subiu 40% e isso não foi medido; e o Lighthouse depois
+      da mudança (a seção continua abaixo da dobra, mas o `index.html` foi de 24 para
+      35 KiB e o `app-*.js` está em 138,1 kB gzip).
+
 ## Troca da seção de Serviços pelo deck em parallax (2026-08-28)
 
 > Pedido do Davi: substituir o índice editorial de F3 pelo componente `HeroParallax`

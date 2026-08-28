@@ -42,13 +42,6 @@ import {
 import { useRef, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
-export interface ShowcaseFraming {
-  /** Canto para onde a ampliação converge (`transform-origin`). */
-  readonly origin: string;
-  /** Ampliação do recorte. */
-  readonly zoom: number;
-}
-
 export interface ShowcaseSource {
   readonly type: string;
   readonly srcSet: string;
@@ -65,12 +58,6 @@ export interface ShowcaseItem {
   /** Dimensões do master, para o cartão nunca causar reflow ao carregar. */
   readonly width?: number;
   readonly height?: number;
-  /**
-   * Reenquadramento do MESMO arquivo, para as posições que só aparecem de canto.
-   * É o que deixa uma ponta parecer outro tile sem baixar um segundo arquivo — ver
-   * o mapa em `lib/showcase.ts`.
-   */
-  readonly framing?: ShowcaseFraming;
 }
 
 export interface HeroParallaxProps {
@@ -87,8 +74,53 @@ export interface HeroParallaxProps {
 /** Mola do original, preservada: é ela que dá o atraso "pesado" ao deck. */
 const SPRING = { stiffness: 300, damping: 30, bounce: 100 } as const;
 
-/** Painéis por fileira. Três fileiras = 15 painéis, como na referência. */
-const ROW_SIZE = 5;
+/**
+ * Painéis por fileira.
+ *
+ * Eram 5, como na referência. Passaram a 7 pela aritmética abaixo, não por gosto.
+ *
+ * ─── AS DUAS GARANTIAS QUE BRIGAM ───────────────────────────────────────────────
+ * (a) a fileira tem que ser mais larga que a tela MAIS o curso lateral, senão a ponta
+ *     dela entra em quadro e abre um buraco durante o arrasto;
+ * (b) as três fileiras têm que caber inteiras na altura da tela (pedido do Davi).
+ *
+ * (b) obriga o cartão a encolher em tela baixa — e o cartão encolhendo encolhe a
+ * fileira, que é justamente do que (a) precisa. Medido no Chrome e simulado nas 9
+ * viewports: com 5 por fileira o buraco aparecia em 1280×720, 1366×768 e 1920×950
+ * (déficit de 106 a 385px); com 6 ainda faltavam ~120–170px nessas três; com **7** a
+ * pior sobra fica em +181px. Sete é o primeiro número que fecha em todas.
+ *
+ * O custo é zero em rede: as posições novas são pontas, e ponta reaproveita o master
+ * de um vizinho que o navegador já baixou (ver `lib/showcase.ts`).
+ */
+const ROW_SIZE = 7;
+
+/**
+ * Altura de rolagem da seção, e as posições da timeline dentro dela.
+ *
+ * Era `300vh` fixos com a queda em `[0, 0.2]`. Medido: sobravam de 1000 a 2040px de
+ * rolagem depois que o deck parava — uma a duas telas inteiras de nada acontecendo
+ * antes da próxima seção.
+ *
+ * ⚠ ALTURA FIXA EM `vh` NÃO SERVE, e isso foi descoberto medindo, não pensando. Com
+ * `h-[200vh]` o celular quebrou: lá o cabeçalho (título + quatro serviços empilhados
+ * + CTA) é MUITO mais alto que no desktop, e header + queda + deck passaram a não
+ * caber dentro da caixa — o `overflow-hidden` cortava a terceira fileira justamente
+ * onde o pedido era mostrá-la. Em 390×844 e 360×640 sobravam 2 e 1 fileiras.
+ *
+ * Por isso a altura agora é do CONTEÚDO, com piso: `min-h` garante pista de rolagem
+ * onde o conteúdo é curto (desktop), e o `padding-bottom` reserva o deslocamento em
+ * que o deck repousa (`translateY` +500px), que é transformação e não entra no
+ * cálculo de layout sozinho.
+ *
+ * As duas constantes de timeline preservam a TAXA do movimento que o Davi aprovou —
+ * px de movimento por px de rolagem:
+ *   · a queda ocupava 0,2 × 300vh = 60vh; em 0,3 de uma seção de ~200vh, o mesmo;
+ *   · o arrasto lateral corria 1000px em 300vh; 660px em 200vh mantêm a velocidade.
+ */
+const SECTION_SCROLL = 'min-h-[150vh] pb-[520px]';
+const FALL_END = 0.3;
+const TRAVEL = 660;
 
 export function HeroParallax({ items, header, className }: HeroParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -99,12 +131,12 @@ export function HeroParallax({ items, header, className }: HeroParallaxProps) {
     offset: ['start start', 'end start'],
   });
 
-  const translateX = useSpring(useTransform(scrollYProgress, [0, 1], [0, 1000]), SPRING);
-  const translateXReverse = useSpring(useTransform(scrollYProgress, [0, 1], [0, -1000]), SPRING);
-  const rotateX = useSpring(useTransform(scrollYProgress, [0, 0.2], [15, 0]), SPRING);
-  const opacity = useSpring(useTransform(scrollYProgress, [0, 0.2], [0.2, 1]), SPRING);
-  const rotateZ = useSpring(useTransform(scrollYProgress, [0, 0.2], [20, 0]), SPRING);
-  const translateY = useSpring(useTransform(scrollYProgress, [0, 0.2], [-700, 500]), SPRING);
+  const translateX = useSpring(useTransform(scrollYProgress, [0, 1], [0, TRAVEL]), SPRING);
+  const translateXReverse = useSpring(useTransform(scrollYProgress, [0, 1], [0, -TRAVEL]), SPRING);
+  const rotateX = useSpring(useTransform(scrollYProgress, [0, FALL_END], [15, 0]), SPRING);
+  const opacity = useSpring(useTransform(scrollYProgress, [0, FALL_END], [0.2, 1]), SPRING);
+  const rotateZ = useSpring(useTransform(scrollYProgress, [0, FALL_END], [20, 0]), SPRING);
+  const translateY = useSpring(useTransform(scrollYProgress, [0, FALL_END], [-700, 500]), SPRING);
 
   const firstRow = items.slice(0, ROW_SIZE);
   const secondRow = items.slice(ROW_SIZE, ROW_SIZE * 2);
@@ -114,8 +146,9 @@ export function HeroParallax({ items, header, className }: HeroParallaxProps) {
     <div
       ref={ref}
       className={cn(
-        'relative flex h-[300vh] flex-col self-auto overflow-hidden py-block antialiased [perspective:1000px] [transform-style:preserve-3d]',
-        'motion-reduce:h-auto',
+        'showcase-deck relative flex flex-col self-auto overflow-hidden py-block antialiased [perspective:1000px] [transform-style:preserve-3d]',
+        SECTION_SCROLL,
+        'motion-reduce:min-h-0 motion-reduce:pb-0',
         className,
       )}
     >
@@ -147,9 +180,9 @@ function ParallaxRow({ items, translate, reverse = false, last = false }: Parall
   return (
     <div
       className={cn(
-        'flex gap-block',
+        'flex gap-[var(--deck-gap)]',
         reverse && 'flex-row-reverse',
-        !last && 'mb-block',
+        !last && 'mb-[var(--deck-gap)]',
       )}
     >
       {items.map((item, index) => (
@@ -176,11 +209,13 @@ function ShowcaseCard({ item, translate }: ShowcaseCardProps) {
     <motion.div
       style={translate === undefined ? undefined : { x: translate }}
       whileHover={translate === undefined ? undefined : { y: -20 }}
-      className="group/card relative aspect-16/10 w-120 shrink-0 overflow-hidden rounded-sm border border-line bg-surface"
+      // Largura e altura vêm das variáveis do `.showcase-deck`, não de `aspect-*`: a
+      // largura É a altura × 1,6, então a proporção 16:10 já está embutida e o cartão
+      // continua encaixando o master sem corte em qualquer tamanho de tela.
+      className="group/card relative h-(--deck-card-h) w-(--deck-card-w) shrink-0 overflow-hidden rounded-sm border border-line bg-surface"
     >
-      {/* 16:10 é a proporção do master, então o `object-cover` de um screenshot inteiro
-          não corta nada. Quem usa `framing` é ponta de fileira: mesmo arquivo, outro
-          pedaço, nenhum download a mais — ver `lib/showcase.ts`. */}
+      {/* O cartão e o master têm a mesma proporção (16:10), então o `object-cover`
+          mostra o screenshot INTEIRO — nenhum cartão do deck é recorte. */}
       <picture>
         {item.sources?.map((source) => (
           <source key={source.type} type={source.type} srcSet={source.srcSet} sizes={item.sizes} />
@@ -193,14 +228,6 @@ function ShowcaseCard({ item, translate }: ShowcaseCardProps) {
           sizes={item.sizes}
           loading="lazy"
           decoding="async"
-          style={
-            item.framing === undefined
-              ? undefined
-              : {
-                  transformOrigin: item.framing.origin,
-                  transform: `scale(${String(item.framing.zoom)})`,
-                }
-          }
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
       </picture>

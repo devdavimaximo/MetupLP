@@ -1,0 +1,27 @@
+/**
+ * Vitrine em parallax — a geometria do deck.
+ *
+ * Está em CSS, e não em utilitário do Tailwind, porque as três medidas são DERIVADAS
+ * umas das outras: mudar a altura do cartão tem que mover a largura e as goteiras
+ * junto, ou a proporção 16:10 e o ritmo do deck saem de sincronia em silêncio.
+ *
+ * ─── POR QUE A ALTURA É RELATIVA À TELA ─────────────────────────────────────────
+ * O cartão era 480×300 fixos, e por isso o deck tinha sempre ~1028px de altura
+ * enquanto a viewport variava de 640 a 1080px. Medido no Chrome, 9 viewports: as três
+ * fileiras só cabiam INTEIRAS numa tela de 1080px; em notebook cabiam duas, e num
+ * celular de 640px, uma. O pedido do Davi foi ter as três em qualquer aparelho, então
+ * a altura do cartão passou a sair da altura da tela.
+ *
+ * `svh` e não `vh`: no celular, `vh` mede a viewport SEM a barra de endereço, então o
+ * deck nasceria mais alto que a área visível justamente onde ela é mais curta — o
+ * mesmo motivo do `min-h-svh` do herói.
+ *
+ * A conta: deck = 3 cartões + 2 goteiras = 3h + 0,28h = 3,28h. Com h = 26svh, o deck
+ * fica em 85% da tela — as três fileiras cabem com folga em qualquer altura, e o teto
+ * de 18,75rem impede que um monitor muito alto estique o cartão além do que ele era.
+ */
+.showcase-deck {
+  --deck-card-h: clamp(9rem, 26svh, 18.75rem);
+  --deck-card-w: calc(var(--deck-card-h) * 1.6);
+  --deck-gap: calc(var(--deck-card-h) * 0.14);
+}
