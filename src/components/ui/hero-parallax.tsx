@@ -146,15 +146,29 @@ export function HeroParallax({ items, header, className }: HeroParallaxProps) {
     <div
       ref={ref}
       className={cn(
-        'showcase-deck relative flex flex-col self-auto overflow-hidden py-block antialiased [perspective:1000px] [transform-style:preserve-3d]',
+        'showcase-deck relative flex flex-col self-auto overflow-hidden py-block antialiased',
         SECTION_SCROLL,
         'motion-reduce:min-h-0 motion-reduce:pb-0',
         className,
       )}
     >
-      {header}
+      {/* O cabeçalho fica FORA do contexto 3D, e isso não é detalhe de organização.
+          Enquanto `perspective`/`preserve-3d` viviam na raiz, o cabeçalho e o deck
+          eram irmãos dentro do mesmo espaço tridimensional — e ali a ordem de pintura
+          é decidida pela posição em Z, não por `z-index`. Como a queda começa com o
+          deck deslocado para cima e inclinado, os cartões passavam POR CIMA do título,
+          das quatro frases e do CTA, com a opacidade de entrada (0,2) por cima do
+          texto. Além de feio, era um botão de conversão coberto por um <img> que
+          comeria o clique (§3).
 
-      <div aria-hidden className="mt-block">
+          Com o 3D restrito ao deck, os dois voltam a ser irmãos num empilhamento
+          normal e o `z-raised` resolve. */}
+      <div className="relative z-raised">{header}</div>
+
+      <div
+        aria-hidden
+        className="mt-block [perspective:1000px] [transform-style:preserve-3d]"
+      >
         <motion.div
           style={reduce ? undefined : { rotateX, rotateZ, translateY, opacity }}
           className="motion-reduce:opacity-100"
