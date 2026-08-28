@@ -6,15 +6,25 @@ import { HeroParallax } from '../components/ui/hero-parallax';
 import { cn } from '../lib/cn';
 import { copy } from '../lib/content';
 import { padIndex } from '../lib/format';
+import { SECTION_ID } from '../lib/sections';
 import { buildDeck } from '../lib/showcase';
-
-/** `id` da âncora. É para cá que o indicador de rolagem do herói aponta. */
-export const SERVICES_SECTION_ID = 'servicos';
 
 const HEADING_ID = 'servicos-titulo';
 
 export interface IndexRuleProps {
   readonly className?: string;
+  /**
+   * Atributo `data-*` que a timeline da seção usa para achar este filete.
+   *
+   * Existe porque o filete é do design system e o gancho de motion é da SEÇÃO: o
+   * Processo reusa o mesmo desenho, mas quem o anima é `animations/process.ts`, com
+   * o próprio ScrollTrigger. Sem esta prop, o filete de lá carregaria
+   * `data-services-rule` e nenhuma das duas timelines o encontraria — ele ficaria
+   * parado, e o defeito seria invisível no código.
+   *
+   * O padrão preserva o comportamento de Serviços, que não passa nada.
+   */
+  readonly motionHook?: string;
 }
 
 /**
@@ -24,11 +34,11 @@ export interface IndexRuleProps {
  * `scaleX` — ver o preset `drawLine`. O segmento dourado é o mesmo gesto do
  * `<Eyebrow>` e da faixa de serviços do herói.
  */
-export function IndexRule({ className }: IndexRuleProps) {
+export function IndexRule({ className, motionHook = SERVICES_HOOK.rule }: IndexRuleProps) {
   return (
     <span
       aria-hidden
-      {...{ [SERVICES_HOOK.rule]: true }}
+      {...{ [motionHook]: true }}
       className={cn('h-px origin-left bg-line', className)}
     >
       <span className="block h-full w-10 bg-accent" />
@@ -79,7 +89,7 @@ export function Services() {
   return (
     <Section
       ref={ref}
-      id={SERVICES_SECTION_ID}
+      id={SECTION_ID.services}
       labelledBy={HEADING_ID}
       rhythm="flush"
       width="full"

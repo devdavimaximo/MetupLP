@@ -27,6 +27,7 @@
  * a verdade, a forma diz.
  */
 import type { ConversionEventName } from './analytics';
+import { SECTION_ID } from './sections';
 
 export type ContactKind = 'pending' | 'whatsapp';
 
@@ -39,17 +40,12 @@ export interface ContactTarget {
   readonly isExternal: boolean;
 }
 
-/** `id` da <Section> de contato. Fonte única da âncora, aqui e no componente. */
-export const CONTACT_SECTION_ID = 'contato';
-
-/** `id` da <Section> do herói — alvo do wordmark no header. */
-export const HERO_SECTION_ID = 'inicio';
-
 // A anotação explícita mantém `kind` como a união: as duas ramificações do ícone e
 // do evento continuam compilando enquanto o valor é `pending`.
 export const contactTarget: ContactTarget = {
   kind: 'pending',
-  href: `#${CONTACT_SECTION_ID}`,
+  // A âncora vem de `lib/sections.ts`, que é a fonte única dos `id` da página.
+  href: `#${SECTION_ID.contact}`,
   analyticsId: 'cta_click',
   isExternal: false,
 };

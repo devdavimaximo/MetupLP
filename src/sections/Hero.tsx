@@ -3,12 +3,11 @@ import { HERO_HOOK, heroMotion } from '../animations/hero';
 import { useMotion } from '../animations/useMotion';
 import { ContactCta } from '../components/ContactCta';
 import { Eyebrow, Heading, PendingContent, Section, Text } from '../components';
-import { HERO_SECTION_ID } from '../lib/contact';
 import { copy } from '../lib/content';
 import { accentSegments } from '../lib/format';
+import { SECTION_ID } from '../lib/sections';
 import { uiStrings } from '../lib/ui-strings';
 import { HeroBackdrop } from './HeroBackdrop';
-import { SERVICES_SECTION_ID } from './Services';
 
 const HEADING_ID = 'hero-titulo';
 
@@ -109,7 +108,7 @@ export function Hero() {
   return (
     <Section
       ref={ref}
-      id={HERO_SECTION_ID}
+      id={SECTION_ID.hero}
       labelledBy={HEADING_ID}
       rhythm="flush"
       width="full"
@@ -210,7 +209,7 @@ export function Hero() {
             gesto que a página inteira sugere é atendido. `text-muted` mantém a
             hierarquia — ele nunca disputa a atenção com o CTA dourado (§3). */}
         <a
-          href={`#${SERVICES_SECTION_ID}`}
+          href={`#${SECTION_ID.services}`}
           {...{ [HERO_HOOK.reveal]: true }}
           className="hero-cue flex shrink-0 flex-col items-center gap-3 rounded-xs font-mono text-label text-muted uppercase transition-colors duration-fast ease-out hover:text-accent focus-visible:focus-ring"
         >

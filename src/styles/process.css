@@ -1,0 +1,149 @@
+/**
+ * Processo — a geometria do trilho.
+ *
+ * Está em CSS, e não em utilitário do Tailwind, pelo mesmo motivo de `showcase.css`:
+ * as medidas são DERIVADAS umas das outras. O trilho vertical tem que cair no CENTRO
+ * da coluna do número, e o número tem que mascarar a linha atrás dele — mexer numa
+ * das duas sem a outra desalinha o eixo em silêncio. Aqui elas saem da mesma
+ * variável.
+ *
+ * ─── AS TRÊS DECISÕES DE LAYOUT ─────────────────────────────────────────────────
+ *  1. O ESPAÇO ENTRE PASSOS É `padding-bottom` DO `<li>`, NÃO `gap` DA LISTA.
+ *     O trilho de cada passo é absoluto dentro do próprio `<li>` e ocupa a altura
+ *     dele. Com `gap`, esse espaço ficaria FORA de todos os `<li>` e a linha teria um
+ *     buraco entre cada passo. Com `padding-bottom`, os segmentos se encostam e lêem
+ *     como uma linha contínua — que é o que permite desenhá-la passo a passo, sem
+ *     scrub (ver `animations/process.ts`).
+ *  2. ALINHAMENTO POR BASELINE, não pelo topo da caixa. O número é `--text-label`
+ *     (0,75rem) e o nome do passo é `--text-title-sm` (fluido, 1,5→1,875rem): alinhar
+ *     caixas deixaria o número boiando acima da maiúscula do título, e a diferença
+ *     mudaria a cada largura de tela. `baseline` acerta em qualquer viewport sem
+ *     nenhum número mágico — é o mesmo `items-baseline` do índice de Serviços.
+ *  3. NO DESKTOP A FRASE VAI PARA UMA TERCEIRA COLUNA. Empilhada, ela obriga o olho a
+ *     descer e voltar em cada passo; lado a lado, os quatro passos viram uma tabela
+ *     de leitura e a seção fica mais curta — que é o ponto de uma seção silenciosa
+ *     entre um deck de 200vh e o CTA final.
+ */
+
+.process-steps {
+  /**
+   * Coluna do número, e portanto a posição do trilho (que fica no meio dela).
+   *
+   * Derivada de `--text-label` (o tamanho do próprio número) em vez de escrita em
+   * rem: se a escala tipográfica mudar, a coluna acompanha. 2,75× cabe "01" com o
+   * `--tracking-terminal` de 0,14em e ainda deixa respiro dos dois lados.
+   */
+  --process-marker: calc(var(--text-label) * 2.75);
+  /** Distância do número até o texto. */
+  --process-gutter: var(--spacing-stack);
+  /**
+   * Segmento dourado na cabeça do trilho — mesmo comprimento do segmento do
+   * `IndexRule` horizontal (`w-10`), para os dois lerem como o mesmo filete dobrando
+   * o canto embaixo do título da seção.
+   */
+  --process-head: calc(var(--spacing) * 10);
+
+  display: grid;
+  /* Zero de propósito: o respiro entre passos é `padding-bottom` do `<li>`. Ver (1). */
+  gap: 0;
+}
+
+.process-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--process-marker) minmax(0, 1fr);
+  column-gap: var(--process-gutter);
+  align-items: baseline;
+  padding-bottom: var(--spacing-block);
+}
+
+/* O trilho para no último passo: a linha termina onde o processo termina. */
+.process-step:last-child {
+  padding-bottom: 0;
+}
+
+/**
+ * O primeiro passo abre espaço ACIMA do número para o segmento dourado aparecer
+ * inteiro — sem isso, a cabeça do trilho nasceria atrás do "01" e o gesto do canto
+ * dourado se perderia.
+ */
+.process-step:first-child {
+  padding-top: var(--process-head);
+}
+
+.process-rail {
+  position: absolute;
+  inset-block: 0;
+  left: calc(var(--process-marker) / 2);
+  /**
+   * `margin-left` e NÃO `translateX(-50%)` para centralizar: o GSAP anima `scaleY`
+   * neste nó e reescreveria a matriz de transformação inteira, levando o
+   * deslocamento junto. Ver a nota em `presets.ts › drawLine`.
+   */
+  margin-left: calc(var(--hairline) / -2);
+  width: var(--hairline);
+  /* `drawLine({ axis: 'y' })` exige a origem no CSS — senão cresce dos dois lados. */
+  transform-origin: top;
+  background-color: var(--color-line);
+}
+
+.process-rail-head {
+  display: block;
+  width: 100%;
+  height: var(--process-head);
+  background-color: var(--color-accent);
+}
+
+/**
+ * O número interrompe o trilho.
+ *
+ * `position: relative` não é enfeite: o trilho é `position: absolute` e vem ANTES no
+ * DOM, então sem um contexto posicionado aqui ele pintaria POR CIMA do número. Com
+ * `relative`, a ordem de árvore decide e o número ganha — e o fundo dele apaga o
+ * pedaço de linha que passaria atrás dos dígitos.
+ */
+.process-marker {
+  position: relative;
+  text-align: center;
+  padding-block: calc(var(--spacing) * 2);
+  background-color: var(--color-bg);
+}
+
+.process-step-body {
+  grid-column: 2;
+  margin-top: calc(var(--spacing) * 3);
+}
+
+/**
+ * `48rem` espelha `--breakpoint-md` do `tokens.css` (custom property não é lida
+ * dentro de `@media`). É o mesmo ponto em que o índice de Serviços vira duas
+ * colunas — a topologia da página muda uma vez só, não uma por seção.
+ */
+@media (min-width: 48rem) {
+  .process-steps {
+    --process-marker: calc(var(--text-label) * 4);
+    --process-gutter: var(--spacing-gutter);
+    /**
+     * Colunas de medida FIXA, com a sobra virando margem à direita — e não `1fr`
+     * cada. Num monitor largo, `fr` esticaria a frase até 90+ caracteres por linha,
+     * bem além da medida de leitura. 15rem cabe o nome do passo em uma linha e
+     * 34rem fecha a frase em ~62 caracteres; o resto da largura é ar, que é
+     * exatamente o que uma seção editorial quer.
+     */
+    --process-title-col: 15rem;
+    --process-body-col: 34rem;
+  }
+
+  .process-step {
+    grid-template-columns:
+      var(--process-marker)
+      minmax(0, var(--process-title-col))
+      minmax(0, var(--process-body-col));
+  }
+
+  .process-step-body {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 0;
+  }
+}

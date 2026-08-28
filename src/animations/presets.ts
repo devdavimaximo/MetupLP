@@ -89,31 +89,44 @@ export function fadeIn(options: FadeInOptions = {}): MotionPreset {
   };
 }
 
+/** Eixo em que o filete cresce. `x` → da esquerda; `y` → de cima. */
+export type DrawAxis = 'x' | 'y';
+
 export interface DrawLineOptions {
   readonly duration?: number;
   readonly stagger?: number;
+  readonly axis?: DrawAxis;
 }
 
 /**
- * Filete que se desenha da esquerda para a direita.
+ * Filete que se desenha — da esquerda para a direita (`axis: 'x'`, padrão) ou de
+ * cima para baixo (`axis: 'y'`, o trilho vertical do Processo).
  *
- * `scaleX` e não `width`: largura é layout e custaria reflow a cada quadro (§6.4);
- * escala fica no compositor. O preço é que o elemento precisa ser um NÓ próprio
- * (um `<span>`), não um `border-top` — não se anima a borda de outra coisa.
+ * `scaleX`/`scaleY` e não `width`/`height`: dimensão é layout e custaria reflow a
+ * cada quadro (§6.4); escala fica no compositor. O preço é que o elemento precisa
+ * ser um NÓ próprio (um `<span>`), não um `border-top` — não se anima a borda de
+ * outra coisa.
  *
- * O elemento tem que carregar `origin-left` no CSS. O GSAP não escreve
- * `transform-origin` em elemento HTML quando ninguém pede, então quem esquecer a
- * classe vê o filete crescer a partir do centro. Deixar a origem no CSS (e não nas
- * vars) é de propósito: num `gsap.from()` ela viraria um valor INICIAL a ser
- * animado até o computado, que é o oposto do que se quer.
+ * O elemento tem que carregar a ORIGEM no CSS: `origin-left` no eixo `x`,
+ * `origin-top` no eixo `y`. O GSAP não escreve `transform-origin` em elemento HTML
+ * quando ninguém pede, então quem esquecer vê o filete crescer a partir do centro,
+ * para os dois lados. Deixar a origem no CSS (e não nas vars) é de propósito: num
+ * `gsap.from()` ela viraria um valor INICIAL a ser animado até o computado, que é o
+ * oposto do que se quer.
+ *
+ * ⚠ Pelo mesmo motivo, o nó do filete não pode depender de `transform` para se
+ * posicionar (um `translateX(-50%)` para centralizar, por exemplo): a escala do GSAP
+ * reescreve a matriz inteira. Use `margin` para posicionar — é o que
+ * `.process-rail` faz.
  */
 export function drawLine(options: DrawLineOptions = {}): MotionPreset {
-  const { duration = DURATION.slow, stagger = STAGGER.base } = options;
+  const { duration = DURATION.slow, stagger = STAGGER.base, axis = 'x' } = options;
+  const key = axis === 'x' ? 'scaleX' : 'scaleY';
 
   return {
     full: {
-      from: { scaleX: 0 },
-      to: { scaleX: 1, duration, stagger },
+      from: { [key]: 0 },
+      to: { [key]: 1, duration, stagger },
     },
     calm: calmFade(),
   };

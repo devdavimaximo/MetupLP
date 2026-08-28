@@ -2,6 +2,7 @@ import { useSmoothScroll } from '../animations/useSmoothScroll';
 import { Header, SkipLink } from '../components';
 import { ContactAnchor } from '../sections/ContactAnchor';
 import { Hero } from '../sections/Hero';
+import { Process } from '../sections/Process';
 import { Services } from '../sections/Services';
 
 const MAIN_ID = 'conteudo';
@@ -17,8 +18,16 @@ const MAIN_ID = 'conteudo';
  * rolagem do documento) e duas instâncias competiriam pela mesma posição. Ele mesmo
  * decide se deve existir — ver `useSmoothScroll`.
  *
- * Em F3 são três seções: o herói, o índice de serviços e o destino do CTA. Cases
- * (F4), prova social (F5) e o contato completo (F6) entram por baixo, nesta ordem.
+ * São quatro seções: o herói, Serviços (cabeçalho editorial + deck em parallax), o
+ * Processo e o destino do CTA. A ordem é o argumento da página — impressiona, mostra
+ * o que faz, explica como começa, pede o contato —, e o Processo entra exatamente
+ * antes do CTA final porque é ali que a objeção "como isso funciona?" aparece.
+ *
+ * ⚠ `<Process />` pode não renderizar NADA: a seção é opcional em `content/copy.md`
+ * (ver a nota em `sections/Process.tsx`). A página tem que continuar coerente com
+ * três seções — e continua, porque o CTA final não depende dela.
+ *
+ * Prova social (F5) e o contato completo (F6) entram por baixo, nesta ordem.
  */
 export function App() {
   useSmoothScroll();
@@ -30,6 +39,7 @@ export function App() {
       <main id={MAIN_ID}>
         <Hero />
         <Services />
+        <Process />
         <ContactAnchor />
       </main>
 

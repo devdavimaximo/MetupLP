@@ -15,6 +15,19 @@
 > `**Eyebrow:**` é novo e é opcional no parser — apagá-lo tira a linha do site sem
 > quebrar o build. Continua sendo MOCK: nenhuma frase aqui afirma resultado, prazo,
 > número ou nome de cliente.
+>
+> **`## Processo` é MOCK DO CLAUDE AGUARDANDO APROVAÇÃO (2026-08-28)**, no mesmo
+> regime do MOCK acima e do título de Serviços aprovado em 2026-08-27. O Claude
+> **não sabe como o Davi trabalha**: o texto abaixo é a mecânica genérica de um
+> projeto sob demanda, sem prazo, sem número de reuniões, sem garantia e sem
+> promessa de resultado. As outras duas direções propostas estão em
+> `sugestoes.md`. **Davi: confirme, reescreva ou apague.**
+>
+> ⚠ **Apagar a seção `## Processo` inteira é seguro** — ela é OPCIONAL no parser
+> (como o `**Eyebrow:**`): sem ela o build passa e a seção simplesmente não é
+> renderizada. Mas, uma vez que o bloco existe, ele precisa do `**Título da
+> seção:**` e de pelo menos um passo — senão o build quebra com a lista do que
+> faltou, de propósito.
 
 ## Hero
 
@@ -41,6 +54,22 @@ Fluxos que tiram trabalho manual do seu time e colocam processo pra rodar sozinh
 
 **Sistemas sob demanda**
 Software feito do jeito que sua empresa já funciona — não o contrário.
+
+## Processo
+
+**Título da seção:** Começa com uma conversa
+
+**Você chama**
+Conta em poucas linhas o que precisa. Sem termo técnico e sem formulário longo.
+
+**A gente entende**
+Perguntamos até enxergar o problema por trás do pedido, e não só o pedido.
+
+**Você acompanha**
+O projeto vai ficando de pé à vista, e o que não estiver certo muda no caminho.
+
+**Entra no ar**
+A gente publica e explica o que foi feito, para o que é seu continuar sendo seu.
 
 ## Cases (chamada da seção)
 

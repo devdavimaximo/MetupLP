@@ -22,6 +22,18 @@
  * Se a copy oficial renomear um rótulo (`**Subheadline:**` → `**Sub:**`), o build
  * QUEBRA com a lista de chaves ausentes. É o comportamento desejado — é o que
  * impede a LP de ir ao ar com seção vazia (CLAUDE.md §4).
+ *
+ * ─── O QUE É OPCIONAL, E POR QUÊ ────────────────────────────────────────────────
+ * Quase tudo é obrigatório. As exceções são explícitas e existem pelo mesmo motivo:
+ * são coisas que o Davi ainda pode querer APAGAR sem derrubar o build.
+ *
+ *   `**Eyebrow:**` / `**Destaque:**`  (campos, dentro de `## Hero`)
+ *   `## Processo`                     (a SEÇÃO INTEIRA — ver a nota em `SiteCopy`)
+ *
+ * A regra que separa os dois grupos: é obrigatório aquilo sem o que a seção não
+ * consegue existir; é opcional aquilo cuja ausência tem um resultado correto e
+ * previsível (o kicker some, a seção some). Nada aqui é opcional "por via das
+ * dúvidas" — opcional demais é como uma LP vai ao ar sem metade da copy.
  */
 
 /** Texto pronto para publicar. */
@@ -51,6 +63,22 @@ export interface ServiceCopy {
   /** Rótulo estrutural: sempre texto, nunca placeholder. */
   readonly title: string;
   readonly description: CopyField;
+}
+
+/**
+ * Um passo do processo. Mesma FORMA de `ServiceCopy` (título + frase), tipo próprio
+ * de propósito: os dois blocos vão divergir — um passo pode ganhar duração, ícone ou
+ * entregável, e um serviço não. Um alias hoje viraria uma refatoração amanhã.
+ */
+export interface ProcessStepCopy {
+  /** Nome do passo. Rótulo estrutural: sempre texto, nunca placeholder. */
+  readonly title: string;
+  readonly description: CopyField;
+}
+
+export interface ProcessCopy {
+  readonly sectionTitle: CopyField;
+  readonly steps: readonly ProcessStepCopy[];
 }
 
 export interface SiteCopy {
@@ -85,6 +113,25 @@ export interface SiteCopy {
     readonly sectionTitle: CopyField;
     readonly items: readonly ServiceCopy[];
   };
+  /**
+   * Processo — "como funciona trabalhar com a gente". A SEÇÃO INTEIRA É OPCIONAL, e
+   * isso é uma decisão de contrato, não um esquecimento.
+   *
+   * ─── POR QUE OPCIONAL ───────────────────────────────────────────────────────────
+   * O texto que está hoje em `copy.md` é MOCK do Claude aguardando aprovação: o Davi
+   * é quem sabe como trabalha, e o §4 proíbe publicar processo inventado como se
+   * fosse dele. Enquanto isso não se resolve, ele precisa poder APAGAR o bloco
+   * `## Processo` do markdown e ver a seção sumir do site — sem derrubar o build por
+   * uma seção que ainda está em aprovação. É a mesma decisão do `hero.eyebrow`,
+   * levada de um campo para uma seção inteira.
+   *
+   * ─── OPCIONAL COMO UM TODO, OBRIGATÓRIA POR DENTRO ──────────────────────────────
+   * Ausente → `undefined`, e `Process` não renderiza nada. PRESENTE → o
+   * `**Título da seção:**` e pelo menos um passo passam a ser exigidos, e a falta é
+   * coletada no `Collector` como qualquer outra. Meio-termo (uma seção declarada,
+   * mas sem `<h2>` e sem nome acessível) seria pior que os dois extremos.
+   */
+  readonly process?: ProcessCopy;
   readonly cases: {
     readonly sectionTitle: CopyField;
     readonly intro: CopyField;
@@ -244,7 +291,14 @@ function parseSectionBlocks(body: string): readonly Block[] {
 }
 
 /** Mapa de seções: chave = prefixo normalizado do `## título`. */
-const SECTION_PREFIXES = ['hero', 'servicos', 'cases', 'prova-social', 'contato'] as const;
+const SECTION_PREFIXES = [
+  'hero',
+  'servicos',
+  'processo',
+  'cases',
+  'prova-social',
+  'contato',
+] as const;
 type SectionKey = (typeof SECTION_PREFIXES)[number];
 
 function splitSections(markdown: string): ReadonlyMap<SectionKey, readonly Block[]> {
@@ -320,19 +374,63 @@ function requireLabeled(
   return toField(block.value);
 }
 
+/**
+ * Blocos `**Título**` + corpo de uma seção, na ordem do markdown.
+ *
+ * Serve a Serviços e a Processo, que compartilham o formato mas não o significado —
+ * por isso devolve a forma bruta e cada seção a tipa como o que ela é.
+ */
+function titledEntries(
+  blocks: readonly Block[] | undefined,
+): readonly { readonly title: string; readonly description: CopyField }[] {
+  return (blocks ?? [])
+    .filter((block): block is TitledBlock => block.kind === 'titled')
+    .map((block) => ({ title: block.title, description: toField(block.body) }));
+}
+
+/**
+ * Monta `## Processo` — chamada SÓ quando o bloco existe no markdown.
+ *
+ * Ou seja: a ausência da seção nunca chega aqui e nunca vira falta. Uma vez que ela
+ * existe, título e passos são exigidos como em qualquer outra seção (ver a nota do
+ * campo `process` em `SiteCopy`).
+ */
+function buildProcess(blocks: readonly Block[], collector: Collector): ProcessCopy {
+  const steps: readonly ProcessStepCopy[] = titledEntries(blocks);
+
+  if (steps.length === 0) {
+    collector.record(
+      'process.steps',
+      '**Nome do passo** seguido da frase do passo',
+      '## Processo',
+    );
+  }
+
+  return {
+    sectionTitle: requireLabeled(
+      blocks,
+      'titulo-da-secao',
+      'process.sectionTitle',
+      '**Título da seção:**',
+      '## Processo',
+      collector,
+    ),
+    steps,
+  };
+}
+
 export function parseCopy(markdown: string): ParseResult {
   const sections = splitSections(markdown);
   const collector = new Collector();
 
   const heroBlocks = sections.get('hero');
   const servicesBlocks = sections.get('servicos');
+  const processBlocks = sections.get('processo');
   const casesBlocks = sections.get('cases');
   const proofBlocks = sections.get('prova-social');
   const contactBlocks = sections.get('contato');
 
-  const serviceItems: ServiceCopy[] = (servicesBlocks ?? [])
-    .filter((block): block is TitledBlock => block.kind === 'titled')
-    .map((block) => ({ title: block.title, description: toField(block.body) }));
+  const serviceItems: readonly ServiceCopy[] = titledEntries(servicesBlocks);
 
   if (serviceItems.length === 0) {
     collector.record('services.items', '**Título** seguido do texto do serviço', '## Serviços');
@@ -359,6 +457,7 @@ export function parseCopy(markdown: string): ParseResult {
       sectionTitle: requireLabeled(servicesBlocks, 'titulo-da-secao', 'services.sectionTitle', '**Título da seção:**', '## Serviços', collector),
       items: serviceItems,
     },
+    process: processBlocks === undefined ? undefined : buildProcess(processBlocks, collector),
     cases: {
       sectionTitle: requireLabeled(casesBlocks, 'titulo-da-secao', 'cases.sectionTitle', '**Título da seção:**', '## Cases', collector),
       intro: requireLabeled(casesBlocks, 'intro', 'cases.intro', '**Intro:**', '## Cases', collector),

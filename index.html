@@ -2,7 +2,11 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Derivados de `assets/marca/logometup.png` por `npm run images`. O master tem
+         1080×1080 e 397 kB: servi-lo como favicon custava 397 kB em TODA visita, num
+         site cujo LCP mobile já está a 0,1s do limite (CLAUDE.md §6.2). São 2 kB. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/marca/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/marca/favicon-180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Cor de identidade na barra do navegador mobile (--color-bg). -->
     <meta name="theme-color" content="#050505" />

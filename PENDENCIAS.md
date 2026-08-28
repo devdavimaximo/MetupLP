@@ -44,6 +44,27 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
 - [ ] **Título da seção de Serviços** — "O que a Metup faz" é **proposta do Claude
       aprovada pelo Davi em 2026-08-27** (F3), no mesmo regime do MOCK: sem
       afirmação, número ou promessa. Trocar pela copy oficial junto com o resto.
+- [ ] ⚠ **COPY DA SEÇÃO PROCESSO — MOCK DO CLAUDE, PRECISA DO DAVI.** O bloco
+      `## Processo` de `content/copy.md` ("Começa com uma conversa" + os quatro
+      passos) foi **escrito pelo Claude em 2026-08-28 sem saber como o Davi
+      trabalha**, no mesmo regime do MOCK de 2026-08-26 e do título de Serviços
+      aprovado em 2026-08-27. Nada ali cita prazo, número de reuniões, revisões,
+      garantia, SLA, preço ou resultado — só a mecânica genérica de um projeto sob
+      demanda —, **mas cada frase ainda é uma afirmação sobre como a Metup
+      trabalha**, e só o Davi pode confirmar. **Três direções** (A, B e C, com o
+      registro de cada uma e a lista do que foi deliberadamente NÃO escrito) estão
+      em `content/sugestoes.md`; a C está no ar. Trocar por outra é mover o bloco —
+      o parser não muda.
+      ⚠ **A seção é OPCIONAL no parser, e isso é decisão de contrato.** Apagar o
+      bloco `## Processo` inteiro **não quebra o build**: `copy.process` vira
+      `undefined` e `<Process />` devolve `null` — a página volta a ter três seções e
+      o CTA final não depende dela. É a mesma válvula do `**Eyebrow:**` do herói,
+      levada de um campo para uma seção inteira, para nenhuma seção em aprovação
+      derrubar um build. **Uma vez que o bloco existe**, porém, `**Título da
+      seção:**` e pelo menos um passo passam a ser exigidos, e a falta quebra o build
+      com a lista do que faltou. Os três caminhos foram **testados de verdade**, não
+      presumidos: ausente → build passa e o HTML sai sem `id="processo"`; sem título
+      → `process.sectionTitle`; sem passos → `process.steps`.
 - [ ] **(Opcional) Intro da seção de Serviços.** Hoje a seção se sustenta em uma
       frase por serviço, que é o que existe. Se o Davi quiser um parágrafo de
       abertura, o rótulo é `**Intro:**` dentro de `## Serviços` — e aí o parser
@@ -54,12 +75,23 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
 - [ ] **Assets visuais reais** dos cases (screenshots de projeto) em
       `public/images/` — pasta ainda não existe além do favicon/ícones padrão.
 - [ ] **Logos de clientes reais** (se forem usados em prova social/logo bar).
-- [ ] **Logo/identidade da própria Metup** (hoje só há um favicon placeholder do
-      template Vite em `public/favicon.svg`). Desde F2 o header usa
-      `src/components/Logo.tsx` — um **wordmark tipográfico** feito com a própria
-      dupla de fontes do design system, com o caret âmbar da direção. Não é marca
-      inventada passando por oficial: é desenho autoral da casa, que o §5 permite
-      (o que ele proíbe é forjar trabalho de CLIENTE). Substituir pelo logo real.
+- [x] ~~**Logo/identidade da própria Metup**~~ — **RECEBIDO (2026-08-28).** O Davi
+      entregou o símbolo e a versão horizontal; os masters ficam em `assets/marca/`
+      (versionados, nunca publicados) e `npm run images` gera os derivados em
+      `public/images/marca/`. O wordmark tipográfico de emergência saiu de
+      `src/components/Logo.tsx`; no lugar entrou o brasão real — símbolo + "met"
+      creme + "up" dourado, a assinatura da versão horizontal. O favicon deixou de
+      ser o PNG de 1080px/397 kB e virou `favicon-32.png` (2 kB) + `favicon-180.png`.
+- [ ] **Fonte do wordmark da marca.** O "metup" do header é reproduzido em **Work
+      Sans 600** com tracking −0,03em, que aproxima a cor tipográfica do original mas
+      **não é o mesmo desenho** — a geométrica pesada do logo oficial não está entre
+      as quatro famílias do projeto. Foi escolhido assim porque a Work Sans já está
+      carregada e o brasão custa zero byte de fonte; a alternativa fiel é o Davi
+      mandar o arquivo da fonte da marca. Ver a nota longa em `src/components/Logo.tsx`.
+- [ ] **Versão horizontal do logo sem uso.** `assets/marca/logometuphorizontal.png`
+      está versionado mas não gera derivado nenhum — nenhuma tela usa hoje. Ela é a
+      candidata natural para o rodapé (F6) e para a imagem de Open Graph (F7): basta
+      somar uma entrada em `BRAND.marks`, em `scripts/images.mjs`.
 - [ ] **Dados de contato reais** para o JSON-LD (`index.html`) e para o CTA de
       WhatsApp/formulário: telefone, e-mail, número de WhatsApp, endereço/área de
       atuação, redes sociais.
@@ -74,6 +106,18 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       Interpretação: a regra do CLAUDE.md §9 é sobre copy de **seção** (marketing);
       rótulo de a11y é chrome de produto. Confirmar — se preferir, viram um `## UI`
       no `copy.md`.
+- [ ] **Rótulos da navegação do header** ("Serviços", "Processo", "Contato") e o nome
+      acessível do brasão ("Metup — voltar ao topo") entraram em
+      `src/lib/ui-strings.ts` pelo mesmo critério acima: localizam um destino dentro
+      da página, não afirmam nada sobre a Metup. São de propósito diferentes dos
+      títulos das seções em `copy.md` ("O que a Metup faz", "Começa com uma
+      conversa"), que são frases e ficariam ilegíveis numa barra. Confirmar.
+- [ ] **Sem menu no mobile — decisão, não pendência.** Abaixo de 768px o header leva
+      brasão e CTA, e nada mais: as três âncoras não cabem junto do CTA (a conta de
+      largura está em `src/styles/header.css`), e mandar o CTA para dentro de um
+      hambúrguer contraria o §3 na letra. Se o Davi quiser o menu mesmo assim, o
+      caminho é um painel sobreposto com o CTA em destaque dentro dele — e aí o CTA
+      do header precisa continuar visível, o que muda o orçamento de largura.
 
 ## Dívida técnica registrada em F1
 
@@ -663,6 +707,199 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
       serviços com a frase de cada um **não se perderam**: continuam em texto, agora no
       cabeçalho da seção — é o conteúdo acessível, já que o deck é `aria-hidden`.
 
+## Seção Processo — "Como funciona" (2026-08-28)
+
+> Terceira seção da página, entre Serviços e o `ContactAnchor`. Ela existe para
+> responder a objeção que o deck não responde: o público do §2 não desiste por falta
+> de screenshot bonito, desiste por não saber **como começa, com quem fala e o que
+> acontece depois de mandar mensagem**. Por isso é a **seção silenciosa** — sem cena,
+> sem imagem, sem superfície elevada: tipografia, um filete dourado e ar. Depois de um
+> herói 3D e de um deck de 200vh, uma terceira seção de espetáculo satura; o contraste
+> "barulho → silêncio → CTA" é o que faz o CTA final bater.
+>
+> Arquivos: `src/sections/Process.tsx`, `src/animations/process.ts`,
+> `src/styles/process.css`, mais o `## Processo` em `content/copy.md` e o novo campo
+> opcional em `src/lib/content-parser.ts`. **Zero dependência nova.**
+
+### O que ficou pendente do Davi
+
+- [ ] **A copy dos quatro passos** — ver o item ⚠ em "Conteúdo do Davi", acima. É o
+      único bloqueio de conteúdo desta seção.
+- [ ] **O CTA da seção reusa `copy.hero.primaryCta`** ("Falar no WhatsApp"), como o de
+      Serviços já fazia — e herda a divergência conhecida do Bloqueio nº 1: o rótulo
+      diz WhatsApp e o destino é `#contato` enquanto não houver número real. Some com
+      a troca em `src/lib/contact.ts`, sem tocar nesta seção.
+- [ ] **Se o Davi quiser um parágrafo de abertura** antes dos passos, o rótulo seria
+      `**Intro:**` dentro de `## Processo` — mesmo caso do item equivalente de
+      Serviços: o parser hoje **não** o lê, de propósito, para não pedir texto que não
+      existe.
+
+### Decisões de implementação (para quem for mexer)
+
+- **`<ol role="list">`, não `<ul>`.** A ordem dos passos É informação. A numeração
+  visível ("01"…"04") é `aria-hidden`: o `<ol>` já anuncia "item 1 de 4", então lê-la
+  em voz alta seria a mesma informação duas vezes.
+- **O trilho vertical é SEGMENTADO, um pedaço por passo — não uma linha só.** A
+  leitura desejada é uma linha contínua sendo desenhada de cima a baixo; a
+  implementação óbvia (um `<span>` de altura total com `scrub`) custaria um
+  ScrollTrigger vivo durante a seção inteira e amarraria o desenho à posição da
+  rolagem, que `entrance.ts` reserva para camada decorativa. Com um segmento por
+  passo, a linha **avança com a leitura** sem scrub e sem trigger persistente.
+  ⚠ **É por isso que o respiro entre passos é `padding-bottom` do `<li>` e não `gap`
+  da lista:** com `gap`, o espaço ficaria fora de todos os `<li>` e o trilho teria
+  buracos. Medido no navegador: **vão de 0px** entre os três pares de segmentos, nas
+  quatro viewports.
+- **`drawLine()` ganhou um eixo** (`axis: 'x' | 'y'`) em `animations/presets.ts`, em
+  vez de um preset primo. Retrocompatível — sem a opção, é o `scaleX` de sempre.
+  ⚠ O nó do filete **não pode** usar `transform` para se posicionar (um
+  `translateX(-50%)` para centralizar): a escala do GSAP reescreve a matriz inteira e
+  levaria o deslocamento junto. `.process-rail` centraliza por `margin-left`.
+- **`IndexRule` ganhou a prop `motionHook`** (padrão: o de Serviços). Sem ela, o
+  filete horizontal do Processo carregaria `data-services-rule`, **nenhuma das duas
+  timelines o encontraria** e ele ficaria parado — um defeito invisível no código.
+- **Alinhamento por baseline**, não pelo topo da caixa: o número é `--text-label`
+  (0,75rem) e o nome do passo é `--text-title-sm` (fluido). Alinhar caixas deixaria o
+  número boiando, e a diferença mudaria a cada largura. Nenhum número mágico.
+- **O número mascara o trilho** (`background-color: var(--color-bg)` +
+  `position: relative`). O `relative` não é enfeite: o trilho é `absolute` e vem
+  ANTES no DOM, então sem contexto posicionado ele pintaria por cima dos dígitos.
+
+### Medido no navegador (Chrome via `puppeteer-core`, build de produção)
+
+Quatro viewports — 320×568, 390×844, 768×1024, 1440×900 — com e sem
+`prefers-reduced-motion`:
+
+- [x] ~~Geometria do trilho~~ — **trilho e número no mesmo eixo com erro < 0,01px** em
+      todas as viewports (`railX === markerCenterX`), e **vãos de 0px** entre
+      segmentos. Nenhum overflow horizontal em nenhuma largura
+      (`scrollWidth - clientWidth = 0`).
+- [x] ~~Três colunas no desktop~~ — a partir de 768px a frase vai para a terceira
+      coluna. Medida de leitura travada em **34rem (544px)** a 1440px, com a sobra
+      virando margem à direita (~206px) em vez de esticar a linha — e **371px** a
+      768px. Colunas de medida fixa, não `fr`, justamente por isso.
+- [x] ~~A revelação acontece mesmo~~ — amostrada **em voo**, não só no estado final.
+      Antes de entrar: `h2` em `opacity: 0`, filete em `scaleX(0)`, os quatro trilhos
+      em `scaleY(0)`, os quatro `h3` em `inset(0 0 100%)`, as quatro frases em
+      `opacity: 0`. Ao entrar, **só o passo 01 anima** (trilho 0→1, máscara 100%→0%,
+      frase 0→1) enquanto 02, 03 e 04 continuam zerados esperando os próprios
+      gatilhos. É exatamente a cascata pedida, e prova que não há um gatilho único.
+- [x] ~~Estado final = HTML pré-renderizado~~ — depois da varredura: `opacity: 1`,
+      `clip-path: none`, `transform` identidade em todos os alvos. A regra de SSR do
+      §12 se sustenta.
+- [x] ~~`prefers-reduced-motion`~~ — **nada fica invisível**: os 24 alvos em
+      `opacity: 1`, `clip-path: none` e `transform: none` (a variante calma nunca
+      chega a aplicar `scaleY`, então o trilho não passa por transformação nenhuma).
+      Sem ScrollTrigger no caminho calmo, como `revealCalm` garante.
+- [x] ~~Ordem de tabulação~~ — a única parada dentro da seção é o CTA:
+      `pular → wordmark → CTA do header → CTA do herói → role para explorar →
+      CTA de Serviços → CTA do Processo`. Números e trilho não são focáveis.
+- [x] ~~Estrutura~~ — um `<h2>` nomeando a seção por `aria-labelledby` e quatro
+      `<h3>`; `role="list"` no `<ol>`; `aria-hidden` no trilho e nos números.
+      Lighthouse **a11y 100** nas seis execuções.
+
+### ⚠ Achado FORA do escopo: o CLS de 0,139 é do HERÓI, não desta seção
+
+O Lighthouse desktop acusou **CLS 0,139** — acima do limite de 0,1 do §6.2. Atribuído
+por medição direta, não por dedução: um `PerformanceObserver` de `layout-shift` com a
+lista de **nós de origem** de cada deslocamento, 5 cargas de cada lado.
+
+| build | CLS (5 cargas) | nós que deslocam |
+|---|---|---|
+| **com** a seção Processo | 0,1373 – 0,1394 | `H1#hero-titulo`, `.hero-dissolve`, `.hero-services`, `.hero-lede` |
+| **sem** a seção Processo | 0,1373 – 0,1394 | os mesmos |
+
+**Números idênticos, nós idênticos, aos mesmos ~100–160ms da carga.** A seção Processo
+**não aparece em nenhuma lista de origem** e contribui **zero** para o CLS. O
+deslocamento é a troca de fonte da headline do herói, e é **regressão anterior a este
+trabalho** (as tabelas acima registram 0,003–0,053 no desktop antes da Bebas Neue e da
+recomposição mobile).
+
+- [ ] ⚠ **CORRIGIR O CLS DO HERÓI (0,139 > 0,1 do §6.2).** É o `<h1>` reflowing quando
+      a Bebas Neue chega — a headline muda de largura/altura e empurra `.hero-lede`,
+      `.hero-services` e o `.hero-dissolve` junto. **Fora do escopo desta tarefa** (não
+      mexer no herói), mas é o item de performance mais grave em aberto hoje. As duas
+      alavancas já registradas em F7 são exatamente as certas: **preload da fonte
+      crítica** (hoje a Bebas Neue, não mais a Archivo — atualizar aquele item) e
+      `size-adjust`/`ascent-override` no `@font-face` de fallback, para o texto de
+      substituição ocupar a mesma caixa. Medir com o script de CLS acima, que devolve
+      os nós, e não pela nota do Lighthouse.
+
+### Lighthouse — ⚠ NÃO VALE COMO AFERIÇÃO NESTA RODADA
+
+Rodado pela receita (3 execuções, mobile e desktop, `dist/` no `npm run preview`,
+Chrome headless), **mas a máquina NÃO estava limpa**: 17 processos do Chrome do Davi
+vivos durante toda a medição. Não os matei — é o navegador dele em uso, não sobra de
+CDP minha. O resultado é o ruído que a dívida de F3 previa:
+
+| | Perf | A11y | BP | SEO | LCP | CLS | TBT |
+|---|---|---|---|---|---|---|---|
+| Desktop (3×) | 99 / 94 / 94 | **100** | **100** | 91 | 0,81–0,82 s | 0,035–0,139 | 0 ms |
+| Mobile (3×) | 86 / 94 / 86 | **100** | **100** | 91 | 2,75–3,71 s | 0,016–0,035 | 88–101 ms |
+
+⚠ **O A/B saiu CONTRADITÓRIO e por isso está descartado:** a variante **sem** a seção
+mediu **pior** (desktop LCP 1,10 s contra 0,82 s; mobile perf **75** e LCP 5,8 s contra
+86–94 e 2,8–3,7 s). Tirar conteúdo não deixa o LCP 2 s mais lento — o que mudou entre
+as duas baterias foi a carga da máquina, não o build. **Serve para uma coisa só:** os
+números absolutos desta rodada não podem ser comparados com as tabelas de F2/F3.
+O SEO 91 continua sendo só o `robots.txt` ausente (F7).
+
+- [ ] **Refazer o Lighthouse com a máquina limpa**, 3–5 execuções, antes de tratar
+      qualquer número acima como regressão. O CLS é o único que já está atribuído por
+      medição independente (acima) — e a resposta é "não é desta seção".
+
+### Tamanho dos chunks (combinado a partir de F4)
+
+Build de produção, `npm run build`, com a seção no ar:
+
+| | com Processo | sem o bloco no `copy.md` | delta |
+|---|---|---|---|
+| `app-*.js` | 402,34 kB / **139,77 kB gzip** | 401,85 kB / 139,56 kB gzip | **+0,21 kB gzip** |
+| `client-*.js` | 175,37 kB / **55,22 kB gzip** | idem | 0 (é o router de F7) |
+| CSS | 40,61 kB / **8,76 kB gzip** | 39,31 kB / 8,49 kB gzip¹ | **+0,27 kB gzip** |
+| `index.html` | **38,40 KiB** | 34,49 KiB | +3,91 KiB |
+
+¹ o delta do CSS foi medido tirando o `@import './process.css'` de `index.css` — não
+apagando o bloco do markdown, porque a folha entra no bundle independente da copy.
+
+⚠ **Custo total da seção: ~0,5 kB gzip de JS+CSS.** Ela é 100% HTML pré-renderizado +
+GSAP que já estava no bundle. `HeroScene-*.js` (418,6 kB gzip) continua 100% lazy e
+fora do caminho crítico.
+⚠ Comparação com F3 (`app-*.js` 92,1 kB gzip) **não é válida**: o salto para ~140 kB é
+o `framer-motion` do deck, que entrou na troca de Serviços — ver aquela seção.
+
+### Falta ver no navegador (precisa de olho humano)
+
+- [ ] **60fps na rolagem** com os **6 ScrollTriggers novos** da seção (cabeçalho + 4
+      passos + CTA), somados aos de Serviços e ao deck em framer-motion. DevTools ▸
+      Performance com CPU throttle 4×. O headless não mede isso.
+- [ ] **A medida de leitura a 320px.** Com o trilho, o texto começa a 57px da borda e
+      sobram ~223px — cerca de **26 caracteres por linha**, contra os ~35 confortáveis.
+      Nas capturas lê como editorial (quatro linhas curtas e muito ar), não como
+      aperto, mas é julgamento de tela. Se incomodar, as alavancas são a coluna do
+      número (`--process-marker`, hoje `--text-label × 2,75`) e o `--process-gutter`
+      (hoje `--spacing-stack`) — as duas no `@media` de baixo de `process.css`.
+- [ ] **O vão entre o nome do passo e a frase no desktop.** A coluna do título é fixa
+      em 15rem e os nomes são curtos ("Entra no ar"), então sobra ar entre as duas
+      colunas. É a leitura de tabela editorial que se quis; confirmar que não lê como
+      desalinhamento.
+- [ ] **A seção com JS desligado:** título, filete, os quatro passos numerados e o CTA
+      legíveis. Verificado no `dist/index.html` (todo o conteúdo nasce pronto e nenhum
+      alvo tem estado inicial escondido); falta ver no navegador.
+- [ ] **Zoom de 200%** (WCAG 1.4.4) — o `grid-template-columns` de três colunas usa
+      medidas em `rem`, então deve degradar para o layout de duas colunas junto com o
+      breakpoint. Conferir que a frase não vaza.
+
+### Skills obrigatórias — a substituição continua (§8)
+
+- [ ] **`ui-ux-pro-max` e `web-design-guidelines` seguem ausentes neste ambiente** (não
+      há `.claude/skills/`). Esta seção repetiu a substituição de F1/F2/F3:
+      **`frontend-design` + `motion`** como análogas. Observação nova, na mesma linha
+      da que F3 registrou: a skill `motion` recomenda **framer-motion/Motion** para
+      React e a regra **blanket** de `prefers-reduced-motion` — as duas contrariam o
+      §6.4 e a decisão justificada de `base.css`. **A decisão do projeto prevaleceu nas
+      duas** (GSAP + `matchMedia`, tokens em vez de `!important` em `*`). Instalar as
+      originais ou ajustar o §8.
+
 ## Kicker removido do herói (2026-08-27)
 
 - [x] ~~"Somos a Metup" acima do título~~ — removido a pedido do Davi. Só a linha
@@ -783,6 +1020,11 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
 - [ ] **F7 — o preload da fonte crítica agora é da ARCHIVO 800**, não mais da
       Fraunces. O item continua sendo a maior alavanca isolada sobre o LCP mobile
       (2,5 s), e o arquivo é menor que o anterior (14,4 kB contra 18 kB).
+      ⚠ **DESATUALIZADO desde a troca de tipografia de 2026-08-28: a fonte crítica é a
+      BEBAS NEUE** (`--font-hero`), não a Archivo, que saiu. E o item deixou de ser só
+      LCP: a medição de 2026-08-28 (ver "Seção Processo" mais abaixo) atribuiu o
+      **CLS de 0,139 ao reflow do `<h1>` quando essa fonte chega** — ou seja, ele
+      passou a valer também contra o limite de CLS do §6.2, que hoje está estourado.
 
 - [ ] ⚠ **A MEDIÇÃO DE PERFORMANCE NESTA MÁQUINA NÃO É MAIS CONFIÁVEL — refazer
       limpa.** Quatro execuções do MESMO build deram perf **87, 91, 91 e 95** (TBT de

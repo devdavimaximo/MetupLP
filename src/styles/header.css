@@ -1,0 +1,275 @@
+/**
+ * Header: o brasão e a navegação de seções.
+ *
+ * Está em CSS, e não em utilitário do Tailwind, pelo mesmo motivo de `process.css`:
+ * as medidas são DERIVADAS umas das outras. O símbolo é dimensionado em `em` do
+ * wordmark, o respiro entre os dois também, e o ponto em que o wordmark sai da tela
+ * sai de uma conta de largura que envolve o brasão E o CTA. Espalhar isso em classes
+ * faria cada valor mudar sozinho, e o desalinhamento apareceria só num tamanho de
+ * tela que ninguém abriu.
+ *
+ * ═══ O ORÇAMENTO DE LARGURA DA BARRA ═══════════════════════════════════════════
+ * A barra tem três blocos de largura fixa (nada ali encolhe) numa faixa que precisa
+ * caber em 320px. Todas as medidas abaixo foram MEDIDAS com `fontkit` contra os
+ * arquivos reais das fontes — mesmo método de `--text-hero` em `tokens.css` —, não
+ * estimadas no olho:
+ *
+ *   CTA "FALAR NO WHATSAPP"  IBM Plex Mono 500 · 12px · tracking 0,14em
+ *     rótulo 151,0px + ícone 12px + gap 8px + padding 32px + borda 2px  = 205,0px
+ *
+ *   Brasão (`--brand-size` = 17px, o piso do clamp)
+ *     símbolo 26,4px + gap 7,1px + "metup" 51,8px                       =  85,3px
+ *
+ *   Rótulos da nav (mesmo mono, 12px)
+ *     SERVIÇOS 71,0  ·  PROCESSO 71,0  ·  CONTATO 62,2  ·  "01" 17,8
+ *
+ * Daí saem as três decisões de responsividade desta folha:
+ *
+ *   ≥ 360px  brasão completo + CTA = 290,3px contra 318,7px de largura útil
+ *            (360 menos duas goteiras de 20,65px). Folga: 28,4px. Cabe — e é por
+ *            isso que o grid do header usa `gap-x-0` no mobile: duas goteiras de
+ *            grid comeriam 32px e estourariam essa folga.
+ *   < 360px  o wordmark sai; sobra símbolo + CTA = 231,4px. Folga confortável.
+ *   ≥ 768px  entra a navegação. brasão 95,6 + nav 244,4 + CTA 205 + goteiras 48
+ *            = 593px contra 713,6px úteis. Folga: 120px.
+ *   ≥ 1024px entram os números do índice. Total 680px contra 961,4px úteis.
+ *
+ * ⚠ Qualquer uma dessas larguras muda se o rótulo do CTA mudar em `content/copy.md`
+ * (hoje "Falar no WhatsApp"), se os rótulos da nav mudarem em `lib/ui-strings.ts`, ou
+ * se `--brand-size` for mexido. Refaça a conta com o mesmo método antes de mexer —
+ * um estouro aqui vira barra de rolagem HORIZONTAL na página inteira.
+ */
+
+/* ══ BRASÃO ═══════════════════════════════════════════════════════════════════ */
+
+.site-brand {
+  /**
+   * A régua do brasão inteiro: símbolo e respiro são `em` disto.
+   *
+   * Fluido de 17px (320px de tela) a 22px (≥1440px). O intercepto é em `rem`, e não
+   * `vw` puro, pela mesma razão de toda a escala tipográfica em `tokens.css`: `Nvw`
+   * puro reprova a WCAG 1.4.4, porque o texto pararia de crescer com zoom de 200%.
+   */
+  --brand-size: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
+  /**
+   * 1,55em iguala a altura do símbolo à do wordmark MAIS o respiro visual das duas
+   * pontas — abaixo disso o símbolo lê como um ícone pendurado ao lado da palavra;
+   * acima, ele domina e a palavra vira legenda. Os dois são o mesmo bloco.
+   */
+  --brand-mark: 1.55em;
+
+  /**
+   * `flex`, e não `inline-flex`: como caixa em linha, o brasão pousaria na baseline
+   * de uma line box e herdaria o espaço de descendente por baixo — o bloco inteiro
+   * subiria ~4px dentro do header de 4,5rem. Medido: o `<a>` tinha 35px de altura
+   * para 26px de conteúdo. Em bloco, a caixa é o conteúdo e o `items-center` do grid
+   * centraliza o que se vê.
+   */
+  display: flex;
+  align-items: center;
+  gap: 0.42em;
+  font-size: var(--brand-size);
+  line-height: 1;
+}
+
+/**
+ * A caixa do símbolo é o `<picture>`, NÃO a `<img>` — e a distinção custou um bug.
+ *
+ * `<picture>` é quem está no fluxo flex; a `<img>` é filha dele. Com o tamanho na
+ * `<img>`, o `<picture>` continuava sem largura própria e encolhia com o container,
+ * e o `max-width: 100%` que o preflight do Tailwind põe em toda imagem arrastava a
+ * `<img>` junto. Medido em 390px: símbolo de 12px onde deviam ser 26,6px; em 360px,
+ * zero. Dimensionando o `<picture>` e mandando a `<img>` preenchê-lo, o `flex: none`
+ * pega no elemento certo e o `max-width` passa a ser satisfeito em vez de limitante.
+ */
+.site-brand-mark {
+  display: block;
+  flex: none;
+  width: var(--brand-mark);
+  height: var(--brand-mark);
+}
+
+.site-brand-mark > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.site-brand-wordmark {
+  /**
+   * Work Sans 600 com o tracking fechado. NÃO é a fonte do wordmark oficial — a
+   * razão da escolha (e o custo dela) está documentada em `components/Logo.tsx`. O
+   * -0,03em aproxima a cor tipográfica do desenho original, que é bem mais fechado
+   * que o padrão da Work Sans.
+   */
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1em;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-fg);
+}
+
+/**
+ * A metade dourada do wordmark — a assinatura oficial da marca (ver a versão
+ * horizontal em `assets/marca/`). Contraste conferido: #f5a623 sobre #060606 dá
+ * 10,00:1 como TEXTO, AAA folgado (ver a nota em `tokens.css`).
+ */
+.site-brand-up {
+  color: var(--color-accent);
+  transition: color var(--transition-duration-fast) var(--ease-out);
+}
+
+/**
+ * Micro-interação do brasão. Atrás de `hover: hover` para não colar no toque, e
+ * atrás de `no-preference` porque escala É movimento (§6.6) — quem pediu movimento
+ * reduzido continua vendo a troca de cor, que é a parte informativa.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .site-brand:hover .site-brand-up {
+    color: var(--color-accent-hover);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .site-brand-mark {
+      transition: transform var(--transition-duration-base) var(--ease-spring);
+    }
+
+    .site-brand:hover .site-brand-mark {
+      transform: scale(1.08);
+    }
+  }
+}
+
+/**
+ * Abaixo de 360px o brasão completo e o CTA não cabem juntos — ver o orçamento no
+ * cabeçalho. O que cede é o wordmark, porque o símbolo sozinho continua sendo a
+ * marca, enquanto um CTA espremido deixa de ser um CTA (§3).
+ *
+ * ⚠ `display: none` também tira o texto da árvore de acessibilidade. É por isso que
+ * quem nomeia o link é o `aria-label` do `<a>` no `Header.tsx`, e não o conteúdo:
+ * sem ele, o link de volta ao topo ficaria sem nome nenhum nesta faixa.
+ */
+@media (width < 22.5rem) {
+  .site-brand-wordmark {
+    display: none;
+  }
+}
+
+/* ══ NAVEGAÇÃO ════════════════════════════════════════════════════════════════ */
+
+/**
+ * Escondida abaixo de 768px por decisão, não por falta de espaço para um hambúrguer
+ * — o porquê está em `components/Header.tsx`.
+ */
+.site-nav {
+  display: none;
+}
+
+.site-nav-list {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  /* Respiro entre itens: 20px em 768px, 36px no teto. Fluido pelo mesmo motivo do
+     resto do ritmo — a barra não deve ter um "salto" de largura no breakpoint. */
+  gap: clamp(1.25rem, 0.4rem + 1.8vw, 2.25rem);
+}
+
+.site-nav-list > li {
+  display: flex;
+}
+
+/**
+ * O link ocupa a ALTURA INTEIRA do header (4,5rem), não a altura do texto: são 72px
+ * de alvo de toque/clique contra os 12px da linha mono, muito acima do mínimo de 44px
+ * da WCAG 2.5.8 — e é o que faz o filete do indicador (ancorado embaixo do `<nav>`)
+ * cair exatamente sob o rótulo.
+ */
+.site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  height: 100%;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--text-label--font-weight);
+  letter-spacing: var(--tracking-terminal);
+  line-height: var(--text-label--line-height);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-fg-muted); /* 10,02:1 — AAA */
+  transition: color var(--transition-duration-fast) var(--ease-out);
+}
+
+.site-nav-link:hover,
+.site-nav-link[aria-current] {
+  color: var(--color-fg);
+}
+
+/**
+ * O número do índice — o mesmo `padIndex` de Serviços e do Processo.
+ *
+ * Some abaixo de 1024px: entre 768 e 1024 o espaço é do rótulo, que é o que informa;
+ * o número é o ornamento, e ornamento é o primeiro a ceder.
+ */
+.site-nav-index {
+  display: none;
+  color: var(--color-muted); /* 6,19:1 — AA */
+  transition: color var(--transition-duration-fast) var(--ease-out);
+}
+
+.site-nav-link:hover .site-nav-index,
+.site-nav-link[aria-current] .site-nav-index {
+  color: var(--color-accent);
+}
+
+/**
+ * O indicador de seção ativa.
+ *
+ * Nasce com 1px de largura e é esticado por `scaleX` até a largura do item (o valor
+ * em px é escrito pelo GSAP — ver `animations/header.ts`). `scaleX` e não `width`
+ * pelo mesmo motivo do `drawLine`: escala fica no compositor, largura é layout e
+ * custaria reflow a cada quadro (§6.4). A origem TEM que estar aqui, no CSS — o GSAP
+ * não escreve `transform-origin` em elemento HTML quando ninguém pede, e sem ela o
+ * filete cresceria para os dois lados a partir do centro.
+ *
+ * `bottom: 0` do `<nav>`, que tem a altura inteira do header, põe o filete
+ * exatamente sobre a costura de baixo — a mesma borda que aparece com
+ * `data-scrolled`. Sobre o herói não há seção ativa, o filete está em `opacity: 0`,
+ * e a barra continua flutuando sem moldura, como foi desenhada.
+ *
+ * ⚠ Nada de `transform` de posicionamento aqui (um `translateX(-50%)`, por exemplo):
+ * o GSAP reescreve a matriz inteira e levaria o deslocamento junto.
+ */
+.site-nav-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: var(--hairline);
+  transform-origin: left;
+  background-color: var(--color-accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/**
+ * `48rem` e `64rem` espelham `--breakpoint-md` e `--breakpoint-lg` de `tokens.css`
+ * (custom property não é lida dentro de `@media`). São os mesmos pontos em que o
+ * resto da página muda de topologia — a página muda de forma uma vez, não uma por
+ * componente.
+ */
+@media (min-width: 48rem) {
+  .site-nav {
+    display: block;
+    position: relative;
+    height: 100%;
+  }
+}
+
+@media (min-width: 64rem) {
+  .site-nav-index {
+    display: inline;
+  }
+}

@@ -1,6 +1,6 @@
 import { Heading, PendingContent, Section, Text } from '../components';
-import { CONTACT_SECTION_ID } from '../lib/contact';
 import { copy } from '../lib/content';
+import { SECTION_ID } from '../lib/sections';
 
 const HEADING_ID = 'contato-titulo';
 
@@ -28,7 +28,7 @@ export function ContactAnchor() {
 
   return (
     <Section
-      id={CONTACT_SECTION_ID}
+      id={SECTION_ID.contact}
       labelledBy={HEADING_ID}
       rhythm="lg"
       tone="surface"

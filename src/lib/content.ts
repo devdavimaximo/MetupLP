@@ -25,6 +25,8 @@ export type {
   CopyField,
   CopyPlaceholder,
   CopyText,
+  ProcessCopy,
+  ProcessStepCopy,
   ServiceCopy,
   SiteCopy,
 } from './content-parser';

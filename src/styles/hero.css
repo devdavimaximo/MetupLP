@@ -133,6 +133,110 @@
   }
 
   /**
+   * ══ O GLITCH DA HEADLINE ═══════════════════════════════════════════════════════
+   *
+   * Pedido do Davi (2026-08-28): cada palavra do título materializa com um glitch
+   * cibernético, uma de cada vez. Quem marca o TEMPO é `animations/hero.ts` (ele liga
+   * e desliga o `data-glitch` nos dois instantes da janela e entrega a duração pela
+   * custom property `--hero-glitch-duration`); o que mora aqui é só a APARÊNCIA.
+   *
+   * A divisão é obrigatória, não estilística: o efeito são dois fantasmas cromáticos
+   * feitos de `::before`/`::after` com `content: attr(...)`, e pseudo-elemento não
+   * pode ser alvo de GSAP. A alternativa seria duplicar o texto em nós de verdade
+   * dentro do `<h1>` — lixo no DOM para o buscador e para o leitor de tela.
+   *
+   * ─── O QUE COMPÕE O EFEITO ──────────────────────────────────────────────────────
+   *  1. a PALAVRA (`hero-glitch-body`): salta alguns centésimos de em na horizontal e
+   *     perde uma faixa por `clip-path`, como um quadro que chegou pela metade;
+   *  2. dois FANTASMAS, um turquesa (`--color-accent-2`) e um dourado
+   *     (`--color-accent`), deslocados para lados opostos e recortados em faixas
+   *     diferentes — é a aberração cromática que dá o registro "cibernético", e ela
+   *     usa a paleta da casa em vez do vermelho/ciano genérico do efeito de manual.
+   *
+   * Os dois fantasmas se apagam antes do fim da janela, então a palavra SEMPRE termina
+   * limpa — mesmo que o `data-glitch` demore um quadro a mais para sair.
+   *
+   * ─── SÓ `transform`, `opacity` E `clip-path` (§6.4) ─────────────────────────────
+   * Nenhum `filter`, nenhum `text-shadow` animado, nenhum `left`/`width`. As três
+   * propriedades são resolvidas no compositor — `clip-path` inclusive, que é o mesmo
+   * motivo pelo qual o preset `maskReveal` existe em `presets.ts`.
+   *
+   * ⚠ NADA de `mix-blend-mode` nos fantasmas, e isso foi uma decisão. `screen` daria
+   * uma soma de luz mais bonita, mas obriga o navegador a compor a camada contra o
+   * backdrop do contexto de empilhamento — que na primeira dobra é o canvas WebGPU em
+   * tela cheia. Sobre `--color-bg` (#060606) a diferença visual é pequena; o custo por
+   * quadro não é.
+   *
+   * ─── POR QUE O EFEITO NÃO PISCA (WCAG 2.3.1) ────────────────────────────────────
+   * Um glitch de manual estrobosca: opacidade indo a zero muitas vezes por segundo. A
+   * headline aqui ocupa boa parte da dobra, e nesse tamanho um estroboscópio deixa de
+   * ser estilo e passa a ser risco. Por isso o efeito é feito de DESLOCAMENTO e FATIA,
+   * não de piscada: depois do primeiro quadro a palavra nunca volta a `opacity: 0`,
+   * nenhuma fatia esconde mais de ~1/3 dela, e os degraus trocam a cada ~70ms — variação
+   * de luminância pequena, longe do limiar de três flashes por segundo.
+   *
+   * `steps(1, end)` é o que torna cada degrau um CORTE seco em vez de uma interpolação
+   * suave. É daí que vem a leitura de "quadro perdido"; interpolando, o mesmo
+   * keyframe vira um tremor de gelatina.
+   */
+  .hero-word {
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-word[data-glitch='on'] {
+    animation: hero-glitch-body var(--hero-glitch-duration, 880ms) steps(1, end) both;
+  }
+
+  /**
+   * Os fantasmas só EXISTEM durante a janela. Fora dela o seletor não casa, os
+   * pseudo-elementos não são gerados e o `<h1>` volta a ser um `<h1>` — nenhuma camada
+   * extra parada em cima do texto, nenhum `will-change` esquecido.
+   *
+   * `inset: 0` + `white-space: nowrap` alinham a cópia sobre o original: a palavra do
+   * SplitText é `inline-block`, então a caixa é exatamente a do texto, e o fantasma
+   * herda família, tamanho e entrelinha.
+   */
+  .hero-word[data-glitch='on']::before,
+  .hero-word[data-glitch='on']::after {
+    content: attr(data-glitch-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    animation-duration: var(--hero-glitch-duration, 880ms);
+    animation-timing-function: steps(1, end);
+    animation-fill-mode: both;
+  }
+
+  .hero-word[data-glitch='on']::before {
+    color: var(--color-accent-2);
+    animation-name: hero-glitch-ghost-a;
+  }
+
+  .hero-word[data-glitch='on']::after {
+    color: var(--color-accent);
+    animation-name: hero-glitch-ghost-b;
+  }
+
+  /**
+   * Rede de segurança. O `data-glitch` já nasce só no ramo `prefers-reduced-motion:
+   * no-preference` de `animations/hero.ts`, então na prática este bloco nunca é
+   * alcançado — ele existe para o dia em que alguém ligar o atributo por outro
+   * caminho. Sem `display: none` e sem esconder nada: o texto continua lá, parado.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-word[data-glitch='on'] {
+      animation: none;
+    }
+
+    .hero-word[data-glitch='on']::before,
+    .hero-word[data-glitch='on']::after {
+      content: none;
+    }
+  }
+
+  /**
    * O subtítulo sobe para dentro da caixa da headline.
    *
    * A Bebas Neue com `line-height: 0.9` fecha a caixa ACIMA da própria descida, então
@@ -516,5 +620,259 @@
   /** Dissolve o herói na seção seguinte, para o corte não virar uma linha dura. */
   .hero-dissolve {
     background-image: linear-gradient(to bottom, transparent 0%, var(--color-bg) 100%);
+  }
+}
+
+/**
+ * ══ OS QUADROS DO GLITCH ═════════════════════════════════════════════════════════
+ *
+ * Fora do `@layer components` de propósito: `@keyframes` não participa da cascata (não
+ * há especificidade a resolver), e mantê-lo em nível de topo evita a única pegadinha
+ * que camadas trazem para regras nomeadas — duas definições homônimas em camadas
+ * diferentes, onde a "perdedora" some sem erro nem aviso.
+ *
+ * ─── AS MEDIDAS SÃO EM `em`, E ISSO IMPORTA ──────────────────────────────────────
+ * O deslocamento acompanha o corpo da letra. `--text-hero` é dimensionado em `vw`
+ * (ver `tokens.css`), então a headline vai de ~40px num celular a ~200px num monitor
+ * largo: 3px de deslocamento seriam um tremor invisível lá em cima e um solavanco
+ * aqui embaixo. Em `em`, o mesmo 0,035 lê igual nos dois.
+ *
+ * ─── OS DEZ DEGRAUS, E POR QUE SÃO DEZ ───────────────────────────────────────────
+ * A grade é de 8% em 8%, e isso está AMARRADO à janela de 0,88s de
+ * `animations/hero.ts`: 8% de 880ms = **70ms por corte**, que é a cadência em que um
+ * corte seco lê como falha de quadro. Foi por essa cadência que a grade foi
+ * reescrita quando a janela passou de 0,38s para 0,88s (pedido do Davi, 2026-08-28):
+ * com os quatro degraus antigos, cada estado passaria a durar 176ms e o efeito viraria
+ * um slideshow de quatro quadros parados em vez de um glitch.
+ *
+ * ⚠ QUEM MUDAR `GLITCH.window` MUDA ESTA GRADE. A conta é `70ms ÷ janela` para achar o
+ * passo percentual, e o número de degraus sai dela. Não é uma proporção que se ajusta
+ * sozinha — a janela é um tempo e a grade é uma porcentagem.
+ *
+ * 0% é o quadro que "não chegou" (a palavra ainda invisível, já recortada); de 8% a 72%
+ * são os dez quadros defeituosos; 80% já é o estado limpo e HOLDA até 100% — assim a
+ * palavra termina assentada mesmo que o atributo demore um quadro para sair.
+ *
+ * A AMPLITUDE CAI a cada degrau (0,05em → 0,006em na palavra; a opacidade dos fantasmas
+ * de 0,8 a 0) e é isso que faz o efeito "se acalmar" em vez de simplesmente parar. Com a
+ * janela maior a rampa ficou mais longa, então a queda por degrau é menor — o gesto é o
+ * mesmo, dito mais devagar.
+ *
+ * ⚠ A POSTURA DE FOTOSSENSIBILIDADE NÃO MUDOU, e ela é a razão de a opacidade da PALAVRA
+ * ficar em 1 do degrau 8% em diante: mais degraus não significam mais piscada, significam
+ * mais deslocamento. Nenhuma fatia esconde mais de ~1/3 da palavra e nenhuma volta a
+ * `opacity: 0`. O que cresceu foi a DURAÇÃO do efeito (0,38s → 0,88s por palavra, 1,14s
+ * → 2,64s no total), não a amplitude — se um dia alguém quiser piscada de verdade aqui,
+ * é uma decisão nova e precisa refazer esta conta.
+ */
+
+@keyframes hero-glitch-body {
+  0% {
+    opacity: 0;
+    transform: translate3d(-0.05em, 0, 0);
+    clip-path: inset(30% 0 34% 0);
+  }
+
+  8% {
+    opacity: 1;
+    transform: translate3d(0.045em, 0, 0);
+    clip-path: inset(0 0 30% 0);
+  }
+
+  16% {
+    opacity: 1;
+    transform: translate3d(-0.04em, 0, 0);
+    clip-path: inset(26% 0 0 0);
+  }
+
+  24% {
+    opacity: 1;
+    transform: translate3d(0.038em, 0, 0);
+    clip-path: inset(0 0 22% 0);
+  }
+
+  32% {
+    opacity: 1;
+    transform: translate3d(-0.032em, 0, 0);
+    clip-path: inset(18% 0 30% 0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translate3d(0.028em, 0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+
+  48% {
+    opacity: 1;
+    transform: translate3d(-0.022em, 0, 0);
+    clip-path: inset(24% 0 0 0);
+  }
+
+  56% {
+    opacity: 1;
+    transform: translate3d(0.018em, 0, 0);
+    clip-path: inset(0 0 16% 0);
+  }
+
+  64% {
+    opacity: 1;
+    transform: translate3d(-0.012em, 0, 0);
+    clip-path: inset(12% 0 0 0);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate3d(0.006em, 0, 0);
+    clip-path: inset(0 0 8% 0);
+  }
+
+  80%,
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/** Fantasma turquesa — sempre no lado oposto ao dourado, para os dois se lerem como
+    UMA separação de canal e não como duas cópias soltas. */
+@keyframes hero-glitch-ghost-a {
+  0% {
+    opacity: 0.8;
+    transform: translate3d(-0.07em, 0, 0);
+    clip-path: inset(4% 0 62% 0);
+  }
+
+  8% {
+    opacity: 0.74;
+    transform: translate3d(0.06em, 0, 0);
+    clip-path: inset(66% 0 6% 0);
+  }
+
+  16% {
+    opacity: 0.68;
+    transform: translate3d(-0.055em, 0, 0);
+    clip-path: inset(34% 0 40% 0);
+  }
+
+  24% {
+    opacity: 0.6;
+    transform: translate3d(0.05em, 0, 0);
+    clip-path: inset(8% 0 70% 0);
+  }
+
+  32% {
+    opacity: 0.52;
+    transform: translate3d(-0.044em, 0, 0);
+    clip-path: inset(58% 0 14% 0);
+  }
+
+  40% {
+    opacity: 0.44;
+    transform: translate3d(0.038em, 0, 0);
+    clip-path: inset(24% 0 52% 0);
+  }
+
+  48% {
+    opacity: 0.36;
+    transform: translate3d(-0.03em, 0, 0);
+    clip-path: inset(70% 0 4% 0);
+  }
+
+  56% {
+    opacity: 0.28;
+    transform: translate3d(0.024em, 0, 0);
+    clip-path: inset(12% 0 66% 0);
+  }
+
+  64% {
+    opacity: 0.2;
+    transform: translate3d(-0.016em, 0, 0);
+    clip-path: inset(46% 0 28% 0);
+  }
+
+  72% {
+    opacity: 0.1;
+    transform: translate3d(0.008em, 0, 0);
+    clip-path: inset(2% 0 78% 0);
+  }
+
+  /* Apagado ANTES do fim da janela: é o que garante que a palavra termine limpa. */
+  80%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+/** Fantasma dourado. Espelho do turquesa: lado oposto, faixas complementares. */
+@keyframes hero-glitch-ghost-b {
+  0% {
+    opacity: 0.75;
+    transform: translate3d(0.07em, 0, 0);
+    clip-path: inset(56% 0 8% 0);
+  }
+
+  8% {
+    opacity: 0.7;
+    transform: translate3d(-0.06em, 0, 0);
+    clip-path: inset(6% 0 58% 0);
+  }
+
+  16% {
+    opacity: 0.64;
+    transform: translate3d(0.055em, 0, 0);
+    clip-path: inset(42% 0 26% 0);
+  }
+
+  24% {
+    opacity: 0.56;
+    transform: translate3d(-0.05em, 0, 0);
+    clip-path: inset(70% 0 4% 0);
+  }
+
+  32% {
+    opacity: 0.48;
+    transform: translate3d(0.044em, 0, 0);
+    clip-path: inset(16% 0 56% 0);
+  }
+
+  40% {
+    opacity: 0.4;
+    transform: translate3d(-0.038em, 0, 0);
+    clip-path: inset(50% 0 22% 0);
+  }
+
+  48% {
+    opacity: 0.32;
+    transform: translate3d(0.03em, 0, 0);
+    clip-path: inset(2% 0 74% 0);
+  }
+
+  56% {
+    opacity: 0.24;
+    transform: translate3d(-0.024em, 0, 0);
+    clip-path: inset(62% 0 12% 0);
+  }
+
+  64% {
+    opacity: 0.16;
+    transform: translate3d(0.016em, 0, 0);
+    clip-path: inset(28% 0 44% 0);
+  }
+
+  72% {
+    opacity: 0.08;
+    transform: translate3d(-0.008em, 0, 0);
+    clip-path: inset(76% 0 2% 0);
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(0 0 100% 0);
   }
 }

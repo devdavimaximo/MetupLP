@@ -3,6 +3,8 @@
  *
  * F1 — primitivas (Button, Container, Heading, Text, Surface…).
  * F2 — chrome da página: `Header`, `Logo`, `ContactCta` e os ícones inline.
+ * F4 — `SiteNav`: a navegação de seções entrou quando as seções que ela navega
+ *      passaram a existir (Serviços, Processo, Contato).
  */
 
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button';
@@ -21,6 +23,7 @@ export { ArrowDownIcon, ArrowUpRightIcon, type IconProps } from './icons';
 export { Logo, type LogoProps } from './Logo';
 export { PendingContent, type PendingContentProps } from './PendingContent';
 export { Section, type SectionProps, type SectionRhythm, type SectionTone } from './Section';
+export { SiteNav, type SiteNavProps } from './SiteNav';
 export { SkipLink, type SkipLinkProps } from './SkipLink';
 export { Surface, type SurfaceElevation, type SurfaceProps } from './Surface';
 export { Text, type TextProps, type TextSize, type TextTone } from './Text';
