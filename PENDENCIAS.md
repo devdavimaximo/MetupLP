@@ -258,6 +258,67 @@ O que F2 fez para não perder o lead nem inventar dado (§4):
 > (Aceternity UI), "implementar primeiro, ajustar fonte/cor/copy depois". O que ficou
 > aberto por causa dessa troca está aqui.
 
+- [x] ~~FALTAM OS 9 SCREENSHOTS DE PROJETO~~ — **entregues em 2026-08-28.** Todos os
+      nove chegaram em 16:10 (dois em 2560×1600, sete em 1586×992 — abaixo do pedido,
+      mas 1586 cobre o cartão de 480px até em tela 2× com a ampliação das pontas, então
+      não foi pedido reexport). Masters em `assets/projetos/`, derivados AVIF/WebP em
+      `public/images/projetos/` via `npm run images`.
+- [ ] ⚠ **CONFIRMAR COM O DAVI: os nove são trabalho ENTREGUE a cliente, ou peças de
+      conceito/demonstração?** Várias das marcas que aparecem nas telas (Luxor, Vitális,
+      Altus, GestorPro, ClimaTech, Nobre, Aurum, Arkanum) têm cara de peça autoral, e a
+      `sistemas-9` é o site de uma agência com uma barra de "empresas que confiam no
+      nosso trabalho" listando cinco marcas.
+      **Hoje isso NÃO viola nada** e a seção pode ir ao ar como está: o deck é
+      ilustração (`aria-hidden`), os cartões não têm rótulo, não são clicáveis e a seção
+      se chama "O que a Metup faz" — nenhuma afirmação de autoria ou de resultado é
+      feita em lugar nenhum. **O §4 passa a valer no minuto em que** (a) um `label` com
+      nome de cliente entrar, ou (b) a seção for apresentada como "cases" (F4). Só
+      preencher `label` em `src/lib/showcase.ts` depois dessa confirmação.
+- [ ] **A entrega veio com 6 sites e 3 sistemas** (CRM `sistemas-5`, ERP `sistemas-6`,
+      dashboard de OS `sistemas-7`), quando a conversa apontava para dashboards. Não é
+      problema — mas foi o que decidiu a ordem: **os três sistemas ficaram em 02, 07 e
+      12**, as únicas posições que o celular lê inteiras, porque são o argumento do
+      "não construímos só site". Confirmar ou trocar (é uma linha por posição).
+- [ ] **Três screenshots têm fundo branco** (`sistemas-2`, `-6`, `-7`) numa página
+      quase preta. Foram distribuídos **um por fileira**, nunca dois juntos, mas ainda
+      são o ponto mais luminoso da tela. Se incomodar, o ajuste é um véu sutil no
+      cartão — decidir vendo, não antes.
+- [ ] **Os masters (18,5 MB de PNG) estão versionados em `assets/projetos/`.** É
+      conteúdo de produto, mas é peso no repositório; se preferir tirá-los do git,
+      basta ignorá-los — o build só depende dos derivados em `public/`.
+- [x] ~~Especificação de entrega das imagens~~ — registrada, para o dia em que
+      entrarem projetos novos. Especificação
+      acertada com ele: **2560×1600 (16:10)**, horizontal, PNG/JPG na qualidade máxima
+      (a compressão para AVIF/WebP é do pipeline, não da origem), **anonimizados na
+      origem** — nome de cliente, CNPJ e valores borrados ANTES do export. Captura em
+      janela de 1280×800 a 2× para as nove saírem consistentes. **Não haverá versão
+      vertical/mobile**: dashboard, CRM e ERP são artefatos horizontais, e recortar em
+      9:16 mutila a tela em vez de adaptá-la — o celular mostra o mesmo master.
+      Preencher `projects` em `src/lib/showcase.ts` (uma entrada por posição) e o nome
+      real de cada projeto; nada mais no código muda.
+- [ ] **Nome de cada projeto** para o rótulo de hover. É conteúdo de case (§4): sem o
+      nome liberado pelo Davi o cartão simplesmente fica sem rótulo — `label: ''`.
+- [ ] **Clique nos cartões (mockup em modal) — ADIADO a pedido do Davi.** Primeiro ele
+      quer validar só o visual. Quando entrar: os cartões viram `<button>`, o deck
+      **deixa de ser `aria-hidden`** (conteúdo focável dentro de subárvore escondida é
+      erro de a11y), e aí valem foco preso, Esc e retorno do foco ao cartão. O frame do
+      mockup é desenho nosso (canto usinado, filete dourado, rótulo mono) — PNG de
+      MacBook de banco de imagem é a "cara de template" que o §7 exclui. ⚠ Só as 9
+      posições de leitura viram botão; as 6 pontas continuam decorativas (não se clica
+      no que não se vê, e seriam link duplicado do mesmo projeto).
+- [x] ~~Quantos projetos, e o que fazer com as posições que ninguém vê inteiras~~ —
+      **resolvido por observação do Davi na tela, não por estimativa.** O que se lê de
+      fato: desktop 02/03/04, 07/08/09, 12/13/14; celular só 02, 07 e 12 (mais um
+      pedaço da 13). Logo: **9 posições de leitura** recebem screenshot próprio e as
+      **6 pontas** (01, 05, 06, 10, 11, 15) reaproveitam o master de um vizinho com
+      outro `object-position` + zoom — **mesma URL, zero byte a mais**, e um pedaço
+      ampliado entrega menos informação de cliente ainda. As três que o celular lê são
+      as primeiras de cada trinca do desktop, então **uma ordenação só serve aos dois
+      breakpoints**: os três projetos mais fortes vão para 02, 07 e 12. O mapa inteiro,
+      com o porquê, está no cabeçalho de `src/lib/showcase.ts`.
+- [x] ~~Proporção do cartão~~ — de 5:4 para **16:10**, igual ao master, para o
+      screenshot entrar sem corte nenhum. As molas, o curso e a inclinação do parallax
+      **não foram tocados** (pedido explícito do Davi: a animação está aprovada).
 - [ ] ⚠ **As 15 miniaturas do deck são PLACEHOLDER do design system.** Não existe
       screenshot real de projeto no repositório, e o §5 proíbe stock/IA fingindo case.
       Cada painel é um bloco geométrico gerado em `src/lib/showcase-placeholder.ts`

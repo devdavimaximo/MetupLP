@@ -42,10 +42,35 @@ import {
 import { useRef, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
+export interface ShowcaseFraming {
+  /** Canto para onde a ampliação converge (`transform-origin`). */
+  readonly origin: string;
+  /** Ampliação do recorte. */
+  readonly zoom: number;
+}
+
+export interface ShowcaseSource {
+  readonly type: string;
+  readonly srcSet: string;
+}
+
 export interface ShowcaseItem {
+  /** Rótulo do hover. Vazio = cartão sem rótulo (é o caso das pontas). */
   readonly title: string;
-  /** `src` da miniatura. Hoje é painel do design system — ver `lib/showcase-placeholder.ts`. */
+  /** `src` de fallback. Nos slots sem projeto é o painel do design system. */
   readonly thumbnail: string;
+  /** Formatos modernos, em ordem de preferência. Ausente = só o `thumbnail`. */
+  readonly sources?: readonly ShowcaseSource[];
+  readonly sizes?: string;
+  /** Dimensões do master, para o cartão nunca causar reflow ao carregar. */
+  readonly width?: number;
+  readonly height?: number;
+  /**
+   * Reenquadramento do MESMO arquivo, para as posições que só aparecem de canto.
+   * É o que deixa uma ponta parecer outro tile sem baixar um segundo arquivo — ver
+   * o mapa em `lib/showcase.ts`.
+   */
+  readonly framing?: ShowcaseFraming;
 }
 
 export interface HeroParallaxProps {
@@ -151,23 +176,45 @@ function ShowcaseCard({ item, translate }: ShowcaseCardProps) {
     <motion.div
       style={translate === undefined ? undefined : { x: translate }}
       whileHover={translate === undefined ? undefined : { y: -20 }}
-      className="group/card relative h-96 w-[30rem] shrink-0 overflow-hidden rounded-sm border border-line bg-surface"
+      className="group/card relative aspect-16/10 w-120 shrink-0 overflow-hidden rounded-sm border border-line bg-surface"
     >
-      <img
-        src={item.thumbnail}
-        alt=""
-        width={600}
-        height={480}
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover object-left-top"
-      />
+      {/* 16:10 é a proporção do master, então o `object-cover` de um screenshot inteiro
+          não corta nada. Quem usa `framing` é ponta de fileira: mesmo arquivo, outro
+          pedaço, nenhum download a mais — ver `lib/showcase.ts`. */}
+      <picture>
+        {item.sources?.map((source) => (
+          <source key={source.type} type={source.type} srcSet={source.srcSet} sizes={item.sizes} />
+        ))}
+        <img
+          src={item.thumbnail}
+          alt=""
+          width={item.width}
+          height={item.height}
+          sizes={item.sizes}
+          loading="lazy"
+          decoding="async"
+          style={
+            item.framing === undefined
+              ? undefined
+              : {
+                  transformOrigin: item.framing.origin,
+                  transform: `scale(${String(item.framing.zoom)})`,
+                }
+          }
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+      </picture>
 
-      <div className="pointer-events-none absolute inset-0 bg-surface-sunken opacity-0 transition-opacity duration-base ease-out group-hover/card:opacity-80" />
-
-      <span className="pointer-events-none absolute bottom-5 left-5 font-mono text-label text-fg uppercase opacity-0 transition-opacity duration-base ease-out group-hover/card:opacity-100">
-        {item.title}
-      </span>
+      {/* O véu de hover só existe onde há rótulo para ler. Sem isso ele escureceria o
+          screenshot sem entregar nada em troca — o contrário do que a vitrine quer. */}
+      {item.title !== '' && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-surface-sunken to-transparent opacity-0 transition-opacity duration-base ease-out group-hover/card:opacity-95" />
+          <span className="pointer-events-none absolute bottom-5 left-5 font-mono text-label text-fg uppercase opacity-0 transition-opacity duration-base ease-out group-hover/card:opacity-100">
+            {item.title}
+          </span>
+        </>
+      )}
     </motion.div>
   );
 }

@@ -2,19 +2,16 @@ import { useMemo, useRef } from 'react';
 import { SERVICES_HOOK, servicesMotion } from '../animations/services';
 import { useMotion } from '../animations/useMotion';
 import { ContactCta, Eyebrow, Heading, PendingContent, Section, Text } from '../components';
-import { HeroParallax, type ShowcaseItem } from '../components/ui/hero-parallax';
+import { HeroParallax } from '../components/ui/hero-parallax';
 import { cn } from '../lib/cn';
 import { copy } from '../lib/content';
 import { padIndex } from '../lib/format';
-import { showcasePanel } from '../lib/showcase-placeholder';
+import { buildDeck } from '../lib/showcase';
 
 /** `id` da âncora. É para cá que o indicador de rolagem do herói aponta. */
 export const SERVICES_SECTION_ID = 'servicos';
 
 const HEADING_ID = 'servicos-titulo';
-
-/** Três fileiras de cinco painéis — a forma do deck de parallax. */
-const DECK_SIZE = 15;
 
 export interface IndexRuleProps {
   readonly className?: string;
@@ -71,18 +68,13 @@ export function Services() {
   const { primaryCta } = copy.hero;
 
   /**
-   * Os quatro serviços em ciclo pelas quinze posições. Ciclar é honesto: o deck é
-   * ilustração (`aria-hidden` no componente), então a repetição não vira conteúdo
-   * duplicado nem promete quinze trabalhos que não existem.
+   * As quinze posições do deck. Quem decide o que entra em cada uma é `lib/showcase.ts`
+   * — inclusive o reenquadramento das pontas quando os screenshots reais chegarem.
+   * Aqui só passam os rótulos de reserva: os quatro serviços, em ciclo, que são copy
+   * do Davi. O deck é `aria-hidden` no componente, então a repetição é ilustração e
+   * não conteúdo duplicado.
    */
-  const deck = useMemo<readonly ShowcaseItem[]>(
-    () =>
-      Array.from({ length: DECK_SIZE }, (_, index) => ({
-        title: items[index % items.length].title,
-        thumbnail: showcasePanel(index + 1),
-      })),
-    [items],
-  );
+  const deck = useMemo(() => buildDeck(items.map((service) => service.title)), [items]);
 
   return (
     <Section
