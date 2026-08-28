@@ -19,8 +19,12 @@
    * A moldura vertical da primeira dobra — o que faz o TÍTULO ficar no meio real
    * da tela, não o bloco de texto inteiro.
    *
+   * ⚠ Tudo neste comentário descreve a dobra de 768px PARA CIMA. No celular a
+   * composição é outra (três zonas — ver o bloco `@media` no fim do arquivo), e lá
+   * nem o `margin-block: auto` do `.hero-block` nem o `--hero-lift` estão em jogo.
+   *
    * ─── O MECANISMO ────────────────────────────────────────────────────────────────
-   * `my-auto`, no bloco de texto (Hero.tsx), centraliza esse bloco no espaço que
+   * O `margin-block: auto` do `.hero-block` centraliza o bloco no espaço que
    * SOBRA entre `padding-top` e a região do indicador de rolagem. Se as duas
    * regiões forem IGUAIS, o CENTRO DO BLOCO cai exatamente no centro da viewport —
    * matemática comprovada e medida (Puppeteer) nesta mesma tarefa.
@@ -55,6 +59,10 @@
    * devolveu o resultado à faixa original (−7 a −74px), reconferido pelo mesmo
    * método, sem comer a margem do CTA no iPhone SE (continua ~24px).
    *
+   * ⚠ VALE SÓ DE 768px PARA CIMA desde 2026-08-28: no celular o lift é ZERO (ver o
+   * bloco `@media` no fim deste arquivo, e o porquê). Quem reajustar os coeficientes
+   * abaixo está decidindo o desktop apenas.
+   *
    * ⚠ NÃO É UMA FÓRMULA AUTOAJUSTÁVEL AO CONTEÚDO. Os coeficientes (26, 105, 210)
    * foram tunados por tentativa medida para a copy e o espaçamento ATUAIS. Se o
    * subtítulo mudar de tamanho, o CTA ganhar uma segunda linha ou o espaçamento
@@ -81,9 +89,306 @@
     padding-bottom: var(--spacing-block);
   }
 
+  /**
+   * O RITMO VERTICAL DO BLOCO — por que ele mora aqui e não em utilitárias.
+   *
+   * Estas quatro medidas (respiro do subtítulo, do CTA, da faixa de serviços e do
+   * indicador) eram `-mt-4`, `mt-section`, `mt-block`/`pt-7`/`gap-*` e `mt-block` no
+   * JSX. Precisaram sair de lá por um motivo mecânico, não estético: utilitária do
+   * Tailwind vive em `@layer utilities`, que vence `@layer components` — enquanto o
+   * valor estivesse no JSX, NENHUMA regra deste arquivo conseguiria reescrevê-lo no
+   * mobile. Os valores abaixo são exatamente os que as utilitárias produziam, então
+   * desktop e tablet continuam pixel a pixel onde estavam; o que mudou é que agora
+   * existe um ponto para o bloco `@media` do fim deste arquivo mirar.
+   */
+
+  /**
+   * O bloco de texto. `margin-block: auto` é o que centraliza tudo no espaço que
+   * sobra (o mecanismo descrito em `.hero-frame`).
+   *
+   * Estas cinco declarações eram `my-auto flex w-full flex-col items-center` no JSX.
+   * Vieram para cá pelo mesmo motivo mecânico das margens abaixo — e por um a mais: no
+   * mobile este elemento vira `display: contents` (ver o bloco `@media`), e utilitária
+   * de `display` no JSX venceria essa troca.
+   */
+  .hero-block {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    margin-block: auto;
+  }
+
+  /**
+   * O respiro acima do título separa-o do `<Eyebrow>` — que hoje NÃO existe (o kicker
+   * saiu do herói em 2026-08-27) e volta assim que `content/copy.md` declarar um
+   * `**Eyebrow:**`. Sem ele, viram 2rem de vazio no topo do bloco; no desktop isso é
+   * inofensivo (o bloco é centralizado, e a medição de `--hero-lift` já o inclui), mas
+   * no mobile o título é ANCORADO no alto e esses 2rem viravam justamente o que o Davi
+   * pediu para tirar. Por isso o valor zera lá embaixo em vez de sumir daqui: no dia
+   * em que o kicker voltar, ele volta com o respiro certo em qualquer largura.
+   */
+  .hero-headline {
+    margin-top: 2rem;
+  }
+
+  /**
+   * O subtítulo sobe para dentro da caixa da headline.
+   *
+   * A Bebas Neue com `line-height: 0.9` fecha a caixa ACIMA da própria descida, então
+   * a caixa do `<h1>` termina antes da tinta terminar. Estes −16px foram medidos para
+   * a headline de UMA LINHA do desktop, onde a cedilha de "CRESÇA." cai no fim da
+   * linha e o subtítulo, mais estreito, passa longe dela. ⚠ Não é um valor seguro
+   * quando a headline QUEBRA — ver o bloco mobile.
+   */
+  .hero-lede {
+    margin-top: -1rem;
+  }
+
+  .hero-cta-slot {
+    margin-top: var(--spacing-section);
+  }
+
+  .hero-services {
+    margin-top: var(--spacing-block);
+    padding-top: 1.75rem;
+    column-gap: 1.75rem;
+    row-gap: 0.75rem;
+  }
+
+  /**
+   * ⚠ A margem REAL do indicador (`--spacing-block`, até 4rem) é maior que a região
+   * reservada para ele lá em cima (`--hero-cue-gap`, 2.5rem). A assimetria não é
+   * descuido: ela já está DENTRO da medição de `--hero-lift` (as 11 viewports foram
+   * medidas com o layout assim). Igualar os dois valores desloca o título em todas
+   * elas — se for mexer, remeça.
+   */
   .hero-cue {
     height: var(--hero-cue);
-    margin-top: var(--hero-cue-gap);
+    margin-top: var(--spacing-block);
+  }
+
+  /**
+   * ══ MOBILE — A DOBRA REDISTRIBUÍDA (< 48rem / 768px) ═══════════════════════════
+   *
+   * Pedido do Davi (2026-08-28): "no mobile está ruim a hero". Estava mesmo, e por
+   * três defeitos MEDIDOS (Puppeteer, `getBoundingClientRect` + métricas de tinta via
+   * `measureText`, nas 8 viewports de 320×568 a 768×1024) — não por gosto:
+   *
+   * 1. O SUBTÍTULO ENCOSTAVA NA HEADLINE. Com a headline em 3 linhas, a cedilha de
+   *    "CRESÇA." cai no MEIO da linha, bem em cima do subtítulo — que ali ocupa ~89%
+   *    da largura da tela. O vão ótico (tinta a tinta) media **−10px**: sobreposição
+   *    de verdade, visível no print. No desktop o mesmo `-mt-4` é seguro porque a
+   *    headline cabe em uma linha e a cedilha fica na ponta direita, longe do
+   *    subtítulo mais estreito.
+   * 2. O CTA CAÍA FORA DA DOBRA. Em 320×568 o botão terminava **29px ABAIXO** da
+   *    borda da viewport — violação direta do §3 do CLAUDE.md.
+   * 3. O HERÓI TRANSBORDAVA A TELA. Em 393×852 ele media 903px de altura: o
+   *    `padding-top` fixo (`--hero-lift` de 129px + a reserva do indicador) somado a
+   *    um bloco que, no mobile, é ~2× mais alto que no desktop (headline em 3 linhas,
+   *    subtítulo em 2–3, faixa de serviços em 2–3 fileiras) estourava o `min-h-svh`.
+   *    Resultado: ~270px de vazio no topo e tudo espremido embaixo.
+   *
+   * ─── A COMPOSIÇÃO: TRÊS ZONAS, NÃO UM BLOCO CENTRALIZADO ────────────────────────
+   * Segundo pedido do Davi, no mesmo dia: "a animação está muito boa, deve ganhar mais
+   * espaço e presença"; a headline devia subir; o CTA e a faixa de serviços estavam
+   * "muito no meio da tela" e deviam descer. Os três apontam para a mesma estrutura, e
+   * ela é o padrão que funciona na tela de um celular:
+   *
+   *    ┌──────────────┐  ENUNCIADO   headline + subtítulo, ancorados no alto
+   *    │  CONSTRUA.   │              (logo abaixo do header fixo)
+   *    ├──────────────┤
+   *    │              │  CENA        todo o espaço livre, sem nada por cima —
+   *    │     ◍        │              é aqui que a forma 3D vive
+   *    ├──────────────┤
+   *    │ [ CTA ]      │  AÇÃO        CTA + faixa + indicador, ancorados embaixo,
+   *    └──────────────┘              na zona do polegar
+   *
+   * No desktop o bloco inteiro é centralizado (`.hero-block` com `margin-block: auto`)
+   * e a cena aparece nas laterais largas que sobram — lá isso funciona. Num retrato de
+   * 390px NÃO SOBRA lateral: centralizar o bloco põe o texto exatamente em cima da
+   * forma, o que ao mesmo tempo esconde a cena e obriga o scrim a apagá-la. Era o
+   * defeito que o Davi enxergou.
+   *
+   * O mecanismo é `display: contents` no `.hero-block`: as cinco peças (título,
+   * subtítulo, CTA, faixa, indicador) viram itens diretos do `.hero-frame`, e aí um
+   * `margin-top: auto` no CTA joga TODA a folga da tela para o vão entre o subtítulo e
+   * ele. Uma linha de CSS faz a divisão em três zonas — sem markup duplicado, sem
+   * componente separado de mobile, e colapsando sozinha para zero quando a tela é
+   * curta demais (é o que salva o iPhone SE).
+   *
+   * `--hero-lift: 0` pelo mesmo motivo: o lift existe para trazer o TÍTULO ao centro
+   * da tela quando o bloco é bottom-heavy — conta feita para a headline de uma linha e
+   * para um bloco centralizado. Nesta composição não há bloco centralizado para
+   * corrigir, e o lift viraria só empurrão para fora da dobra.
+   *
+   * O `padding-top` é o header (`--spacing-header`) mais um respiro (`--spacing-stack`):
+   * a região de cima precisa garantir que o título não entre por baixo do header fixo
+   * e não pareça colado nele — nada além disso.
+   *
+   * Os respiros internos deixam de ser os do desktop: `--spacing-section` (76–79px
+   * medidos entre subtítulo e CTA) é ritmo de página larga; numa tela de 568px ele
+   * gastava 13% da dobra num vão vazio enquanto o subtítulo colidia com o título logo
+   * acima. A distribuição estava invertida — falta de ar onde precisava, excesso onde
+   * não.
+   *
+   * ─── O QUE ISSO DEVOLVE (medido depois, mesmas viewports) ───────────────────────
+   * O CTA volta para dentro da dobra em TODAS elas, inclusive no iPhone SE de 1ª
+   * geração; o vão ótico título↔subtítulo passa de −10px para ~+11px (≈0,5em do
+   * subtítulo); a altura do herói cai abaixo do `svh` nas telas de 640px+; e a faixa
+   * livre para a cena passa de ~0 para 240–330px nos telefones correntes. Tabela em
+   * `PENDENCIAS.md`.
+   *
+   * ⚠ Em 320×568 o herói ainda é mais alto que a dobra: a faixa de serviços e o
+   * indicador ficam logo abaixo dela. É uma escolha de prioridade, não um descuido —
+   * headline, subtítulo e CTA cabem com folga, e é essa a hierarquia da dobra (§3).
+   * Encurtar mais só sacrificando o tamanho da headline, que é o que impressiona.
+   */
+  @media (max-width: 47.9375rem) {
+    .hero-frame {
+      --hero-lift: 0px;
+      --hero-cue-gap: 1.5rem;
+
+      padding-top: calc(var(--spacing-header) + var(--spacing-stack));
+      padding-bottom: var(--spacing-stack);
+    }
+
+    /* As cinco peças sobem para o `.hero-frame` e viram itens de flex dele — é o que
+       permite ancorar umas no alto e outras embaixo. Sem `display: contents` seria
+       preciso duplicar o markup em dois wrappers (um por zona) e manter duas árvores
+       em sincronia com a timeline do GSAP; os ganchos `data-hero-*` continuam nas
+       mesmas peças, então a entrada da dobra não muda nem uma linha. */
+    .hero-block {
+      display: contents;
+    }
+
+    /* Sem kicker para separar, o respiro do desktop vira só atraso: aqui o título é a
+       primeira coisa da tela e sobe para junto do header (ver a nota em
+       `.hero-headline`). */
+    .hero-headline {
+      margin-top: 0;
+    }
+
+    /* +0,3rem de caixa = ~+11px de vão ÓTICO (a caixa do <h1> termina 5,8px antes da
+       tinta da cedilha; a conta está no item 1 acima). Positivo de propósito: no
+       mobile a última linha da headline fica sobre o corpo do subtítulo. */
+    .hero-lede {
+      margin-top: 0.3rem;
+    }
+
+    /* A dobradiça da composição: toda a folga da tela vira o vão entre o subtítulo e o
+       CTA — a faixa livre onde a cena aparece. Quando a tela é curta a folga é zero e
+       este `auto` colapsa sozinho, encostando o CTA no subtítulo em vez de empurrá-lo
+       para fora da dobra. `2rem` é o piso desse vão nessa situação. */
+    .hero-cta-slot {
+      position: relative;
+      margin-top: auto;
+      padding-top: 2rem;
+    }
+
+    /**
+     * O colchão do CTA — WCAG 1.4.3, e o único jeito de não pagar com a cena.
+     *
+     * MEDIDO com a cena rodando (o pior pixel de fundo atrás da TINTA do rótulo, em 8
+     * quadros da varredura): nas telas curtas, onde a faixa livre colapsa e o botão
+     * sobe para cima do núcleo aceso da forma, o rótulo dourado caía para **3,59:1**
+     * (360×740) e **4,03:1** (320×568) — reprovando o piso de 4,5:1. Nas telas altas o
+     * mesmo botão media 9,4–9,9:1, porque lá ele fica longe da forma.
+     *
+     * Reforçar a FAIXA de baixo do scrim resolveria, mas custaria caro no lugar errado:
+     * para cobrir o botão nas telas curtas ela teria que subir ~150px, e nas telas
+     * altas isso apaga justamente a metade de baixo da forma — desfazendo o que este
+     * bloco inteiro existe para conseguir. Este colchão age só onde o problema existe:
+     * ~90px em volta do botão, com a borda dissolvida no radial (nada de retângulo
+     * visível), levando a composição de alfa de ~0,61 para ~0,88 ali dentro.
+     *
+     * Fica ATRÁS do botão e À FRENTE da cena (`z-index: -1` resolve para o contexto de
+     * empilhamento da <section>, onde o backdrop está em `-z-10`), então não encosta na
+     * varredura dourada do `:hover` nem no anel de foco. Sobre o fundo estático (sem
+     * cena) é literalmente invisível: é `--color-bg` sobre `--color-bg`.
+     */
+    .hero-cta-slot::before {
+      content: '';
+      position: absolute;
+      z-index: -1;
+      inset: 0.5rem -2.5rem -1.75rem;
+      background-image: radial-gradient(
+        72% 72% at 50% 50%,
+        color-mix(in oklab, var(--color-bg) 78%, transparent) 0%,
+        color-mix(in oklab, var(--color-bg) 58%, transparent) 58%,
+        transparent 100%
+      );
+    }
+
+    /* Só a margem e o respiro do filete encolhem. O `column-gap` de 1.75rem FICA: com
+       ele a faixa quebra 2+2 nos telefones de 390px para cima (medido), e apertá-lo
+       para 1.25rem trocava esse par equilibrado por um 3+1 torto sem economizar
+       fileira nenhuma nas telas de 375px para baixo, que quebram em três de todo
+       jeito. */
+    .hero-services {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      row-gap: 0.5rem;
+    }
+
+    .hero-cue {
+      margin-top: var(--hero-cue-gap);
+    }
+
+    /**
+     * O SCRIM VIRA DUAS FAIXAS — e é isto que devolve a cena ao celular.
+     *
+     * A elipse do desktop (ver `.hero-scrim`, acima) é mais forte no CENTRO: 75% de
+     * mistura com o fundo bem no meio da tela. No desktop isso é certo, porque é lá
+     * que o texto está. No retrato de um celular, depois da recomposição em três
+     * zonas, o meio da tela é exatamente onde a FORMA está e onde NÃO há texto — a
+     * elipse estava apagando 75% justo do único lugar que devia brilhar. Era a outra
+     * metade do "a animação deve ganhar mais presença".
+     *
+     * Aqui viram DUAS CAMADAS de gradiente, cada uma ancorada na sua borda: uma desce
+     * do topo (protege headline + subtítulo), outra sobe do rodapé (protege CTA, faixa
+     * e indicador). No meio, as duas já são transparentes e a cena aparece inteira.
+     *
+     * ─── POR QUE DUAS CAMADAS E NÃO UM GRADIENTE SÓ ─────────────────────────────────
+     * Um gradiente único precisaria de paradas ordenadas ("transparente a 440px" E
+     * "transparente a 100%−360px"), e numa tela curta a segunda vem ANTES da primeira:
+     * o CSS trava as paradas fora de ordem e nasce uma emenda dura no meio da tela.
+     * Em camadas separadas isso não existe — cada uma só conhece a própria borda. E
+     * quando a tela é curta elas se SOBREPÕEM, compondo alfa (0,56 sobre 0,56 = 0,81):
+     * mais proteção exatamente onde a tela é apertada e o texto ocupa tudo. A
+     * degradação certa acontece sozinha, sem media query de altura — que no iOS seria
+     * ainda por cima não confiável (lá a MQ mede a viewport GRANDE, não o `svh`).
+     *
+     * ─── AS PARADAS SAEM DA POSIÇÃO MEDIDA DO TEXTO ─────────────────────────────────
+     * Medido nesta composição: o subtítulo termina no máximo a 361px do topo (3 linhas,
+     * telas de 320–360px) e o CTA começa no máximo a 269px do rodapé. As faixas
+     * seguram **56% de mistura até 360px / 280px** — o mesmo piso que já foi auditado
+     * como **5,33:1 para `--color-fg` sobre o pico da forma** com `SCENE.bodyGain` 2,4
+     * (a conta está em `three/hero/config.ts`) — e só então caem para zero em mais
+     * 80px. No centro da forma (426px numa tela de 852) a mistura sai de 75% para
+     * ~10%.
+     *
+     * ⚠ Quem mexer no ritmo vertical acima MEXE NESTAS PARADAS. Elas são a posição do
+     * texto escrita em px; se o subtítulo ganhar uma linha ou a faixa de serviços
+     * mudar de altura, remeça as duas distâncias antes de confiar no contraste.
+     */
+    .hero-scrim {
+      background-image:
+        linear-gradient(
+          to bottom,
+          color-mix(in oklab, var(--color-bg) 84%, transparent) 0,
+          color-mix(in oklab, var(--color-bg) 68%, transparent) 220px,
+          color-mix(in oklab, var(--color-bg) 56%, transparent) 360px,
+          transparent 440px
+        ),
+        linear-gradient(
+          to top,
+          color-mix(in oklab, var(--color-bg) 84%, transparent) 0,
+          color-mix(in oklab, var(--color-bg) 68%, transparent) 170px,
+          color-mix(in oklab, var(--color-bg) 56%, transparent) 280px,
+          transparent 360px
+        );
+    }
   }
 
   /**

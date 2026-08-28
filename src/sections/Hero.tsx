@@ -47,6 +47,23 @@ const HEADING_ID = 'hero-titulo';
  * copy mudar de forma relevante (subtítulo bem mais longo/curto, CTA maior), remeça
  * este valor com o mesmo método — não no olho.
  *
+ * ─── E NO CELULAR, ONDE ESSA CONTA NÃO VALE ─────────────────────────────────────
+ * Tudo acima descreve a dobra de 768px para cima. Lá o bloco inteiro é centralizado e
+ * a cena aparece nas laterais largas que sobram. Num retrato de 390px não sobra
+ * lateral nenhuma: centralizar o bloco põe o texto exatamente em cima da forma 3D, o
+ * que esconde a cena e ainda obriga o scrim a apagá-la para proteger o contraste.
+ *
+ * Por isso o celular tem OUTRA composição — enunciado ancorado no alto, cena ocupando
+ * toda a folga do meio, ação (CTA + faixa + indicador) ancorada embaixo, na zona do
+ * polegar. Ela é feita com `display: contents` neste bloco e um `margin-top: auto` no
+ * CTA, e o desenho inteiro, com as medidas, está em `styles/hero.css`.
+ *
+ * ⚠ É POR ISSO que o ritmo vertical daqui (respiro do título, do subtítulo, do CTA, da
+ * faixa e do indicador) mora lá como CLASSE e não como utilitária do Tailwind:
+ * utilitária vence `@layer components`, e enquanto qualquer um desses valores
+ * estivesse escrito neste arquivo, nenhuma regra de mobile conseguiria reescrevê-lo.
+ * Quem for mexer no espaçamento do herói mexe no CSS, não no JSX.
+ *
  * ─── A LINHA ÚNICA É ESTRUTURA, NÃO SORTE ───────────────────────────────────────
  * Headline e subtítulo cabem numa linha só no desktop porque foram DIMENSIONADOS
  * para isso: o avanço da headline na Bebas Neue foi medido com `fontkit` e virou a
@@ -107,7 +124,7 @@ export function Hero() {
           indicador de rolagem — para que o `my-auto` devolva o TÍTULO, não o bloco,
           ao centro da tela. O padding vertical vem de lá; não o duplique aqui. */}
       <div className="hero-frame flex min-h-svh flex-col items-center text-center">
-        <div className="my-auto flex w-full flex-col items-center">
+        <div className="hero-block">
           {eyebrow?.kind === 'text' && (
             <div {...{ [HERO_HOOK.reveal]: true }}>
               <Eyebrow align="center">{eyebrow.value}</Eyebrow>
@@ -120,7 +137,7 @@ export function Hero() {
               size="hero"
               font="hero"
               id={HEADING_ID}
-              className="mt-8 uppercase"
+              className="hero-headline uppercase"
               // O SplitText mede linhas; `text-balance` reescreveria a quebra depois
               // da divisão e a máscara pararia de bater com o texto.
               balance={false}
@@ -144,7 +161,7 @@ export function Hero() {
             <PendingContent hint={headline.hint} />
           )}
 
-          <div {...{ [HERO_HOOK.reveal]: true }} className="-mt-4">
+          <div {...{ [HERO_HOOK.reveal]: true }} className="hero-lede">
             {subheadline.kind === 'text' ? (
               // `tone="fg"` em vez do padrão `fg-muted` do <Text> — exceção medida,
               // não estética. Puppeteer mostrou o subtítulo esticando até ~95% da
@@ -162,7 +179,7 @@ export function Hero() {
             )}
           </div>
 
-          <div {...{ [HERO_HOOK.reveal]: true }} className="mt-section">
+          <div {...{ [HERO_HOOK.reveal]: true }} className="hero-cta-slot">
             {primaryCta.kind === 'text' ? (
               <ContactCta label={primaryCta.value} size="lg" variant="secondary" />
             ) : (
@@ -174,7 +191,7 @@ export function Hero() {
               texto: o filete dourado de cada item é o mesmo gesto do <Eyebrow>. */}
           <ul
             {...{ [HERO_HOOK.reveal]: true }}
-            className="mt-block flex w-full max-w-hero flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t border-line pt-7"
+            className="hero-services flex w-full max-w-hero flex-wrap items-center justify-center border-t border-line"
           >
             {copy.services.items.map((service) => (
               <li
@@ -195,7 +212,7 @@ export function Hero() {
         <a
           href={`#${SERVICES_SECTION_ID}`}
           {...{ [HERO_HOOK.reveal]: true }}
-          className="hero-cue mt-block flex shrink-0 flex-col items-center gap-3 rounded-xs font-mono text-label text-muted uppercase transition-colors duration-fast ease-out hover:text-accent focus-visible:focus-ring"
+          className="hero-cue flex shrink-0 flex-col items-center gap-3 rounded-xs font-mono text-label text-muted uppercase transition-colors duration-fast ease-out hover:text-accent focus-visible:focus-ring"
         >
           {uiStrings.scrollCue}
           <span aria-hidden className="h-8 w-px overflow-hidden bg-line">

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { MEDIA } from '../animations/motion';
 import { detectCapability } from '../lib/capability';
+// `three/hero/config.ts` é um módulo FOLHA: só constantes, nenhum import de `three`.
+// Por isso importá-lo daqui (do bundle de entrada) não arrasta a cena junto — se um
+// dia ele passar a importar `three`, este import precisa sair.
+import { TEXTURE } from '../three/hero/config';
 
 /**
  * O portão da cena WebGPU do herói.
@@ -33,6 +37,33 @@ import { detectCapability } from '../lib/capability';
  * rola ou toca a tela em menos de um segundo — e aí a thread já está livre.
  *
  * `SETTLE_MS` cobre o caso de quem chega e simplesmente lê sem tocar em nada.
+ *
+ * ─── O GESTO É ESCUTADO DESDE O MOUNT, E ISSO É UMA CORREÇÃO (2026-08-28) ────────
+ * O Davi relatou que no celular a cena "demora bastante para aparecer pela primeira
+ * vez". MEDIDO (Chrome, 393×852, CPU 4×, 4G): o primeiro quadro saía aos **11,1 s**
+ * mesmo com um gesto aos 1,7 s. A causa não era a cena — era este portão. Os
+ * listeners de gesto só eram registrados DENTRO de `afterLoad`, então todo gesto
+ * anterior ao evento `load` (~1,8 s num celular) era jogado fora, e quem tinha
+ * tocado a tela esperava assim mesmo os 6 s inteiros do `SETTLE_MS`. Num celular,
+ * tocar/rolar antes do `load` é o comportamento COMUM, não a exceção.
+ *
+ * Agora são duas condições independentes: o SINAL DE PRESENÇA (gesto ou o timer) é
+ * escutado desde o mount, e o `load` continua sendo a trava que impede a cena de
+ * disputar banda e thread com o carregamento crítico. A cena começa no MAIOR dos
+ * dois — o gesto não se perde mais, e a garantia de não competir com a primeira
+ * dobra continua de pé.
+ *
+ * ─── E A REDE SAI DO CAMINHO CRÍTICO ────────────────────────────────────────────
+ * O download em si (406 kB comprimidos do chunk + 59 kB de textura) só começava
+ * DEPOIS do portão abrir, somando ~1,2 s em 4G ao tempo de aparecer. Ele agora é
+ * disparado logo após o `load`, por `<link rel="prefetch">` e por um `Image()` —
+ * **rede apenas, sem executar nada**: o custo de thread que derrubou o Lighthouse é
+ * de análise/compilação, e prefetch não analisa nem compila. Quando o portão abre, o
+ * `import()` acha tudo no cache HTTP.
+ *
+ * ⚠ `rel="prefetch"` é ignorado pelo Safari (inclusive iOS). Lá o ganho desta parte
+ * é zero e vale só a correção do gesto, que é a maior das duas. A textura, por vir
+ * de `Image()`, aquece em todos os navegadores.
  *
  * ─── DECIDIDO UMA VEZ ───────────────────────────────────────────────────────────
  * Não observa mudanças de `prefers-reduced-motion` depois do mount. Montar e
@@ -97,6 +128,61 @@ function afterLoad(task: () => void): () => void {
 }
 
 /**
+ * Onde o build anota a URL com hash do chunk da cena. Quem escreve é o plugin
+ * `metup:hero-scene-prefetch`, em `vite.config.ts` — o nome do arquivo só existe
+ * depois do bundle, então não há como escrevê-lo à mão aqui.
+ *
+ * Ausente em `dev` (não há chunk), e nesse caso o prefetch do script simplesmente não
+ * acontece: em desenvolvimento o módulo vem do servidor local, sem custo de rede que
+ * justifique.
+ */
+const CHUNK_META = 'metup:hero-scene';
+
+/**
+ * Baixa sem executar.
+ *
+ * `prefetch` (e não `preload`/`modulepreload`) é deliberado: é a única das três que o
+ * navegador trata como "vou precisar disto DEPOIS", em prioridade mínima e sem tocar
+ * na thread principal. `modulepreload` compilaria o módulo — justo o custo que este
+ * arquivo inteiro existe para adiar.
+ *
+ * ⚠ NADA AQUI É DESFEITO NA DESMONTAGEM, E É DE PROPÓSITO — custou uma medição para
+ * descobrir. A primeira versão removia o `<link>` no teardown, por asseio; o que
+ * acontecia na prática é que o gesto chegava DURANTE o prefetch, o portão abria, o
+ * teardown removia o `<link>` e o navegador **abortava o download pela metade** — aí o
+ * `import()` baixava os 406 kB inteiros de novo (medido: 166 ms jogados fora + 933 ms
+ * de redownload). Deixando o `<link>` onde está, o `import()` reaproveita a requisição
+ * em andamento (conferido: `transferSize` 0 no segundo pedido).
+ *
+ * O que fica para trás é um `<link>` inerte no `<head>` e duas imagens já baixadas —
+ * nenhum listener, nenhum timer, nenhum recurso de GPU. A regra de limpeza do §12 é
+ * sobre o que continua CUSTANDO depois de morto; isto não custa nada.
+ */
+function prefetchAssets(): void {
+  const chunk = document
+    .querySelector<HTMLMetaElement>(`meta[name="${CHUNK_META}"]`)
+    ?.content.trim();
+
+  if (chunk !== undefined && chunk !== '') {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    // `as` casa o prefetch com o pedido que o `import()` fará depois; sem ele, alguns
+    // navegadores guardam a resposta com outro modo de requisição e baixam DE NOVO.
+    link.as = 'script';
+    link.href = chunk;
+    document.head.append(link);
+  }
+
+  // As texturas não passam pelo `<link>`: `Image()` aquece o mesmo cache HTTP e
+  // funciona também no Safari, que ignora `rel="prefetch"`. São 59 kB.
+  for (const src of [TEXTURE.color, TEXTURE.depth]) {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = src;
+  }
+}
+
+/**
  * `false` durante o pré-render e na primeira pintura do cliente — sempre. É isso que
  * garante que o HTML entregue ao Google e ao primeiro quadro seja o herói estático.
  */
@@ -113,21 +199,51 @@ export function useHeroScene(): boolean {
     // estágio deixa listeners diferentes para trás.
     const teardown: (() => void)[] = [];
 
+    // As duas condições são independentes e podem chegar em qualquer ordem — é isso
+    // que impede um gesto anterior ao `load` de ser descartado (ver o cabeçalho).
+    let awake = false;
+    let loaded = false;
+
     const start = (): void => {
+      if (!awake || !loaded) return;
       for (const undo of teardown.splice(0)) undo();
       setEnabled(true);
     };
 
+    const wake = (): void => {
+      awake = true;
+      start();
+    };
+
+    // Gesto ANTERIOR à hidratação. Este efeito roda ~1,9 s depois da navegação num
+    // celular (medido), e quem rolou a página antes disso não deixa evento nenhum
+    // para trás — mas deixa RASTRO: a página não está mais no topo. É o sinal de
+    // presença mais barato que existe, e cobre o gesto mais comum no celular.
+    if (window.scrollY > 0) awake = true;
+
+    for (const type of WAKE_EVENTS) {
+      window.addEventListener(type, wake, { once: true, passive: true });
+      teardown.push(() => {
+        window.removeEventListener(type, wake);
+      });
+    }
+
     teardown.push(
       afterLoad(() => {
-        for (const type of WAKE_EVENTS) {
-          window.addEventListener(type, start, { once: true, passive: true });
-          teardown.push(() => {
-            window.removeEventListener(type, start);
-          });
+        loaded = true;
+
+        // Gesto já veio: o `import()` começa AGORA, e prefetch só atrapalharia —
+        // seriam dois pedidos do mesmo arquivo disputando a mesma banda.
+        if (awake) {
+          start();
+          return;
         }
 
-        const timer = window.setTimeout(start, SETTLE_MS);
+        prefetchAssets();
+
+        // A rede de segurança de quem não interage com nada. Contada do `load`, como
+        // sempre foi — só o gesto passou a ser ouvido antes dele.
+        const timer = window.setTimeout(wake, SETTLE_MS);
         teardown.push(() => {
           window.clearTimeout(timer);
         });
