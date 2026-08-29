@@ -22,6 +22,22 @@
     /* Âncoras de seção deslizam; desligado em reduced-motion mais abaixo. */
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    /**
+     * A página NUNCA rola na horizontal — rede de segurança do documento inteiro.
+     *
+     * `clip`, e NÃO `hidden`, e a diferença aqui é estrutural: `overflow-x: hidden`
+     * força o outro eixo a `auto` e transforma o <html> num container de rolagem,
+     * o que quebra `position: sticky` medido contra a viewport. Esta página é
+     * construída em cima de sticky (o canvas da cena, a vitrine em zoom, o painel do
+     * Processo) — `hidden` aqui trocaria a barra horizontal por três seções mortas.
+     * `clip` recorta sem criar container de rolagem e deixa o eixo Y `visible`.
+     *
+     * ⚠ Isto é a rede, não a licença: elemento que sangra para fora continua sendo
+     * bug e se conserta na origem (ver o spotlight em `sections/ZoomShowcase.tsx` e
+     * a nota do véu em `process.css`). A rede existe porque um estouro de 3px numa
+     * largura que ninguém abriu não pode virar barra de rolagem na página inteira.
+     */
+    overflow-x: clip;
   }
 
   /**

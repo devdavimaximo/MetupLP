@@ -1230,10 +1230,11 @@ em tela cheia no quadro em que a cena começa.
       `z = 600000` acima de 0.7, a cena abria SEM montanha — só o clarão do bloom, com
       a câmera no fim do percurso. Agora a conta é a mesma, mas da seção (posição
       dentro dela ÷ pista dela), e o contador "01 / 02" conta a seção.
-- [ ] ⚠ **Três contextos WebGL na mesma página:** o herói da Metup, a cena travada
-      dentro do quadrinho do zoom e a cena viva da seção. A travada desenha um quadro
-      só, mas segura contexto e memória de GPU (5000 estrelas × 3 campos, plano de
-      8000×4000 com 100×100 segmentos, bloom). Navegador tem limite de contextos e o
+- [ ] ⚠ **Dois contextos WebGL na mesma página:** o herói da Metup e a cena da seção.
+      Eram TRÊS até 2026-08-29 — o quadro central do zoom carregava uma segunda
+      instância da cena, congelada; ele virou um painel preto a pedido do Davi e o
+      contexto extra sumiu junto. Os dois que sobraram continuam pesados (5000
+      estrelas × 3 campos, plano de 8000×4000 com 100×100 segmentos, bloom), e o
       celular é onde isso quebra primeiro.
 - [ ] **O `requestAnimationFrame` da cena viva nunca para** — roda com a seção fora de
       quadro, do topo ao rodapé da página. Falta medir 60fps, INP e bateria no celular
