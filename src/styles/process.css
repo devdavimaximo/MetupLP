@@ -1,48 +1,210 @@
 /**
- * Processo — a geometria do trilho.
+ * Processo — a geometria do painel de execução.
  *
- * Está em CSS, e não em utilitário do Tailwind, pelo mesmo motivo de `showcase.css`:
- * as medidas são DERIVADAS umas das outras. O trilho vertical tem que cair no CENTRO
- * da coluna do número, e o número tem que mascarar a linha atrás dele — mexer numa
- * das duas sem a outra desalinha o eixo em silêncio. Aqui elas saem da mesma
- * variável.
+ * Está em CSS, e não em utilitário do Tailwind, pelo mesmo motivo de `showcase.css` e
+ * `hero.css`: as medidas são DERIVADAS umas das outras (o trilho, o recuo do quadro e
+ * o filete que sai do trilho saem da mesma variável), e há estado — `[data-process-
+ * active]` — que utilitária nenhuma expressa sem virar uma linha ilegível no JSX.
  *
- * ─── AS TRÊS DECISÕES DE LAYOUT ─────────────────────────────────────────────────
+ * ⚠ ESTE ARQUIVO É IMPORTADO SEM `@layer` (ver `index.css`), e CSS sem camada vence
+ * QUALQUER regra dentro de camada — inclusive as utilities do Tailwind. É o que
+ * permite o filete do quadro (um `<IndexRule>`, que chega com `bg-line`) virar dourado
+ * quando o passo acende. A contrapartida é que uma utilitária escrita no JSX NÃO
+ * consegue reescrever nada daqui: o que estiver neste arquivo é a palavra final. Ver a
+ * nota longa em `base.css` sobre camadas.
+ *
+ * ─── AS QUATRO DECISÕES DE LAYOUT ───────────────────────────────────────────────
  *  1. O ESPAÇO ENTRE PASSOS É `padding-bottom` DO `<li>`, NÃO `gap` DA LISTA.
- *     O trilho de cada passo é absoluto dentro do próprio `<li>` e ocupa a altura
- *     dele. Com `gap`, esse espaço ficaria FORA de todos os `<li>` e a linha teria um
- *     buraco entre cada passo. Com `padding-bottom`, os segmentos se encostam e lêem
- *     como uma linha contínua — que é o que permite desenhá-la passo a passo, sem
- *     scrub (ver `animations/process.ts`).
- *  2. ALINHAMENTO POR BASELINE, não pelo topo da caixa. O número é `--text-label`
- *     (0,75rem) e o nome do passo é `--text-title-sm` (fluido, 1,5→1,875rem): alinhar
- *     caixas deixaria o número boiando acima da maiúscula do título, e a diferença
- *     mudaria a cada largura de tela. `baseline` acerta em qualquer viewport sem
- *     nenhum número mágico — é o mesmo `items-baseline` do índice de Serviços.
- *  3. NO DESKTOP A FRASE VAI PARA UMA TERCEIRA COLUNA. Empilhada, ela obriga o olho a
- *     descer e voltar em cada passo; lado a lado, os quatro passos viram uma tabela
- *     de leitura e a seção fica mais curta — que é o ponto de uma seção silenciosa
- *     entre um deck de 200vh e o CTA final.
+ *     Herdado da versão anterior e agora com um segundo motivo: as faixas de leitura
+ *     do estado ativo (`animations/process.ts`) são contíguas exatamente porque os
+ *     `<li>` são contíguos. Com `gap`, existiriam vãos entre as faixas — instantes com
+ *     nenhum passo aceso — e o odômetro tremeria a cada transição.
+ *  2. O TRILHO É IRMÃO DA `<ol>`, NÃO FILHO DELA. `<ol>` só aceita `<li>`, `<script>` e
+ *     `<template>` como filhos; um `<span>` decorativo ali dentro é HTML inválido. Por
+ *     isso existe `.process-track` — ele é o contexto posicionado que segura o trilho
+ *     ao lado da lista.
+ *  3. O FILETE DE CADA QUADRO COMEÇA NO TRILHO. Ele é absoluto em `left: 0` do `<li>`,
+ *     e o `<li>` só recua o CONTEÚDO (`padding-left`). Os dois se encontram num "T", e
+ *     é isso que faz a coluna ler como um sistema — cada passo é uma derivação do
+ *     trilho — em vez de quatro blocos empilhados por acaso.
+ *  4. NUMERAL E TÍTULO ALINHADOS POR BASELINE a partir de 48rem. O numeral é ~3rem e o
+ *     título ~1,9rem: alinhar caixas deixaria o numeral boiando, e a diferença mudaria
+ *     a cada largura. `baseline` acerta em qualquer viewport sem número mágico — é o
+ *     mesmo alinhamento do índice de Serviços.
+ *
+ * ─── SOBRE CONTRASTE E O ESTADO ATIVO ───────────────────────────────────────────
+ * O passo aceso GANHA sinal (filete dourado, numeral preenchido, um véu de superfície);
+ * o passo em repouso NÃO PERDE nada. Nenhuma regra aqui baixa a opacidade de texto de
+ * conteúdo — apagar os passos que não estão sendo lidos seria bonito e reprovaria a
+ * WCAG 1.4.3 em três quartos da seção o tempo todo. Tudo o que muda de cor é
+ * `aria-hidden` ou decorativo.
  */
 
-.process-steps {
-  /**
-   * Coluna do número, e portanto a posição do trilho (que fica no meio dela).
-   *
-   * Derivada de `--text-label` (o tamanho do próprio número) em vez de escrita em
-   * rem: se a escala tipográfica mudar, a coluna acompanha. 2,75× cabe "01" com o
-   * `--tracking-terminal` de 0,14em e ainda deixa respiro dos dois lados.
-   */
-  --process-marker: calc(var(--text-label) * 2.75);
-  /** Distância do número até o texto. */
-  --process-gutter: var(--spacing-stack);
-  /**
-   * Segmento dourado na cabeça do trilho — mesmo comprimento do segmento do
-   * `IndexRule` horizontal (`w-10`), para os dois lerem como o mesmo filete dobrando
-   * o canto embaixo do título da seção.
-   */
-  --process-head: calc(var(--spacing) * 10);
+/* ══ LAYOUT ══════════════════════════════════════════════════════════════════════
+   Uma coluna no celular; a partir de 64rem, o painel fixo à esquerda e os passos à
+   direita. 64rem (--breakpoint-lg) e não 48rem: o painel só ganha sentido quando
+   sobra largura para ele sem espremer a medida de leitura dos passos. Custom property
+   não é lida dentro de @media, por isso o valor aparece escrito. */
+.process-layout {
+  display: grid;
+  gap: var(--spacing-block);
+}
 
+/* ══ PAINEL FIXO ═════════════════════════════════════════════════════════════════
+   É decoração pura (`aria-hidden`): a `<ol>` ao lado já anuncia "item 2 de 4", e o
+   numeral gigante repetiria isso em voz alta. Some abaixo de 64rem sem nenhuma perda
+   de informação — no celular quem carrega a numeração é o numeral do próprio quadro,
+   que é o mesmo desenho em outra escala. */
+.process-panel {
+  display: none;
+}
+
+.process-odometer {
+  /* Monumental, mas com teto: acima disso ele passa a competir com o <h2> da seção,
+     que é quem tem que ganhar a página. */
+  --process-odometer-size: clamp(5.5rem, 10vw, 9rem);
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/**
+ * A janela do odômetro: exatamente UM numeral de altura, com o resto da tira escondido.
+ *
+ * `font-size` mora aqui (e não nos numerais) para que `height: 1em` da janela e dos
+ * numerais saiam do MESMO valor. Separar os dois é como a tira passa a deslizar meio
+ * dígito a cada passo sem ninguém entender por quê.
+ */
+.process-odometer-window {
+  display: block;
+  overflow: hidden;
+  font-size: var(--process-odometer-size);
+  height: 1em;
+}
+
+.process-odometer-strip {
+  display: block;
+}
+
+/**
+ * O total fica EMBAIXO do numeral, alinhado à esquerda com ele — não ao lado.
+ *
+ * Ao lado, ele tinha que se pendurar em alguma métrica do numeral (base da caixa ou
+ * baseline) e as duas erram: a janela do odômetro é `overflow: hidden`, então a
+ * baseline dela é a borda de baixo da caixa, e o rótulo acabava boiando ~30px abaixo
+ * da tinta do numeral, sem ler como fração nem como legenda. Empilhado, ele vira a
+ * legenda que é — e a coluna do painel fica com um eixo só.
+ */
+.process-odometer-total {
+  padding-left: 0.15em;
+}
+
+/* ══ NUMERAL ═════════════════════════════════════════════════════════════════════ */
+
+/**
+ * O numeral vazado — a assinatura desta seção.
+ *
+ * Bebas Neue (`--font-hero`) e não a mono dos rótulos: em corpo grande a mono vira
+ * um bloco de textura, e o que se quer aqui é DESENHO. É também o eco do herói, a
+ * única outra vez em que a face do enunciado aparece na página.
+ *
+ * `-webkit-text-stroke` está atrás de `@supports` porque `color: transparent` sem o
+ * traço é um numeral INVISÍVEL — a degradação tem que ser "sólido", nunca "sumiu".
+ * O traço é medido em `em` para acompanhar a escala fluida do corpo (num numeral de
+ * 9rem, 1px seria um fio de cabelo; no de 2,5rem, 4px seria uma mancha), com um piso
+ * em px para ele não desaparecer nas telas mais estreitas.
+ */
+.process-numeral {
+  display: block;
+  height: 1em;
+  font-family: var(--font-hero);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  /**
+   * Dígito de largura fixa. A Bebas Neue já desenha os algarismos assim, então hoje
+   * isto não muda um pixel — é uma trava, não uma correção. Sem ela, o dia em que a
+   * face da headline for trocada (já aconteceu duas vezes: Archivo → Anton → Bebas,
+   * ver `--font-hero`) o "01" ficaria mais estreito que o "04", a coluna `auto` do
+   * grid de cada passo mediria diferente e os quatro títulos deixariam de alinhar
+   * entre si — um desalinhamento que ninguém liga à troca de fonte.
+   */
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+@supports (-webkit-text-stroke: 1px currentcolor) {
+  .process-numeral {
+    color: transparent;
+    -webkit-text-stroke: max(1.5px, 0.022em) var(--color-accent);
+  }
+
+  /**
+   * O passo aceso PREENCHE. É a troca de estado mais barata que existe — uma
+   * propriedade de paint num único nó, sem layout e sem composição nova — e é a que
+   * mais se vê, porque o numeral é o maior objeto do quadro.
+   */
+  .process-step[data-process-active='true'] .process-numeral {
+    color: var(--color-accent);
+    transition: color var(--transition-duration-base) var(--ease-out);
+  }
+}
+
+/* ══ TRILHO E QUADROS ════════════════════════════════════════════════════════════ */
+.process-track {
+  /* Recuo do conteúdo do quadro a partir do trilho — e, por tabela, o quanto o filete
+     em "T" avança antes do primeiro caractere. */
+  --process-inset: clamp(1.25rem, 5vw, 2.25rem);
+  --process-numeral-size: clamp(2.5rem, 7vw, 3.25rem);
+  /**
+   * O respiro depois de CADA passo, inclusive o último — e é justamente o "inclusive o
+   * último" que importa.
+   *
+   * A versão anterior zerava o último para o trilho terminar junto com o texto. Isso
+   * fazia a coluna acabar no mesmo pixel em que o conteúdo acaba, e no desktop o painel
+   * fixo (que só pode grudar DENTRO do bloco dele) se soltava e subia por baixo do
+   * header enquanto o passo 04 ainda estava sendo lido. Com o respiro mantido, o bloco
+   * do painel sobra alguns centímetros além do texto e ele fica firme até o fim — e o
+   * trilho continua terminando com o texto porque quem encolhe é o TRILHO
+   * (`inset-block`), não a coluna.
+   */
+  --process-gap: var(--spacing-block);
+
+  position: relative;
+}
+
+.process-spine {
+  position: absolute;
+  /* Termina onde o último passo termina, não onde a coluna termina. Ver `--process-gap`. */
+  inset-block: 0 var(--process-gap);
+  left: 0;
+  width: var(--hairline);
+  background-color: var(--color-line);
+}
+
+/**
+ * O preenchimento do trilho.
+ *
+ * `transform-origin: top` é obrigatório no CSS — `drawLine({ axis: 'y' })` não escreve
+ * origem nenhuma, e sem isto a linha cresceria do meio para os dois lados (ver a nota
+ * em `presets.ts`). O gradiente deixa a PONTA mais acesa que a base: esticado por
+ * `scaleY`, ele lê como se a luz estivesse na frente do traço, avançando com a leitura.
+ */
+.process-spine-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: top;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--color-accent) 30%, transparent) 0%,
+    var(--color-accent) 100%
+  );
+}
+
+.process-steps {
   display: grid;
   /* Zero de propósito: o respiro entre passos é `padding-bottom` do `<li>`. Ver (1). */
   gap: 0;
@@ -50,100 +212,145 @@
 
 .process-step {
   position: relative;
+  /**
+   * `isolate` não é enfeite: o véu do estado ativo é um `::before` em `z-index: -1`, e
+   * sem um contexto de empilhamento próprio ele afundaria atrás do fundo da <section>
+   * e simplesmente não apareceria. Com `isolate`, o negativo é resolvido DENTRO do
+   * passo — atrás do texto, à frente do fundo.
+   */
+  isolation: isolate;
   display: grid;
-  grid-template-columns: var(--process-marker) minmax(0, 1fr);
-  column-gap: var(--process-gutter);
-  align-items: baseline;
-  padding-bottom: var(--spacing-block);
-}
-
-/* O trilho para no último passo: a linha termina onde o processo termina. */
-.process-step:last-child {
-  padding-bottom: 0;
+  padding-left: var(--process-inset);
+  padding-top: var(--spacing-stack);
+  padding-bottom: var(--process-gap);
 }
 
 /**
- * O primeiro passo abre espaço ACIMA do número para o segmento dourado aparecer
- * inteiro — sem isso, a cabeça do trilho nasceria atrás do "01" e o gesto do canto
- * dourado se perderia.
+ * O véu do passo aceso. `--color-surface` sobre `--color-bg` é um degrau quase
+ * imperceptível de propósito — o sinal forte é o filete e o numeral; isto só dá CORPO
+ * à faixa que está sendo lida. Dissolve para a direita para não virar um retângulo.
+ * Só `opacity` transiciona: fica no compositor e não repinta a coluna inteira.
+ *
+ * ⚠ `inset: 0` — NADA de sangrar para fora à direita. Uma versão com
+ * `inset-inline-end: -1.5rem` (para o véu passar da coluna) criou 3px de ROLAGEM
+ * HORIZONTAL em 390px: a goteira da página ali mede ~21px e o sangramento pedia 24px.
+ * Medido no Chrome — `scrollWidth` 393 contra `innerWidth` 390. Como o gradiente já
+ * chega transparente aos 80%, a borda direita não existe visualmente de todo jeito: o
+ * sangramento não comprava nada e custava a regra de nunca rolar na horizontal.
  */
-.process-step:first-child {
-  padding-top: var(--process-head);
-}
-
-.process-rail {
+.process-step::before {
+  content: '';
   position: absolute;
-  inset-block: 0;
-  left: calc(var(--process-marker) / 2);
-  /**
-   * `margin-left` e NÃO `translateX(-50%)` para centralizar: o GSAP anima `scaleY`
-   * neste nó e reescreveria a matriz de transformação inteira, levando o
-   * deslocamento junto. Ver a nota em `presets.ts › drawLine`.
-   */
-  margin-left: calc(var(--hairline) / -2);
-  width: var(--hairline);
-  /* `drawLine({ axis: 'y' })` exige a origem no CSS — senão cresce dos dois lados. */
-  transform-origin: top;
-  background-color: var(--color-line);
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background-image: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--color-surface) 92%, transparent) 0%,
+    transparent 80%
+  );
+  transition: opacity var(--transition-duration-base) var(--ease-out);
 }
 
-.process-rail-head {
+.process-step[data-process-active='true']::before {
+  opacity: 1;
+}
+
+/**
+ * O filete do quadro — o mesmo `<IndexRule>` do cabeçalho, deitado no topo do passo e
+ * ancorado em `left: 0`, ou seja, EM CIMA do trilho. É a junção em "T" da decisão (3).
+ *
+ * O `background-color` reescreve o `bg-line` que o componente traz do Tailwind, o que
+ * só funciona porque este arquivo está fora de `@layer` (ver o cabeçalho). Quando o
+ * passo acende, o filete inteiro vira dourado e o segmento de 2,5rem que o
+ * `<IndexRule>` já tinha na cabeça deixa de se distinguir — lê como o segmento
+ * crescendo até tomar a linha.
+ */
+.process-frame-rule {
   display: block;
-  width: 100%;
-  height: var(--process-head);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-line);
+  transition: background-color var(--transition-duration-base) var(--ease-out);
+}
+
+.process-step[data-process-active='true'] .process-frame-rule {
   background-color: var(--color-accent);
 }
 
-/**
- * O número interrompe o trilho.
- *
- * `position: relative` não é enfeite: o trilho é `position: absolute` e vem ANTES no
- * DOM, então sem um contexto posicionado aqui ele pintaria POR CIMA do número. Com
- * `relative`, a ordem de árvore decide e o número ganha — e o fundo dele apaga o
- * pedaço de linha que passaria atrás dos dígitos.
- */
-.process-marker {
-  position: relative;
-  text-align: center;
-  padding-block: calc(var(--spacing) * 2);
-  background-color: var(--color-bg);
+.process-step-index {
+  font-size: var(--process-numeral-size);
+  /* Empilhado no celular, o numeral precisa de ar antes do título; a partir de 48rem
+     ele vira coluna e este respiro some (ver o bloco `@media`). */
+  margin-bottom: 0.5rem;
 }
 
 .process-step-body {
-  grid-column: 2;
-  margin-top: calc(var(--spacing) * 3);
+  /* Medida de leitura. Sem teto, num monitor largo a frase passaria de 90 caracteres
+     por linha — o quadro é largo, o texto não deve ser. */
+  max-width: 40rem;
+  margin-top: 0.75rem;
 }
 
 /**
- * `48rem` espelha `--breakpoint-md` do `tokens.css` (custom property não é lida
- * dentro de `@media`). É o mesmo ponto em que o índice de Serviços vira duas
- * colunas — a topologia da página muda uma vez só, não uma por seção.
+ * `48rem` espelha `--breakpoint-md` do `tokens.css` (custom property não é lida dentro
+ * de `@media`). É o mesmo ponto em que o índice de Serviços vira duas colunas — a
+ * topologia da página muda uma vez só, não uma por seção.
  */
 @media (min-width: 48rem) {
-  .process-steps {
-    --process-marker: calc(var(--text-label) * 4);
-    --process-gutter: var(--spacing-gutter);
-    /**
-     * Colunas de medida FIXA, com a sobra virando margem à direita — e não `1fr`
-     * cada. Num monitor largo, `fr` esticaria a frase até 90+ caracteres por linha,
-     * bem além da medida de leitura. 15rem cabe o nome do passo em uma linha e
-     * 34rem fecha a frase em ~62 caracteres; o resto da largura é ar, que é
-     * exatamente o que uma seção editorial quer.
-     */
-    --process-title-col: 15rem;
-    --process-body-col: 34rem;
+  .process-step {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--spacing-stack);
+    align-items: baseline;
   }
 
-  .process-step {
-    grid-template-columns:
-      var(--process-marker)
-      minmax(0, var(--process-title-col))
-      minmax(0, var(--process-body-col));
+  .process-step-index {
+    grid-row: 1;
+    grid-column: 1;
+    margin-bottom: 0;
+  }
+
+  .process-step-title {
+    grid-row: 1;
+    grid-column: 2;
   }
 
   .process-step-body {
-    grid-column: 3;
-    grid-row: 1;
-    margin-top: 0;
+    grid-row: 2;
+    grid-column: 2;
+  }
+}
+
+/**
+ * `64rem` espelha `--breakpoint-lg`: é onde o painel fixo aparece.
+ *
+ * O painel gruda com `position: sticky` no ELEMENTO INTERNO, não no item do grid — o
+ * item precisa continuar esticado na altura da linha inteira para o interno ter por
+ * onde viajar. `top` é a altura do header fixo mais um respiro, senão o numeral
+ * pousaria debaixo da barra.
+ */
+@media (min-width: 64rem) {
+  .process-layout {
+    grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+    column-gap: var(--spacing-block);
+  }
+
+  .process-panel {
+    display: block;
+  }
+
+  .process-panel-inner {
+    position: sticky;
+    top: calc(var(--spacing-header) + var(--spacing-stack));
+  }
+
+  /* Mais ar entre passos onde ele existe: é essa altura extra que dá ao painel fixo
+     um percurso longo o bastante para o odômetro contar a seção inteira em vez de
+     virar quatro numerais atropelados. Não vai até `--spacing-section` de propósito —
+     lá o véu do passo aceso viraria uma faixa com 170px de vazio embaixo do texto. */
+  .process-track {
+    --process-gap: clamp(3.5rem, 5vw, 5.5rem);
   }
 }
