@@ -1,0 +1,95 @@
+/**
+ * ZoomParallax — colagem de imagens que se abre em zoom conforme a rolagem.
+ *
+ * Componente de terceiro, trazido a pedido do Davi e VERSIONADO em `components/ui/`
+ * pelo mesmo critério do `hero-parallax.tsx`: o que veio pronto de fora fica separado
+ * do design system da Metup (`components/`) e pode ser substituído inteiro sem tocar
+ * no resto.
+ *
+ * ⚠ ESTA É A VERSÃO INICIAL, PEDIDA "COMO ESTÁ" (2026-08-29). As imagens, as escalas,
+ * os offsets de cada índice e a altura de 300vh são exatamente os do código enviado —
+ * nada foi redesenhado ainda. O ajuste para a Metup (conteúdo real, tokens, direção de
+ * arte) vem nos próximos pedidos do Davi.
+ *
+ * ─── O QUE MUDOU EM RELAÇÃO AO ORIGINAL, E POR QUÊ ──────────────────────────────
+ *  1. `'use client'` saiu: não há React Server Components aqui (Vite + vite-react-ssg),
+ *     a diretiva seria decorativa.
+ *  2. `prefers-reduced-motion` (§6.6, inegociável): sem movimento, a escala não é
+ *     aplicada e a pista de rolagem encolhe para uma tela — o que sobra é a colagem
+ *     estática, que é o mesmo desenho no seu estado inicial. As `MotionValue`
+ *     continuam sendo criadas, só deixam de ser usadas: a ordem dos hooks não muda.
+ *  3. `loading="lazy"`/`decoding="async"` nas imagens: a seção fica bem abaixo da
+ *     primeira dobra e são sete masters (§6.2). Não muda um pixel do resultado.
+ *
+ * ⚠ CONFLITO DECLARADO com o §6.4 do CLAUDE.md, que manda animar com GSAP: este
+ * componente é framer-motion, como o `hero-parallax`. Foi pedido explícito do Davi
+ * ("implemente, depois ajustamos"). Ver PENDENCIAS.md.
+ */
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { useRef, type ReactNode } from 'react';
+
+interface Image {
+  src: string;
+  alt?: string;
+  /**
+   * Conteúdo no lugar da foto (pedido do Davi, 2026-08-29).
+   *
+   * Quando existe, o slot deixa de desenhar o `<img>` e passa a montar este nó, na
+   * mesma caixa e com a mesma escala. É o que põe a cena 3D TRAVADA dentro do
+   * quadrinho que dá zoom, para que a seção de baixo pareça a mesma cena começando
+   * quando o zoom termina.
+   */
+  content?: ReactNode;
+}
+
+interface ZoomParallaxProps {
+  /** Array of images to be displayed in the parallax effect max 7 images */
+  images: Image[];
+}
+
+export function ZoomParallax({ images }: ZoomParallaxProps) {
+  const container = useRef(null);
+  const reduce = useReducedMotion() ?? false;
+  const { scrollYProgress } = useScroll({
+    target: container,
+    offset: ['start start', 'end end'],
+  });
+
+  const scale4 = useTransform(scrollYProgress, [0, 1], [1, 4]);
+  const scale5 = useTransform(scrollYProgress, [0, 1], [1, 5]);
+  const scale6 = useTransform(scrollYProgress, [0, 1], [1, 6]);
+  const scale8 = useTransform(scrollYProgress, [0, 1], [1, 8]);
+  const scale9 = useTransform(scrollYProgress, [0, 1], [1, 9]);
+
+  const scales = [scale4, scale5, scale6, scale5, scale6, scale8, scale9];
+
+  return (
+    <div ref={container} className="relative h-[300vh] motion-reduce:h-screen">
+      <div className="sticky top-0 h-screen overflow-hidden">
+        {images.map(({ src, alt, content }, index) => {
+          const scale = scales[index % scales.length];
+
+          return (
+            <motion.div
+              key={index}
+              style={reduce ? undefined : { scale }}
+              className={`absolute top-0 flex h-full w-full items-center justify-center ${index === 1 ? '[&>div]:!-top-[30vh] [&>div]:!left-[5vw] [&>div]:!h-[30vh] [&>div]:!w-[35vw]' : ''} ${index === 2 ? '[&>div]:!-top-[10vh] [&>div]:!-left-[25vw] [&>div]:!h-[45vh] [&>div]:!w-[20vw]' : ''} ${index === 3 ? '[&>div]:!left-[27.5vw] [&>div]:!h-[25vh] [&>div]:!w-[25vw]' : ''} ${index === 4 ? '[&>div]:!top-[27.5vh] [&>div]:!left-[5vw] [&>div]:!h-[25vh] [&>div]:!w-[20vw]' : ''} ${index === 5 ? '[&>div]:!top-[27.5vh] [&>div]:!-left-[22.5vw] [&>div]:!h-[25vh] [&>div]:!w-[30vw]' : ''} ${index === 6 ? '[&>div]:!top-[22.5vh] [&>div]:!left-[25vw] [&>div]:!h-[15vh] [&>div]:!w-[15vw]' : ''} `}
+            >
+              <div className="relative h-[25vh] w-[25vw]">
+                {content ?? (
+                  <img
+                    src={src || '/placeholder.svg'}
+                    alt={alt || `Parallax image ${index + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

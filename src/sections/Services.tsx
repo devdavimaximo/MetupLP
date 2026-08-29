@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { SERVICES_HOOK, servicesMotion } from '../animations/services';
 import { useMotion } from '../animations/useMotion';
-import { ContactCta, Eyebrow, Heading, PendingContent, Section, Text } from '../components';
+import { ContactCta, Heading, PendingContent, Section, Text } from '../components';
 import { HeroParallax } from '../components/ui/hero-parallax';
 import { cn } from '../lib/cn';
 import { copy } from '../lib/content';
@@ -101,13 +101,6 @@ export function Services() {
             {...{ [SERVICES_HOOK.block]: true }}
             className="relative mx-auto w-full max-w-content pt-section"
           >
-            {/* Legenda do índice, não copy: "01 — 04" é a extensão da lista, derivada
-                do próprio conteúdo. `aria-hidden` porque a lista abaixo já anuncia a
-                contagem — para quem ouve, isto seria só ruído. */}
-            <div aria-hidden {...{ [SERVICES_HOOK.fade]: true }}>
-              <Eyebrow>{`${padIndex(1)} — ${padIndex(items.length)}`}</Eyebrow>
-            </div>
-
             {sectionTitle.kind === 'text' ? (
               <Heading
                 level={2}

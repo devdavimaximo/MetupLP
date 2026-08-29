@@ -2,8 +2,10 @@ import { useSmoothScroll } from '../animations/useSmoothScroll';
 import { Header, SkipLink } from '../components';
 import { ContactAnchor } from '../sections/ContactAnchor';
 import { Hero } from '../sections/Hero';
+import { HorizonHero } from '../sections/HorizonHero';
 import { Process } from '../sections/Process';
 import { Services } from '../sections/Services';
+import { ZoomShowcase } from '../sections/ZoomShowcase';
 
 const MAIN_ID = 'conteudo';
 
@@ -23,6 +25,15 @@ const MAIN_ID = 'conteudo';
  * o que faz, explica como começa, pede o contato —, e o Processo entra exatamente
  * antes do CTA final porque é ali que a objeção "como isso funciona?" aparece.
  *
+ * ⚠ `<ZoomShowcase />` entrou depois do Processo, a pedido do Davi (2026-08-29), e é
+ * PROVISÓRIA: é o demo do componente de zoom portado como está, com as fotos do
+ * Unsplash que vieram com ele. Não é vitrine de case nem entra na navegação enquanto
+ * o conteúdo real não for definido — ver a nota em `sections/ZoomShowcase.tsx`.
+ *
+ * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem é o efeito: o slot que dá zoom
+ * carrega essa mesma cena travada, então o zoom termina em tela cheia no quadro em que
+ * a cena começa. Separar as duas quebra o gesto. Também provisória — ver PENDENCIAS.md.
+ *
  * ⚠ `<Process />` pode não renderizar NADA: a seção é opcional em `content/copy.md`
  * (ver a nota em `sections/Process.tsx`). A página tem que continuar coerente com
  * três seções — e continua, porque o CTA final não depende dela.
@@ -40,6 +51,8 @@ export function App() {
         <Hero />
         <Services />
         <Process />
+        <ZoomShowcase />
+        <HorizonHero />
         <ContactAnchor />
       </main>
 

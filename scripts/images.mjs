@@ -222,7 +222,69 @@ async function buildBrand() {
   console.log(`Manifesto: ${BRAND.manifest}`);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   PASSADA 3 — LADRILHOS DA VITRINE EM ZOOM (`public/images/zoom/`)
+
+   São as imagens que giram em volta do quadro central da seção de zoom. Regime
+   DIFERENTE das outras duas passadas, e de propósito:
+
+   · **Um arquivo por master, WebP só.** O componente da vitrine é código adotado de
+     fora e desenha um `<img src>` simples, sem `srcset` nem `<picture>` — gerar uma
+     escada de larguras ou um AVIF ao lado seria peso em disco que ninguém baixa.
+     WebP porque é o único formato moderno que todo navegador em uso lê; com um `src`
+     único, AVIF deixaria Safari 15 sem imagem.
+   · **Qualidade baixa, de propósito.** Pedido explícito do Davi: "não precisa ficar
+     com grande qualidade, é só ficar bem leve, ela nem vai ser aberta, nem é
+     portfólio". Estes ladrilhos passam voando, em escala crescente, atrás do quadro
+     central — ninguém para para olhar detalhe.
+   · **1280px de teto.** Os ladrilhos crescem até 5–9× durante o zoom, mas sempre em
+     movimento; acima disso o arquivo dobra de tamanho para uma nitidez que a rolagem
+     come.
+
+   ⚠ São arte DECORATIVA (cosmos, buraco negro, astronauta), não representação de
+   trabalho de cliente — a distinção do §5 do CLAUDE.md. Nenhuma delas pode virar
+   case sem o Davi dizer que é.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+const ZOOM = {
+  sourceDir: 'assets/zoom',
+  outputDir: 'public/images/zoom',
+  maxWidth: 1280,
+  quality: 55,
+};
+
+async function buildZoomTiles() {
+  await mkdir(ZOOM.outputDir, { recursive: true });
+
+  const files = (await readdir(ZOOM.sourceDir)).filter((file) => /\.(png|jpe?g)$/i.test(file)).sort();
+  if (files.length === 0) throw new Error(`Nenhum master em ${ZOOM.sourceDir}`);
+
+  let totalBytes = 0;
+
+  for (const file of files) {
+    const slug = basename(file, file.slice(file.lastIndexOf('.')));
+    const input = join(ZOOM.sourceDir, file);
+    const { width, height } = await sharp(input).metadata();
+
+    const info = await sharp(input)
+      .resize({ width: Math.min(ZOOM.maxWidth, width), withoutEnlargement: true })
+      .webp({ quality: ZOOM.quality, effort: 6 })
+      .toFile(join(ZOOM.outputDir, `${slug}.webp`));
+
+    totalBytes += info.size;
+    console.log(
+      `  ${slug}  ${width}×${height}  →  ${info.width}×${info.height}  ${String(Math.round(info.size / 1024))} kB`,
+    );
+  }
+
+  console.log(
+    `\n${String(files.length)} ladrilhos → ${String(Math.round(totalBytes / 1024))} kB em ${ZOOM.outputDir}\n`,
+  );
+}
+
 console.log('── vitrine ──');
 await buildShowcase();
 console.log('── marca ──');
 await buildBrand();
+console.log('\n── ladrilhos do zoom ──');
+await buildZoomTiles();

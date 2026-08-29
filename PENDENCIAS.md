@@ -1169,6 +1169,109 @@ De F2 — o que a medição automática **não** cobre:
       reage ao ponteiro agora é a cena (parallax por profundidade), e o teste
       equivalente está na lista nova acima.
 
+## Seção de zoom em parallax, abaixo do Processo (2026-08-29)
+
+Entrou como **primeira versão**, a pedido explícito do Davi: o componente
+(`components/ui/zoom-parallax.tsx`) e o demo dele (`sections/ZoomShowcase.tsx`) foram
+portados **sem alterar imagens, offsets nem estrutura** — "depois eu vou fazer novos
+pedidos que vão fazer sentido para a Metup". O que fica em aberto até lá:
+
+- [x] ~~**As seis fotos menores são do Unsplash, do próprio demo**~~ — **resolvido em
+      2026-08-29:** o slot central virou a cena Horizon travada e os seis ladrilhos
+      agora são arte do Davi (masters em `assets/zoom/`, derivados por
+      `npm run images` em `public/images/zoom/` — 122 kB os quatro somados, contra
+      580 kB dos JPG originais). São **decorativas** (cosmos, buraco negro,
+      astronauta), não representação de trabalho de cliente — a distinção do §5.
+- [ ] **Faltam 2 dos 6 ladrilhos.** Chegaram quatro imagens; até as outras virem, os
+      slots 5 e 6 repetem a 1 e a 2. Quando chegarem: jogar em `assets/zoom/`, rodar
+      `npm run images` e apontar `TILE[5]`/`TILE[6]` em `sections/ZoomShowcase.tsx`.
+- [ ] **O título da seção é PROPOSTA DO CLAUDE aguardando o Davi** (2026-08-29): o
+      "Scroll Down for Zoom Parallax" do demo saiu e entrou **"Toda ideia começa
+      pequena."** — o degrau que prepara o zoom e emenda no "Você enxerga mais longe."
+      da cena. As alternativas estão em `content/sugestoes.md`. **Davi: confirme,
+      reescreva ou apague.** Continua escrito na seção, e não em `content/copy.md`,
+      que é o que o §9 proíbe em regime normal.
+- [ ] **A seção não tem `id` e não entra na navegação** (`lib/sections.ts` /
+      `lib/nav.ts`) enquanto for provisória: âncora é URL pública e `location` de
+      analytics, não se batiza uma antes de saber o que a seção é.
+- [ ] **Ela não converte.** Não tem CTA e termina num vazio de 50vh antes do
+      `#contato` — o §3 diz que nenhuma seção é beco sem saída. Resolver junto com o
+      conteúdo.
+- [ ] ⚠ **Mesmo conflito com o §6.4 do deck: é framer-motion, não GSAP.** Não entrou
+      dependência nova (o `framer-motion` já estava no bundle por causa do deck), mas
+      são agora **dois** gestos de rolagem fora do GSAP. Se a portabilidade para
+      ScrollTrigger acontecer, as duas devem ir juntas.
+- [ ] **Custo de rolagem e de rede não medido:** são 300vh de pista com sete imagens
+      remotas em `scale` contínuo, logo antes do CTA final. Falta medir 60fps no
+      celular real e o impacto em LCP/CLS antes de F7.
+
+O que **não** foi deixado passar, mesmo na versão "como está": `prefers-reduced-motion`
+(§6.6 — sem movimento, a escala não é aplicada e a pista encolhe para uma tela),
+`<h2>` em vez do `<h1>` do demo (a página só tem um `<h1>`, o do herói), e uma única
+instância de Lenis (a global do `App`; o demo criava a sua). Detalhe do porquê no
+cabeçalho de cada arquivo.
+
+## Cena Horizon (three.js), abaixo da vitrine em zoom (2026-08-29)
+
+Terceira peça portada "como está": o componente (`components/ui/horizon-hero-section.tsx`)
+e o demo dele (`sections/HorizonHero.tsx`), com a cena, o bloom, as posições de câmera e
+os textos intocados. Junto veio a troca pedida pelo Davi: **o slot que dá zoom carrega a
+cena TRAVADA** (`frozen`) e a seção de baixo entra com a mesma cena viva — o zoom termina
+em tela cheia no quadro em que a cena começa.
+
+- [ ] **O CSS não veio no código enviado** (de novo). `src/styles/horizon-hero.css` é o
+      mínimo derivado do markup e do JS: canvas preso no topo, três telas de conteúdo,
+      `.title-char` em `inline-block`. Se o Davi tiver a folha do autor, ela substitui
+      o arquivo inteiro.
+- [x] ~~⚠ **A rolagem é medida na PÁGINA INTEIRA**~~ — **corrigido em 2026-08-29.** O
+      componente foi escrito para SER a página, então media `scrollY / (documentHeight
+      - windowHeight)`. No meio da LP a seção começa lá pelos 70% do site: ela entrava
+      em quadro com `progress` quase 1 e, como o próprio código joga as montanhas para
+      `z = 600000` acima de 0.7, a cena abria SEM montanha — só o clarão do bloom, com
+      a câmera no fim do percurso. Agora a conta é a mesma, mas da seção (posição
+      dentro dela ÷ pista dela), e o contador "01 / 02" conta a seção.
+- [ ] ⚠ **Três contextos WebGL na mesma página:** o herói da Metup, a cena travada
+      dentro do quadrinho do zoom e a cena viva da seção. A travada desenha um quadro
+      só, mas segura contexto e memória de GPU (5000 estrelas × 3 campos, plano de
+      8000×4000 com 100×100 segmentos, bloom). Navegador tem limite de contextos e o
+      celular é onde isso quebra primeiro.
+- [ ] **O `requestAnimationFrame` da cena viva nunca para** — roda com a seção fora de
+      quadro, do topo ao rodapé da página. Falta medir 60fps, INP e bateria no celular
+      real antes de F7.
+- [x] ~~**A esfera de atmosfera não é liberada no unmount**~~ — **corrigido em
+      2026-08-29**, junto do vazamento que derrubou a página em dev: `dispose()` do
+      renderer NÃO devolve o contexto WebGL, e cada hot reload deixava mais um
+      pendurado até o navegador recusar ("Error creating WebGL context"). Agora o
+      cleanup faz `forceContextLoss()`, libera composer e atmosfera e zera as listas
+      — que também acumulavam campos de estrelas e cordilheiras a cada remontagem,
+      fazendo `mountains[3]` (que a nebulosa segue) apontar para outra encarnação da
+      cena. As duas montagens da cena ganharam `SceneBoundary`, a mesma rede do herói:
+      falha de WebGL não desmonta mais a página.
+- [ ] **`prefers-reduced-motion` só cobre a ENTRADA em GSAP.** A cena 3D continua
+      respondendo à rolagem em movimento reduzido — para respeitar o §6.6 de verdade,
+      falta uma variante calma (câmera parada) que seria redesenho do componente.
+- [x] ~~**A copy da cena é do demo, em inglês**~~ — **resolvido em 2026-08-29: a copy é
+      do DAVI.** Três tempos, um por ato: "Você enxerga mais longe." → "Mas enxergar
+      não basta." → "É preciso construir para chegar lá.". A proposta que o Claude
+      tinha feito ficou em `content/sugestoes.md` marcada como superada.
+- [ ] **A copy vive DENTRO do componente**, e o §9 manda seção nenhuma guardar o
+      próprio texto. Quando ela for aprovada, o lugar dela é `content/copy.md` (o
+      parser precisaria de um bloco novo, como o `## Processo` ganhou).
+- [ ] **Os três títulos entram no sumário do documento** como se fossem conteúdo
+      (§6.3) — três `<h2>` que não nomeiam seção de verdade.
+- [ ] **Cromo do demo ainda em inglês e sem função:** o rótulo vertical "SPACE" e o
+      ícone de menu (três traços que não abrem nada) no canto superior esquerdo.
+      Menu que não é menu é affordance mentirosa — decidir com o Davi se vira algo da
+      Metup ou se sai.
+- [ ] **A seção não tem CTA** e são agora duas telas de espetáculo (zoom + Horizon)
+      entre o Processo e o contato.
+
+O que **não** foi deixado passar: a cena travada não ouve rolagem nem roda `rAF` (um
+quadro e para), o `setSize` não escreve mais estilo inline na tag (senão o canvas
+nasceria do tamanho da janela dentro do quadrinho, e sobraria rolagem horizontal na
+página), e a entrada em GSAP tem variante calma. Detalhe do porquê no cabeçalho do
+componente.
+
 ## Notas
 
 - `index.html` já tem title/description/OG/Twitter/JSON-LD/theme-color, mas com texto

@@ -1,0 +1,184 @@
+/**
+ * Folha do `components/ui/horizon-hero-section.tsx`.
+ *
+ * ⚠ O CSS NÃO VEIO NO CÓDIGO ENVIADO — de novo só o TSX e o demo. As classes
+ * (`hero-container`, `hero-canvas`, `side-menu`, `scroll-progress`, `content-section`…)
+ * não existiam neste projeto, e sem folha o `<canvas>` nasce com 300×150 px, o
+ * conteúdo não fica por cima dele e as duas seções de rolagem não têm altura — ou
+ * seja, a cena existiria e não apareceria.
+ *
+ * O que está aqui é o MÍNIMO que o markup e o JS exigem, e nada além disso:
+ *
+ *  · o CANVAS PRESO no topo (`sticky`) com uma tela de altura e `margin-bottom`
+ *    negativa. Preso porque o `renderer` é dimensionado em `window.innerWidth/Height`
+ *    e a cena tem que ficar em quadro enquanto as três telas de conteúdo passam; a
+ *    margem negativa tira o bloco dele do fluxo, para o conteúdo começar no topo do
+ *    container em vez de embaixo do canvas. (No original o componente É a página e o
+ *    canvas seria `fixed` — `fixed` aqui cobriria o site inteiro, inclusive as outras
+ *    seções da Metup.)
+ *  · as TRÊS TELAS que o JS pressupõe: o herói mais as duas `content-section`. As
+ *    posições de câmera são indexadas por seção (`totalSections = 2`), então cada uma
+ *    precisa de uma tela de rolagem para existir.
+ *  · `.title-char { display: inline-block }` — sem isto o `y: 200` da entrada do
+ *    título não tem efeito nenhum (`transform` não se aplica a caixa inline).
+ *
+ * ⚠ NADA QUE O GSAP ANIMA CARREGA `transform` DE CSS. O menu lateral e o indicador de
+ * rolagem recebem `x`/`y` do GSAP, que reescreve a matriz inteira — um
+ * `translateX(-50%)` de centralização seria apagado no primeiro quadro (tombo já
+ * registrado em PENDENCIAS.md). Centralização por `inset` + flex.
+ *
+ * Cores e tipografia saem dos tokens da Metup: os namespaces default do Tailwind estão
+ * apagados em `tokens.css` e a folha original do autor não veio para ser copiada.
+ */
+
+.hero-container {
+  position: relative;
+  background-color: var(--color-black);
+  color: var(--color-fg);
+}
+
+.hero-canvas {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100svh;
+  /* Tira o canvas do fluxo sem tirá-lo da tela: ver o cabeçalho. */
+  margin-bottom: -100svh;
+}
+
+/**
+ * MODO CONGELADO — a cena dentro do quadrinho que dá zoom (`frozen`).
+ *
+ * Aqui ela não é uma seção da página: é o conteúdo de uma caixa que a vitrine escala
+ * de 1 a 4. Então nada de `sticky` nem de margem negativa — a cena preenche a caixa e
+ * cresce com ela. Como o quadrinho tem a proporção da janela (25vw × 25vh) e chega a
+ * 100% dela na escala 4, o quadro congelado abre em tela cheia sem distorcer.
+ */
+.hero-container--frozen,
+.hero-container--frozen .hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* ─── Menu lateral ──────────────────────────────────────────────────────────── */
+
+.side-menu {
+  position: absolute;
+  top: var(--spacing-gutter);
+  left: var(--spacing-gutter);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.menu-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.menu-icon span {
+  display: block;
+  width: 1.5rem;
+  height: 1px;
+  background-color: var(--color-fg);
+}
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--text-label--letter-spacing);
+  color: var(--color-muted);
+}
+
+/* ─── Conteúdo ──────────────────────────────────────────────────────────────── */
+
+.hero-content,
+.content-section {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-stack);
+  padding: var(--spacing-section) var(--spacing-gutter);
+  text-align: center;
+}
+
+.hero-title {
+  margin: 0;
+  font-family: var(--font-hero);
+  font-size: clamp(3.5rem, 14vw, 12rem);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  /* O dourado da Metup — o mesmo `--color-accent` do herói e dos CTAs. Vale para os
+     três títulos da cena (HORIZON e as duas seções de rolagem). */
+  color: var(--color-accent);
+}
+
+/* `inline-block` é requisito do `y: 200` da timeline, não estilo. */
+.title-char {
+  display: inline-block;
+}
+
+.hero-subtitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.subtitle-line {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body-lg);
+  line-height: var(--text-body-lg--line-height);
+  color: var(--color-fg-muted);
+}
+
+/* ─── Indicador de rolagem ──────────────────────────────────────────────────── */
+
+.scroll-progress {
+  position: sticky;
+  bottom: var(--spacing-gutter);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 var(--spacing-gutter);
+}
+
+.scroll-text,
+.section-counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--text-label--letter-spacing);
+  color: var(--color-muted);
+}
+
+.progress-track {
+  width: min(12rem, 30vw);
+  height: 2px;
+  background-color: var(--color-line);
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--color-accent);
+}
+
+.scroll-sections {
+  position: relative;
+  z-index: 1;
+}

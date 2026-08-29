@@ -187,7 +187,7 @@ export function Hero() {
           </div>
 
           {/* O que a Metup faz, em quatro palavras do próprio Davi. Sem separador de
-              texto: o filete dourado de cada item é o mesmo gesto do <Eyebrow>. */}
+              texto: o ponto dourado de cada item é o mesmo gesto do <Eyebrow>. */}
           <ul
             {...{ [HERO_HOOK.reveal]: true }}
             className="hero-services flex w-full max-w-hero flex-wrap items-center justify-center border-t border-line"
@@ -197,7 +197,7 @@ export function Hero() {
                 key={service.title}
                 className="flex items-center gap-2.5 font-mono text-label text-fg-muted uppercase"
               >
-                <span aria-hidden className="h-px w-3 shrink-0 bg-accent" />
+                <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                 {service.title}
               </li>
             ))}
