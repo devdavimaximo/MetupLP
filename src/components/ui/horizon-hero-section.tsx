@@ -259,6 +259,21 @@ export const Component = ({ frozen = false }: ComponentProps) => {
           uniforms: {
             time: { value: 0 },
             depth: { value: i },
+            /**
+             * ⚠ SEM ISTO NÃO HÁ ESTRELA NO CELULAR (corrigido em 2026-08-29).
+             *
+             * `gl_PointSize` é medido em pixels do FRAMEBUFFER, não em pixels de CSS.
+             * Como o renderer roda com `setPixelRatio(min(devicePixelRatio, 2))`, num
+             * aparelho retina o framebuffer é o dobro do tamanho em CSS — e a conta
+             * original (`size * 300 / -z`), que não sabe disso, desenhava cada estrela
+             * com METADE do tamanho aparente. Elas já nascem entre 0,15 e 2,5 px:
+             * metade disso cai abaixo de um pixel e o rasterizador descarta. O céu do
+             * celular ficava liso.
+             *
+             * Multiplicar pela densidade devolve o mesmo tamanho APARENTE em qualquer
+             * tela. É a prática padrão do three para `Points`.
+             */
+            pixelRatio: { value: refs.renderer?.getPixelRatio() ?? 1 },
           },
           vertexShader: `
             attribute float size;
@@ -266,6 +281,7 @@ export const Component = ({ frozen = false }: ComponentProps) => {
             varying vec3 vColor;
             uniform float time;
             uniform float depth;
+            uniform float pixelRatio;
 
             void main() {
               vColor = color;
@@ -277,7 +293,7 @@ export const Component = ({ frozen = false }: ComponentProps) => {
               pos.xy = rot * pos.xy;
 
               vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-              gl_PointSize = size * (300.0 / -mvPosition.z);
+              gl_PointSize = size * (300.0 / -mvPosition.z) * pixelRatio;
               gl_Position = projectionMatrix * mvPosition;
             }
           `,
