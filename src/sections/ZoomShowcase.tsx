@@ -1,7 +1,5 @@
-import { Component as HorizonScene } from '../components/ui/horizon-hero-section';
 import { ZoomParallax } from '../components/ui/zoom-parallax';
 import { cn } from '../lib/cn';
-import { SceneBoundary } from '../three/SceneBoundary';
 
 const HEADING_ID = 'zoom-parallax-titulo';
 
@@ -46,10 +44,9 @@ const ALT: Record<number, string> = {
  * ⚠ AS FOTOS DO UNSPLASH SAÍRAM EM 2026-08-29: os seis ladrilhos agora são arte do
  * Davi (ver `TILE` abaixo).
  *
- * ⚠ ATUALIZADO EM 2026-08-29: o slot que DÁ ZOOM não é mais foto. Ele carrega a cena
- * Horizon travada (`<HorizonScene frozen />`), e a seção seguinte
- * (`sections/HorizonHero`) entra com a mesma cena viva — o zoom termina em tela cheia
- * exatamente no quadro em que a cena começa.
+ * ⚠ ATUALIZADO EM 2026-08-29: o slot que DÁ ZOOM não é foto — é um painel PRETO. O
+ * zoom abre até tomar a tela e entrega escuridão; a cena da seção seguinte
+ * (`sections/HorizonHero`) nasce dali. Ver a nota no próprio slot.
  *
  * ─── O QUE MUDOU EM RELAÇÃO AO DEMO, E POR QUÊ ──────────────────────────────────
  *  1. O `<main>` do demo virou `<section>`: a página já tem um `<main>` (em `App`), e
@@ -67,20 +64,28 @@ const ALT: Record<number, string> = {
 export function ZoomShowcase() {
   const images = [
     {
-      // O SLOT QUE DÁ ZOOM. Deixou de ser foto e passou a carregar a cena Horizon
-      // TRAVADA (pedido do Davi, 2026-08-29): ela fica parada dentro do quadrinho
-      // enquanto o zoom abre e, quando ele termina em tela cheia, a seção logo abaixo
-      // entra com a mesma cena, agora viva. `src`/`alt` ficam vazios de propósito —
-      // com `content` presente, o componente não desenha `<img>` nenhum.
+      /**
+       * O SLOT QUE DÁ ZOOM — PRETO (pedido do Davi, 2026-08-29).
+       *
+       * Ele já foi foto do Unsplash e depois a cena Horizon travada. Virou um painel
+       * preto porque é o que o gesto pede: o quadro abre até tomar a tela e entrega
+       * escuridão total, e é dela que a cena da seção seguinte nasce. O quadro
+       * congelado da cena, além de não somar nada nesse instante, chegava lavado de
+       * luz no tamanho pequeno.
+       *
+       * De quebra some um contexto WebGL da página (eram três: herói, cena travada e
+       * cena viva) — o custo que estava registrado em PENDENCIAS.md.
+       *
+       * `src`/`alt` vazios de propósito: com `content` presente, o componente não
+       * desenha `<img>` nenhum. `aria-hidden` porque um retângulo preto não é
+       * conteúdo — o `<h2>` da seção já a nomeia.
+       *
+       * ⚠ Voltar a cena aqui é uma linha: `<SceneBoundary><HorizonScene frozen /></SceneBoundary>`.
+       * O modo `frozen` continua existindo no componente.
+       */
       src: '',
       alt: '',
-      // Mesma fronteira do herói e da seção Horizon: se o contexto WebGL faltar, o
-      // slot fica vazio em vez de a página inteira cair (ver `SceneBoundary`).
-      content: (
-        <SceneBoundary>
-          <HorizonScene frozen />
-        </SceneBoundary>
-      ),
+      content: <div aria-hidden className="h-full w-full bg-black" />,
     },
     // Slot 1 — a caixa mais larga (35vw × 30vh), a primeira a cruzar o quadro.
     { src: TILE[1], alt: ALT[1] },
@@ -101,11 +106,18 @@ export function ZoomShowcase() {
   return (
     <section aria-labelledby={HEADING_ID} className="w-full">
       <div className="relative flex h-[50vh] items-center justify-center">
-        {/* Radial spotlight */}
+        {/* Radial spotlight.
+            ⚠ A LARGURA TEM TETO EM `100%`, e isso não é estética: `w-[120vmin]` é a
+            largura no CELULAR (em retrato, `vmin` é a LARGURA da tela), então o halo
+            media 1,2× a viewport e, centrado, sangrava 10vw para cada lado. O lado
+            direito virava rolagem HORIZONTAL na página inteira — o bug relatado. No
+            desktop `vmin` é a altura e nada muda; no celular o halo passa a caber na
+            tela. Como é um gradiente radial já desfocado em 30px e cortado pelo topo,
+            o limite não se vê. */}
         <div
           aria-hidden="true"
           className={cn(
-            'pointer-events-none absolute -top-1/2 left-1/2 h-[120vmin] w-[120vmin] -translate-x-1/2 rounded-full',
+            'pointer-events-none absolute -top-1/2 left-1/2 h-[120vmin] w-[120vmin] max-w-full -translate-x-1/2 rounded-full',
             'bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--color-fg)_10%,transparent),transparent_50%)]',
             'blur-[30px]',
           )}

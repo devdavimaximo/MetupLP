@@ -30,9 +30,9 @@ const MAIN_ID = 'conteudo';
  * Unsplash que vieram com ele. Não é vitrine de case nem entra na navegação enquanto
  * o conteúdo real não for definido — ver a nota em `sections/ZoomShowcase.tsx`.
  *
- * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem é o efeito: o slot que dá zoom
- * carrega essa mesma cena travada, então o zoom termina em tela cheia no quadro em que
- * a cena começa. Separar as duas quebra o gesto. Também provisória — ver PENDENCIAS.md.
+ * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem é o efeito: o quadro central do
+ * zoom é PRETO, então a vitrine termina em tela cheia escura e a cena nasce dessa
+ * escuridão. Separar as duas quebra o gesto. Também provisória — ver PENDENCIAS.md.
  *
  * ⚠ `<Process />` pode não renderizar NADA: a seção é opcional em `content/copy.md`
  * (ver a nota em `sections/Process.tsx`). A página tem que continuar coerente com
