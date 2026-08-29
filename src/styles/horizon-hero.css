@@ -37,6 +37,26 @@
   color: var(--color-fg);
 }
 
+/**
+ * O CANVAS PRESO, E A CONTA DE QUANDO ELE SOLTA (corrigida em 2026-08-29).
+ *
+ * A primeira versão tirava o canvas do fluxo com `margin-bottom: -100svh` — e isso
+ * quebrava o FIM da seção. O elemento `sticky` fica preso enquanto a caixa de MARGEM
+ * dele couber no container; com a margem negativa essa caixa tem altura ZERO, então
+ * ele continuava grudado no topo por uma tela inteira DEPOIS do último ato. Nesse
+ * trecho o que subia por cima do canvas era a seção seguinte — o "uma section por
+ * cima da outra" que o Davi viu no celular (no desktop passava despercebido porque os
+ * atos medem exatamente uma tela; no celular o texto quebra em mais linhas e o
+ * excedente fica visível).
+ *
+ * A correção mantém a mesma geometria e move a margem negativa para o CONTEÚDO: o
+ * canvas volta a ter uma tela de caixa de margem, então ele solta exatamente quando o
+ * rodapé do container encosta no rodapé da janela — cena e seção terminam juntas, e a
+ * seção de contato chega depois, sem sobreposição.
+ *
+ * Altura total do container, nas duas versões: 100svh (canvas) + 0 (o herói anula a
+ * própria altura com a margem) + 200svh (os dois atos) = três telas.
+ */
 .hero-canvas {
   position: sticky;
   top: 0;
@@ -44,8 +64,13 @@
   display: block;
   width: 100%;
   height: 100svh;
-  /* Tira o canvas do fluxo sem tirá-lo da tela: ver o cabeçalho. */
-  margin-bottom: -100svh;
+}
+
+/* Sobe o conteúdo por cima do canvas: o primeiro ato começa no topo do container, e
+   não embaixo da tela do canvas. É esta margem — e não a do canvas — que tira uma
+   tela do fluxo. */
+.hero-content {
+  margin-top: -100svh;
 }
 
 /**

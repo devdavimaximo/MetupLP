@@ -506,8 +506,23 @@ export const Component = ({ frozen = false }: ComponentProps) => {
     initThree();
 
     // Handle resize
+    /**
+     * ⚠ SÓ LARGURA (2026-08-29, defeito relatado no celular).
+     *
+     * No celular, esconder/mostrar a barra de endereço dispara `resize` a cada gesto
+     * de rolagem — e cada um refazia `setSize` do renderer E do composer (que
+     * realoca os alvos de render do bloom). Era rolagem travando por conta de uma
+     * mudança que nem chega ao canvas: a altura dele é `100svh` em CSS, fixa na
+     * viewport pequena, então ela não muda quando a barra some. Só a largura muda o
+     * enquadramento de verdade.
+     */
+    let lastWidth = window.innerWidth;
+
     const handleResize = () => {
       const { current: refs } = threeRefs;
+      if (window.innerWidth === lastWidth) return;
+      lastWidth = window.innerWidth;
+
       if (refs.camera && refs.renderer && refs.composer) {
         refs.camera.aspect = window.innerWidth / window.innerHeight;
         refs.camera.updateProjectionMatrix();
