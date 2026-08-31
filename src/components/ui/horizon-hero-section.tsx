@@ -939,29 +939,52 @@ export const Component = ({ introTrackRef, finale }: ComponentProps) => {
 
     matchMedia.add('(prefers-reduced-motion: no-preference)', () => {
       /**
-       * ⚠ A ENTRADA ESPERA A CENA CHEGAR (2026-08-31). Ver o ponto 16 do cabeçalho.
+       * ⚠ A ENTRADA SÓ ESPERA A CENA CHEGAR QUANDO HÁ UM ZOOM DE VERDADE PARA
+       * ESPERAR (2026-08-31, corrigido no mesmo dia em que o zoom foi desligado —
+       * Davi relatou: "a palavra horizonte e a frase debaixo demoram para chegar
+       * após chegar na section").
        *
-       * Sem o gatilho, a timeline rodava na montagem — no carregamento da página, com
-       * a pessoa ainda no herói, dois blocos acima. Quem descia até aqui encontrava o
-       * título já pousado: a cena "começava" antes de ser vista, e depois do zoom não
-       * acontecia nada. `top top` é o instante exato em que o quadrinho da vitrine
-       * acaba de tomar a tela e este container encosta no topo.
+       * O gatilho (`ScrollTrigger` em `top top`, ver o ponto 16 do cabeçalho) foi
+       * criado para o "ato zero": sem ele, a timeline rodava na montagem — no
+       * carregamento da página, com a pessoa ainda no herói —, e por isso o título já
+       * chegava pousado quando o zoom terminava, sem entrada nenhuma para ver. Isso
+       * SÓ importa quando existe pista (`introTrackRef` de verdade anexado a um
+       * elemento): é o zoom que consome os primeiros segundos da visita, então a
+       * entrada podia esperar por ele sem custo nenhum de percepção.
        *
-       * `once: true` porque é uma ENTRADA, não um estado: subir e descer de novo não
-       * remonta a cena, então não há nada para reapresentar. Os `from` continuam
-       * pintando o estado inicial na hora (`immediateRender`), então nada pisca antes
-       * do gatilho — o `visibility: visible` acima só tira a proteção do SSR.
+       * Com o zoom DESLIGADO (`ZOOM_PARALLAX_ENABLED` em `App.tsx`), não existe mais
+       * esse tempo de zoom para a entrada "esperar escondida" — mas o gatilho
+       * continuava lá, e agora só disparava quando a pessoa rolava até o pixel exato
+       * em que o container encosta no topo. Resultado: quem chegava à seção via o
+       * título e o subtítulo aparecerem do zero, em tempo real (a timeline sozinha
+       * já leva ~2,4s para o título terminar de entrar) — o "demora" relatado. Sem
+       * pista, a entrada volta a tocar assim que a cena estiver pronta (na
+       * montagem), do jeito que sempre foi antes do ato zero existir: quando a
+       * pessoa rola até aqui, o título já está pousado.
        *
-       * O ScrollTrigger nasce dentro do `matchMedia`, que é um `gsap.context`: ele é
-       * morto junto com os tweens no `revert` (e no `kill` abaixo, explícito).
+       * `once: true` no caminho com pista, porque é uma ENTRADA, não um estado: subir
+       * e descer de novo não remonta a cena, então não há nada para reapresentar. Os
+       * `from` continuam pintando o estado inicial na hora (`immediateRender`), então
+       * nada pisca antes do gatilho (com ou sem ele) — o `visibility: visible` acima
+       * só tira a proteção do SSR.
+       *
+       * O ScrollTrigger, quando existe, nasce dentro do `matchMedia`, que é um
+       * `gsap.context`: é morto junto com os tweens no `revert` (e no `kill` abaixo,
+       * explícito).
        */
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          once: true,
-        },
-      });
+      const hasIntroTrack = introTrackRef?.current != null;
+
+      const tl = gsap.timeline(
+        hasIntroTrack
+          ? {
+              scrollTrigger: {
+                trigger: containerRef.current,
+                start: 'top top',
+                once: true,
+              },
+            }
+          : undefined,
+      );
 
       // Animate menu
       if (menuRef.current) {
@@ -1028,7 +1051,10 @@ export const Component = ({ introTrackRef, finale }: ComponentProps) => {
     return () => {
       matchMedia.revert();
     };
-  }, [isReady]);
+    // `introTrackRef` entra na lista só para documentar a leitura — a IDENTIDADE do
+    // objeto de `ref` nunca muda entre renders (nasce uma vez em `App`, via
+    // `useRef`), então isto não altera QUANDO o efeito roda.
+  }, [isReady, introTrackRef]);
 
   // Scroll handling
   useEffect(() => {

@@ -12,9 +12,28 @@ export interface ZoomShowcaseProps {
    *
    * A vitrine não sabe nada sobre a cena — ela só empresta a própria geometria. Quem
    * usa é a seção seguinte, para projetar o canvas dela dentro do quadro central
-   * enquanto o zoom abre.
+   * enquanto o zoom abre. Sem efeito nenhum se `zoomEnabled` for `false` — não há
+   * pista para anunciar.
    */
   readonly trackRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * ⚠ O INTERRUPTOR DO ZOOM (2026-08-31, pedido do Davi: "quero retirar totalmente o
+   * zoom parallax (...) passe direto pra cena 3d (...) pode desativar com `none` ou
+   * algo assim, para que eu não perca todo código e talvez futuramente possa ser
+   * usado").
+   *
+   * Com `false` (o padrão), a seção desenha SÓ o degrau de entrada — o título "Toda
+   * ideia começa pequena." e o halo atrás dele — e mais nada: nem `ZoomParallax`, nem
+   * `ZoomBackground`, nem a pista de 300vh. `images`/`ZoomBackground` não são
+   * sequer montados, então a cena Horizon logo abaixo não tem pista para medir e
+   * volta sozinha ao comportamento de sempre (sem "ato zero" — ver o comentário de
+   * `ComponentProps.introTrackRef`, em `components/ui/horizon-hero-section.tsx`: sem
+   * pista, ele não ativa).
+   *
+   * Nada do código do zoom foi apagado — está todo aqui embaixo, intocado. Ligar de
+   * volta é passar `zoomEnabled` (ou trocar o padrão desta prop).
+   */
+  readonly zoomEnabled?: boolean;
 }
 
 /**
@@ -39,6 +58,13 @@ export interface ZoomShowcaseProps {
  * segunda cópia da cena: é o `<canvas>` da seção seguinte, projetado dentro do
  * quadrinho e crescendo com ele. Ver a nota no próprio slot e `ComponentProps.introTrackRef`.
  *
+ * ⚠ O ZOOM ESTÁ DESLIGADO (2026-08-31, último pedido do dia): "quero retirar
+ * totalmente o zoom parallax (...) passe direto pra cena 3d". `zoomEnabled` (ver
+ * `ZoomShowcaseProps`) é o interruptor — hoje `false` por padrão, e a seção monta só
+ * o título "Toda ideia começa pequena.". Tudo o que está documentado acima (as seis
+ * fotos, os `OrbitPanel`, o quadro único, o `ZoomBackground`) continua no arquivo,
+ * pronto para voltar — nada foi apagado, só parou de ser montado.
+ *
  * ─── O QUE MUDOU EM RELAÇÃO AO DEMO, E POR QUÊ ──────────────────────────────────
  *  1. O `<main>` do demo virou `<section>`: a página já tem um `<main>` (em `App`), e
  *     dois quebrariam a semântica que o §6.3 exige.
@@ -52,7 +78,66 @@ export interface ZoomShowcaseProps {
  *  5. `text-4xl` → `text-display-sm`, pelo mesmo motivo: a escala default do Tailwind
  *     foi zerada, aquela classe não compilaria.
  */
-export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
+/**
+ * O degrau de entrada — título + halo — que abre a seção nos DOIS modos (zoom ligado
+ * ou desligado). Fatorado à parte para as duas versões não divergirem por descuido:
+ * mudar a copy ou o halo é uma edição só, em vez de duas cópias para lembrar de
+ * sincronizar.
+ */
+function EntranceHeading() {
+  return (
+    <div className="relative flex flex-col items-center justify-center py-stack">
+      {/* Radial spotlight.
+          ⚠ A LARGURA TEM TETO EM `100%`, e isso não é estética: `w-[120vmin]` é a
+          largura no CELULAR (em retrato, `vmin` é a LARGURA da tela), então o halo
+          media 1,2× a viewport e, centrado, sangrava 10vw para cada lado. O lado
+          direito virava rolagem HORIZONTAL na página inteira — o bug relatado. No
+          desktop `vmin` é a altura e nada muda; no celular o halo passa a caber na
+          tela. Como é um gradiente radial já desfocado em 30px e cortado pelo topo,
+          o limite não se vê.
+          `-top-1/2` continua PROPORCIONAL à altura do container (não um valor
+          fixo): com a caixa bem mais baixa agora, o halo se reancora sozinho perto
+          do texto — não precisou de outro ajuste. */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none absolute -top-1/2 left-1/2 h-[120vmin] w-[120vmin] max-w-full -translate-x-1/2 rounded-full',
+          'bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--color-fg)_10%,transparent),transparent_50%)]',
+          'blur-[30px]',
+        )}
+      />
+      {/* ⚠ PROPOSTA DO CLAUDE aguardando o Davi (2026-08-29), no lugar do "Scroll
+          Down for Zoom Parallax" do demo. As alternativas e o critério estão em
+          `content/sugestoes.md`. Ela é o degrau de entrada da sequência: o quadrinho
+          começa minúsculo e cresce até tomar a tela, e a cena continua em "Você
+          enxerga mais longe.". Não afirma número, prazo nem resultado (§4).
+          ⚠ Virou `<Heading>` (era `<h2 className="text-display-sm font-bold">`
+          solto): o `font-bold` (700) pisava no peso calibrado do token
+          (`--text-display-sm--font-weight: 600`) e pulava a família tipográfica
+          que TODO outro título da página usa via este componente — a Fraunces
+          ainda herdava por `base.css`, mas com o peso errado e fora do sistema de
+          design. `<Heading>` é o mesmo componente de Serviços e Processo. */}
+      <Heading id={HEADING_ID} level={2} size="display-sm" className="relative text-center">
+        Toda ideia começa pequena.
+      </Heading>
+    </div>
+  );
+}
+
+export function ZoomShowcase({ trackRef, zoomEnabled = false }: ZoomShowcaseProps) {
+  // ⚠ Com o zoom desligado, a seção é só o degrau de entrada — nem `images`, nem
+  // `<ZoomBackground>`, nem `<ZoomParallax>` chegam a ser criados. `trackRef` nunca
+  // é anexado a elemento nenhum, e é exatamente essa ausência que faz a cena Horizon
+  // logo abaixo voltar sozinha ao comportamento sem "ato zero" — ver
+  // `ZoomShowcaseProps.zoomEnabled`.
+  if (!zoomEnabled) {
+    return (
+      <section aria-labelledby={HEADING_ID} className="w-full">
+        <EntranceHeading />
+      </section>
+    );
+  }
+
   const images = [
     {
       /**
@@ -107,41 +192,7 @@ export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
         — 1,5rem fixos, sem crescer com a viewport. A caixa continua do tamanho do
         próprio conteúdo, só que com menos ar ao redor.
       */}
-      <div className="relative flex flex-col items-center justify-center py-stack">
-        {/* Radial spotlight.
-            ⚠ A LARGURA TEM TETO EM `100%`, e isso não é estética: `w-[120vmin]` é a
-            largura no CELULAR (em retrato, `vmin` é a LARGURA da tela), então o halo
-            media 1,2× a viewport e, centrado, sangrava 10vw para cada lado. O lado
-            direito virava rolagem HORIZONTAL na página inteira — o bug relatado. No
-            desktop `vmin` é a altura e nada muda; no celular o halo passa a caber na
-            tela. Como é um gradiente radial já desfocado em 30px e cortado pelo topo,
-            o limite não se vê.
-            `-top-1/2` continua PROPORCIONAL à altura do container (não um valor
-            fixo): com a caixa bem mais baixa agora, o halo se reancora sozinho perto
-            do texto — não precisou de outro ajuste. */}
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute -top-1/2 left-1/2 h-[120vmin] w-[120vmin] max-w-full -translate-x-1/2 rounded-full',
-            'bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--color-fg)_10%,transparent),transparent_50%)]',
-            'blur-[30px]',
-          )}
-        />
-        {/* ⚠ PROPOSTA DO CLAUDE aguardando o Davi (2026-08-29), no lugar do "Scroll
-            Down for Zoom Parallax" do demo. As alternativas e o critério estão em
-            `content/sugestoes.md`. Ela é o degrau de entrada da sequência: o quadrinho
-            começa minúsculo e cresce até tomar a tela, e a cena continua em "Você
-            enxerga mais longe.". Não afirma número, prazo nem resultado (§4).
-            ⚠ Virou `<Heading>` (era `<h2 className="text-display-sm font-bold">`
-            solto): o `font-bold` (700) pisava no peso calibrado do token
-            (`--text-display-sm--font-weight: 600`) e pulava a família tipográfica
-            que TODO outro título da página usa via este componente — a Fraunces
-            ainda herdava por `base.css`, mas com o peso errado e fora do sistema de
-            design. `<Heading>` é o mesmo componente de Serviços e Processo. */}
-        <Heading id={HEADING_ID} level={2} size="display-sm" className="relative text-center">
-          Toda ideia começa pequena.
-        </Heading>
-      </div>
+      <EntranceHeading />
       {/* ⚠ A PISTA É COMPARTILHADA com a cena da seção seguinte, e a adjacência é
           parte da conta: o ato zero mede o quanto do zoom já passou pela distância
           que falta até o topo da cena, e ela vale a altura da pista porque uma

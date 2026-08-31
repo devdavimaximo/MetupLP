@@ -1458,6 +1458,48 @@ print:
   segue só em `--color-bg` sólido — só que o resto da tela, que antes também era
   quase todo preto, agora é dourado de verdade.
 
+## O zoom foi DESLIGADO — a página vai direto de Processo para a cena (2026-08-31)
+
+**Ainda no mesmo dia, o pedido seguinte:** "quero retirar totalmente o zoom parallax
+(...) passe direto pra cena 3d (...) pode desativar com `none` ou algo assim, para
+que eu não perca todo código e talvez futuramente possa ser usado".
+
+- **Nada foi apagado.** `sections/ZoomShowcase.tsx`,
+  `components/ui/zoom-parallax.tsx` e `components/ui/elegant-dark-pattern.tsx`
+  continuam inteiros no repositório — toda a linha do tempo documentada acima (fotos
+  → `OrbitPanel` → quadro único + `ZoomBackground` → o reajuste do gradiente) segue
+  válida para quando isto for religado.
+- **O interruptor é uma constante, em `src/app/App.tsx`: `ZOOM_PARALLAX_ENABLED =
+  false`.** Ela vira a prop `zoomEnabled` de `<ZoomShowcase>` (nova, default
+  `false`). Com ela desligada, a seção monta SÓ o degrau de entrada — o título "Toda
+  ideia começa pequena." e o halo atrás dele, fatorados num `EntranceHeading()`
+  interno para as duas versões (com/sem zoom) não divergirem por descuido — e mais
+  nada: nem `images`, nem `<ZoomBackground>`, nem `<ZoomParallax>`, nem a pista de
+  300vh chegam a ser criados.
+- **A cena Horizon não precisou de nenhuma mudança — quase.** `zoomTrackRef`
+  continua sendo passado de `App` para `<HorizonHero>` normalmente; sem a pista da
+  vitrine montada, a `ref` nunca prende em elemento nenhum, `introTrackRef.current`
+  fica `null`, e o "ato zero" desativa sozinho pela mesma guarda que já existia para
+  quando `introTrackRef` não é passado — ver `outsideIntro`.
+  ⚠ **Uma coisa PRECISOU mudar, achada num relato seguinte do Davi no mesmo dia**: "a
+  palavra horizonte e a frase debaixo demoram para chegar após chegar na section". A
+  entrada em GSAP do título tinha ganhado um `ScrollTrigger` (`top top`, `once:true`)
+  para esperar o zoom acabar antes de tocar — sem zoom, esse gatilho só disparava
+  quando a pessoa rolava até o pixel exato do topo da seção, e a timeline (~2,4s até
+  o título terminar de entrar) passou a tocar em TEMPO REAL na frente de quem chega,
+  em vez de já estar pousada como sempre foi antes do ato zero existir. Corrigido:
+  o gatilho só existe quando há pista de verdade (`introTrackRef?.current != null`);
+  sem ela, a timeline volta a tocar na montagem, como sempre foi. **Conferido**: com
+  o zoom desligado, os caracteres do título já chegam com `opacity:1` e sem
+  `transform` de deslocamento no instante em que a rolagem entra na seção — nenhuma
+  entrada visível, exatamente como antes do ato zero.
+- **Conferido**: `hasZoomTrack` (busca por qualquer `div` com `h-[300vh]`) dá
+  `false`; a página encolheu de ~11 140px para ~8 565px de altura total (exatamente
+  os ~2 700px da pista que saiu); rolando, "Toda ideia começa pequena." aparece e a
+  cena ("HORIZONTE" / "Você enxerga mais longe.", indicador `00 / 03`) começa
+  imediatamente abaixo, sem colagem nenhuma no meio.
+- **Religar é uma linha:** `ZOOM_PARALLAX_ENABLED = true` em `App.tsx`.
+
 ## Cena Horizon (three.js), abaixo da vitrine em zoom (2026-08-29)
 
 Terceira peça portada "como está": o componente (`components/ui/horizon-hero-section.tsx`)

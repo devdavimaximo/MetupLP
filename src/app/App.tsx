@@ -10,6 +10,21 @@ import { ZoomShowcase } from '../sections/ZoomShowcase';
 const MAIN_ID = 'conteudo';
 
 /**
+ * ⚠ O ZOOM DA VITRINE ESTÁ DESLIGADO (2026-08-31, pedido do Davi: "quero retirar
+ * totalmente o zoom parallax (...) passe direto pra cena 3d (...) pode desativar
+ * com `none` ou algo assim, para que eu não perca todo código e talvez futuramente
+ * possa ser usado").
+ *
+ * O interruptor é só esta constante: `<ZoomShowcase>` continua no lugar (o título
+ * "Toda ideia começa pequena." continua na tela), mas sem a colagem, sem
+ * `ZoomBackground` e sem a pista de 300vh — e a cena Horizon, sem pista para medir,
+ * volta sozinha a começar do jeito de sempre (sem o "ato zero"). Nada foi apagado:
+ * ver `ZoomShowcaseProps.zoomEnabled` para o que cada modo monta. Ligar de volta é
+ * virar isto para `true`.
+ */
+const ZOOM_PARALLAX_ENABLED = false;
+
+/**
  * Casca da página.
  *
  * ─── ORDEM DO DOCUMENTO ─────────────────────────────────────────────────────────
@@ -29,13 +44,17 @@ const MAIN_ID = 'conteudo';
  * nem entra na navegação enquanto o conteúdo real não for definido — ver a nota em
  * `sections/ZoomShowcase.tsx`.
  *
- * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem não é só narrativa: as duas são
- * UM gesto só desde 2026-08-31. O quadro central da vitrine não tem imagem nenhuma —
- * o que abre lá dentro é o `<canvas>` da cena, projetado dentro do quadrinho e
- * crescendo com ele até tomar a tela; quando o zoom acaba, a cena já está ali e a
- * viagem começa. `zoomTrackRef` é o fio entre as duas: a vitrine empresta a própria
- * pista, a cena mede o zoom nela. **Separar as duas — ou pôr qualquer coisa entre
- * elas — quebra a conta e o gesto.**
+ * ⚠ O ZOOM EM SI ESTÁ DESLIGADO (`ZOOM_PARALLAX_ENABLED`, logo acima) — a seção
+ * continua no lugar, só o efeito que sai. Com ele ligado, `<ZoomShowcase />` e
+ * `<HorizonHero />` são UM gesto só: o quadro central da vitrine não tem imagem
+ * nenhuma, o que abre lá dentro é o `<canvas>` da cena, projetado dentro do
+ * quadrinho e crescendo com ele até tomar a tela — `zoomTrackRef` é o fio entre as
+ * duas, a vitrine empresta a própria pista, a cena mede o zoom nela. Com ele
+ * desligado (o estado de hoje), esse fio nunca prende em nada — `trackRef`/
+ * `zoomTrackRef` continuam passados às duas seções, mas nenhuma pista existe para
+ * anexar, e cada uma volta ao próprio comportamento normal sozinha. **Não separe as
+ * duas seções no documento, nem ponha algo entre elas** — no dia em que o zoom
+ * voltar, a adjacência é parte da conta (ver `ZoomParallaxProps.trackRef`).
  *
  * ⚠ NÃO EXISTE MAIS UMA `<ContactAnchor />` AQUI (2026-08-31, pedido do Davi: "esse
  * CTA finaliza a página"). A seção `#contato` passou a ser o QUARTO ATO da cena
@@ -66,7 +85,7 @@ export function App() {
         <Hero />
         <Services />
         <Process />
-        <ZoomShowcase trackRef={zoomTrackRef} />
+        <ZoomShowcase trackRef={zoomTrackRef} zoomEnabled={ZOOM_PARALLAX_ENABLED} />
         {/* Carrega a seção `#contato` dentro dela — ver o aviso no cabeçalho. */}
         <HorizonHero zoomTrackRef={zoomTrackRef} />
       </main>
