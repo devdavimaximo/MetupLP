@@ -18,11 +18,17 @@
  *     aplicada e a pista de rolagem encolhe para uma tela — o que sobra é a colagem
  *     estática, que é o mesmo desenho no seu estado inicial. As `MotionValue`
  *     continuam sendo criadas, só deixam de ser usadas: a ordem dos hooks não muda.
- *  3. `loading="lazy"`/`decoding="async"` nas imagens: a seção fica bem abaixo da
- *     primeira dobra e são sete masters (§6.2). Não muda um pixel do resultado.
+ *  3. `loading="lazy"`/`decoding="async"` na única imagem que sobrar num `src`: a
+ *     seção fica bem abaixo da primeira dobra (§6.2). Hoje nenhum slot usa `<img>` —
+ *     ver o ponto 5 — mas o caminho continua existindo para quem voltar a usar foto.
  *  4. `trackRef` (2026-08-31) — a pista de 300vh passou a ser legível de fora, para a
  *     cena Horizon poder se projetar dentro do quadro central enquanto ele abre. Ver
  *     `ZoomParallaxProps.trackRef`. Nada no desenho mudou.
+ *  5. `src` virou OPCIONAL (2026-08-31) — os seis ladrilhos ao redor do quadro
+ *     central saíram de foto para `content` (pedido do Davi: "retire as imagens,
+ *     torne a sessão mais especial"). O componente não sabe o que é `OrbitPanel`;
+ *     só continua desenhando o que cada slot mandar, na mesma caixa e na mesma
+ *     escala. Ver `Image.content` e `sections/ZoomShowcase`.
  *
  * ─── A GEOMETRIA DO QUADRO CENTRAL É UM CONTRATO ────────────────────────────────
  * O slot 0 é o ÚNICO sem classe de deslocamento: ele fica centrado, mede 25vw × 25vh
@@ -40,15 +46,23 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion
 import { useRef, type ReactNode, type RefObject } from 'react';
 
 interface Image {
-  src: string;
+  /**
+   * ⚠ OPCIONAL desde 2026-08-31: os seis ladrilhos ao redor do quadro central
+   * deixaram de ser foto (pedido do Davi — "retire as imagens, torne a sessão mais
+   * especial") e passaram a usar `content`, como o quadro central já usava desde
+   * 2026-08-29. `src` continua existindo para quem quiser voltar a usar foto num
+   * slot específico.
+   */
+  src?: string;
   alt?: string;
   /**
-   * Conteúdo no lugar da foto (pedido do Davi, 2026-08-29).
+   * Conteúdo no lugar da foto.
    *
    * Quando existe, o slot deixa de desenhar o `<img>` e passa a montar este nó, na
-   * mesma caixa e com a mesma escala. Hoje quem usa isso é o slot central, que é o
-   * FUNDO preto sobre o qual a cena Horizon é projetada enquanto o zoom abre — ver a
-   * nota do slot em `sections/ZoomShowcase`.
+   * mesma caixa e com a mesma escala. Hoje é o que TODOS os sete slots usam: o
+   * central é o fundo sobre o qual a cena Horizon é projetada enquanto o zoom abre, e
+   * os seis ao redor são os painéis abstratos (`OrbitPanel`) — ver a nota de cada um
+   * em `sections/ZoomShowcase`.
    */
   content?: ReactNode;
 }

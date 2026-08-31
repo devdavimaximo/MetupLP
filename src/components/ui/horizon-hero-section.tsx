@@ -1143,6 +1143,40 @@ export const Component = ({ introTrackRef, finale }: ComponentProps) => {
       canvas.style.transform = `translateY(${String(paneTop - top)}px) scale(${String(scale)})`;
     };
 
+    /**
+     * ⚠ O ATO ZERO TREME SEM ISTO (relatado pelo Davi, 2026-08-31: "o zoom (...) fica
+     * tremendo, não acontece de forma fluida").
+     *
+     * `updateIntro` escreve o `transform` do canvas DENTRO do próprio evento `scroll`
+     * — síncrono, na hora. O framer-motion, que anima a ESCALA do quadrinho da
+     * vitrine (o outro lado deste encaixe), não escreve assim: ele enfileira a
+     * escrita no próprio agendador (`frame.render`), que só aplica no próximo quadro
+     * de animação. Como os dois precisam ficar pixel a pixel um em cima do outro a
+     * cada quadro, um escrevendo NA HORA e o outro um quadro DEPOIS produz um
+     * descompasso constante — visível como tremor enquanto a rolagem é contínua
+     * (Lenis interpolando a cada quadro).
+     *
+     * A correção é enfileirar a nossa escrita no MESMO tipo de fila — `rAF` — para
+     * as duas convergirem no mesmo quadro de tela em vez de ficarem uma atrás da
+     * outra. `pendingTop` guarda só o valor mais recente: se o evento `scroll`
+     * disparar várias vezes antes do quadro seguinte (Lenis normalmente dispara uma
+     * vez por quadro, mas nada garante isso em todo navegador), a versão antiga é
+     * descartada — só a mais nova importa.
+     */
+    let introFrame: number | null = null;
+    let pendingTop = 0;
+
+    const flushIntro = (): void => {
+      introFrame = null;
+      updateIntro(pendingTop);
+    };
+
+    const scheduleIntro = (top: number): void => {
+      pendingTop = top;
+      if (introFrame !== null) return;
+      introFrame = requestAnimationFrame(flushIntro);
+    };
+
     const handleScroll = () => {
       /**
        * ⚠ AQUI ESTAVA O DEFEITO (corrigido em 2026-08-29).
@@ -1166,14 +1200,46 @@ export const Component = ({ introTrackRef, finale }: ComponentProps) => {
       const windowHeight = window.innerHeight;
       const maxScroll = Math.max(container.offsetHeight - windowHeight, 1);
       const containerTop = container.getBoundingClientRect().top;
-      const scrollY = Math.min(Math.max(-containerTop, 0), maxScroll);
+      /**
+       * ⚠ A ORIGEM É `canvasHeight`, NÃO 0, QUANDO HÁ UM ATO ZERO (defeito relatado
+       * pelo Davi, 2026-08-31: "ao terminar de dar zoom, dá uma travada e a cena 3D
+       * pula o início, (...) às vezes começa no cosmos e pula o horizonte").
+       *
+       * O zoom da vitrine TERMINA VISUALMENTE (a colagem inteira já está na escala
+       * máxima) quando `top` chega em `canvasHeight` — uma tela ANTES do que este
+       * manipulador considerava "zoom pronto" (`top <= 0`). A tela que sobra entre os
+       * dois é mecânica pura do `position: sticky` da vitrine: o painel preso só
+       * solta depois de rolar a PRÓPRIA altura, não porque haja mais alguma coisa
+       * para animar (`updateIntro` já mantém a cena travada em tela cheia esse tempo
+       * todo — ver o comentário lá). Com a origem em 0, essa tela inteira ficava como
+       * rolagem "morta": a colagem já parada, o progresso ainda em 0, a câmera ainda
+       * presa no Horizonte — quem continuava rolando (o gesto mais natural depois de
+       * ver o zoom "terminar") sentia a página TRAVAR ali. E como o Lenis segue
+       * acumulando a rolagem enquanto a pessoa insiste — a `lerp` não pausa só
+       * porque o `progress` não está mudando —, no instante em que a tela morta
+       * finalmente acaba o `scrollY` já avançou bastante de uma vez: o primeiro
+       * quadro com progresso real podia cair bem depois do Horizonte, às vezes já no
+       * Cosmos. Não era travamento de quadro nem race condition — era rolagem de
+       * verdade sendo gasta num trecho que não movia nada.
+       *
+       * Deslocar a origem para `canvasHeight` faz a câmera começar a se mover no
+       * EXATO instante em que a colagem para de crescer — sem tela morta no meio —,
+       * e sem tocar em `updateIntro` (que continua prendendo o canvas em tela cheia
+       * até `top` cruzar 0 de verdade, por um motivo diferente: aí é quando a
+       * posição NATIVA do `sticky` assume, não quando a narrativa deveria começar).
+       * `canvasHeight` só entra quando existe pista (`trackHeight > 0`); sem
+       * `introTrackRef`, a seção continua contando a partir de 0, como sempre.
+       */
+      const introShift = trackHeight > 0 ? canvasHeight : 0;
+      const scrollY = Math.min(Math.max(introShift - containerTop, 0), maxScroll);
       const progress = Math.min(scrollY / maxScroll, 1);
 
       // O ato zero (o canvas dentro do quadrinho da vitrine) reaproveita o MESMO
       // `containerTop` já lido acima: as leituras de layout do manipulador ficam todas
       // no topo, e daqui para baixo ele só escreve — nunca uma leitura depois de uma
-      // escrita, que é reflow forçado a cada quadro de rolagem (§6.4).
-      updateIntro(containerTop);
+      // escrita, que é reflow forçado a cada quadro de rolagem (§6.4). A escrita em si
+      // é agendada para o próximo `rAF` — ver `scheduleIntro`, logo abaixo.
+      scheduleIntro(containerTop);
 
       const newSection = Math.floor(progress * totalSections);
 
@@ -1256,6 +1322,7 @@ export const Component = ({ introTrackRef, finale }: ComponentProps) => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleViewportChange);
+      if (introFrame !== null) cancelAnimationFrame(introFrame);
       // A cena sai daqui posicionada pelo CSS, e não pela transformação do ato zero:
       // sem isto, uma remontagem (hot reload, troca de props) herdaria o canvas
       // congelado a 25% no meio da tela.

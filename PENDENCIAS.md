@@ -1309,9 +1309,13 @@ pedidos que vão fazer sentido para a Metup". O que fica em aberto até lá:
       `npm run images` em `public/images/zoom/` — 122 kB os quatro somados, contra
       580 kB dos JPG originais). São **decorativas** (cosmos, buraco negro,
       astronauta), não representação de trabalho de cliente — a distinção do §5.
-- [ ] **Faltam 2 dos 6 ladrilhos.** Chegaram quatro imagens; até as outras virem, os
-      slots 5 e 6 repetem a 1 e a 2. Quando chegarem: jogar em `assets/zoom/`, rodar
-      `npm run images` e apontar `TILE[5]`/`TILE[6]` em `sections/ZoomShowcase.tsx`.
+- [x] ~~**Faltam 2 dos 6 ladrilhos.**~~ — **ficou sem objeto em 2026-08-31**, pedido
+      do Davi: "retire as imagens ao redor da animação de zoom (...) torne a sessão
+      mais especial". Os seis ladrilhos deixaram de ser foto — viraram `OrbitPanel`,
+      composições abstratas (linha de horizonte + brilho âmbar, sem foto nenhuma). Não
+      existe mais slot esperando imagem. Os quatro WebP em `public/images/zoom/` e os
+      masters em `assets/zoom/` ficaram sem consumidor — não apagados (são arte real
+      do Davi, podem voltar a servir noutro lugar), só sem uso hoje.
 - [ ] **O título da seção é PROPOSTA DO CLAUDE aguardando o Davi** (2026-08-29): o
       "Scroll Down for Zoom Parallax" do demo saiu e entrou **"Toda ideia começa
       pequena."** — o degrau que prepara o zoom e emenda no "Você enxerga mais longe."
@@ -1328,15 +1332,42 @@ pedidos que vão fazer sentido para a Metup". O que fica em aberto até lá:
       dependência nova (o `framer-motion` já estava no bundle por causa do deck), mas
       são agora **dois** gestos de rolagem fora do GSAP. Se a portabilidade para
       ScrollTrigger acontecer, as duas devem ir juntas.
-- [ ] **Custo de rolagem e de rede não medido:** são 300vh de pista com sete imagens
-      remotas em `scale` contínuo, logo antes do CTA final. Falta medir 60fps no
-      celular real e o impacto em LCP/CLS antes de F7.
+- [ ] **Custo de rolagem não medido:** são 300vh de pista com sete caixas em `scale`
+      contínuo, logo antes do CTA final. Falta medir 60fps no celular real antes de
+      F7. **Ficou mais leve em 2026-08-31** — os seis ladrilhos ao redor deixaram de
+      baixar imagem (eram quatro WebP remotos, ~122 kB); hoje são `linear-gradient`
+      puro, zero requisição.
 
 O que **não** foi deixado passar, mesmo na versão "como está": `prefers-reduced-motion`
 (§6.6 — sem movimento, a escala não é aplicada e a pista encolhe para uma tela),
 `<h2>` em vez do `<h1>` do demo (a página só tem um `<h1>`, o do herói), e uma única
 instância de Lenis (a global do `App`; o demo criava a sua). Detalhe do porquê no
 cabeçalho de cada arquivo.
+
+## Ladrilhos da vitrine viraram abstratos (2026-08-31)
+
+Pedido do Davi: "retire as imagens ao redor da animação de zoom (...) faça um outro
+tipo de sessão (...) a ideia é mudar as coisas que tem na volta da cena principal (...)
+torne a sessão mais especial". Escopo do pedido, e o que ficou de fora dele
+deliberadamente:
+
+- **O zoom, a cena central e a copy ("Toda ideia começa pequena.") não mudaram.** Só
+  o que girava ao redor do quadro central — os seis ladrilhos — trocou de foto para
+  `OrbitPanel` (`sections/ZoomShowcase.tsx`): um painel escuro com uma linha de
+  horizonte fina e um brilho âmbar subindo dela, na mesma gramática visual da cena
+  Horizon que abre no centro, só que em miniatura e sem montanha/estrela. Cantos retos
+  ("usinados"), sem borda arredondada — o mesmo vocabulário dos ícones do header.
+- **Nenhum texto, número ou dado nos painéis.** Decisão deliberada: qualquer rótulo
+  ali (coordenada, contador, palavra-chave) correria o risco de ler como afirmação
+  sobre a Metup sem ser — mais simples e mais seguro ficar 100% abstrato (§4).
+- **A intensidade do brilho de cada painel acompanha o tamanho do próprio ladrilho na
+  colagem** (`ORBIT_PANELS`, em `sections/ZoomShowcase.tsx`): o mais largo (slot 1)
+  recebe mais luz, o menor (slot 6) quase nada — mesma hierarquia que os offsets de
+  `components/ui/zoom-parallax.tsx` já definem, sem inventar uma segunda escala.
+- **Mecanismo intocado.** `ZoomParallax` já suportava um slot sem foto desde
+  2026-08-29 (o `content` do quadro central); os seis ladrilhos passaram a usar o
+  mesmo caminho — `Image.src` virou opcional no componente, nada mudou na mecânica de
+  escala/scroll.
 
 ## Cena Horizon (three.js), abaixo da vitrine em zoom (2026-08-29)
 

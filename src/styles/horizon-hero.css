@@ -84,6 +84,17 @@
   width: 100%;
   height: 100svh;
   transform-origin: 50% 50%;
+  /**
+   * ⚠ O ATO ZERO ESCALA UM `<canvas>` CHEIO DE ESTRELAS DE 1 A POUCO MAIS DE 1PX
+   * (2026-08-31, tremor relatado pelo Davi). Sem a promoção explícita a uma camada de
+   * composição própria, o navegador pode reamostrar o bitmap já pintado a cada
+   * quadro por CIMA do pipeline de pintura normal em vez de deixar a GPU escalar a
+   * textura já composta — e resultado nas estrelas (a maioria com menos de 2,5px,
+   * ver `createStarField` no componente) é tremor/cintilação visível conforme a
+   * escala muda continuamente. `will-change` é o sinal padrão do CSS para isso: pede
+   * ao navegador para manter este elemento na própria camada, escalada só na GPU.
+   */
+  will-change: transform;
 }
 
 /* Sobe o conteúdo por cima do canvas: o primeiro ato começa no topo do container, e

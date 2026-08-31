@@ -17,35 +17,77 @@ export interface ZoomShowcaseProps {
 }
 
 /**
- * Os ladrilhos que giram em volta do quadro central — arte do Davi (2026-08-29),
- * no lugar das fotos do Unsplash que vieram no demo.
+ * `OrbitPanel` — o que ocupa os seis ladrilhos ao redor do quadro central desde
+ * 2026-08-31 (pedido do Davi: "retire as imagens ao redor da animação de zoom (...)
+ * torne a sessão mais especial"). Antes eram fotos (arte do Davi, e antes disso
+ * Unsplash do demo); agora são abstratos, no mesmo espírito do §5 do CLAUDE.md
+ * ("elementos decorativos, abstratos ou 3D fazem parte do design autoral e são
+ * permitidos" — a regra proíbe forjar trabalho de cliente, não usar arte no design).
  *
- * São DECORATIVAS (cosmos, buraco negro, astronauta), não representam trabalho de
- * cliente — a distinção que o §5 do CLAUDE.md faz. Combinam com a cena Horizon do
- * quadro central e com o dourado da marca.
+ * ─── O CONCEITO: HORIZONTES PEQUENOS AO REDOR DO QUE VAI FICAR GRANDE ───────────
+ * Cada painel é a MESMA gramática visual da cena Horizon que mora no quadro central
+ * — uma linha fina e um brilho âmbar subindo dela —, só que em miniatura e sem
+ * montanha, sem estrela, sem textura nenhuma: puro `linear-gradient` sobre preto. A
+ * ideia liga direto com o título da seção ("Toda ideia começa pequena."): o que abre
+ * em tela cheia no centro já estava ali, em versão pequena, o tempo todo. Painéis
+ * maiores (mais perto, na composição) recebem um brilho mais forte; os menores, mais
+ * fraco — a MESMA lógica de escala que já rege os tamanhos dos sete ladrilhos na
+ * colagem (ver os comentários de cada slot, abaixo).
  *
- * Os arquivos saem de `assets/zoom/` (masters, nunca publicados) por `npm run images`:
- * um WebP por imagem, 1280px de teto, qualidade baixa a pedido do Davi — 122 kB os
- * quatro somados, contra 580 kB dos JPG originais. O componente da vitrine desenha um
- * `<img src>` simples, então é um arquivo por ladrilho, sem `srcset`.
+ * Os quatro cantos usinados (`OrbitPanel`'s brackets) são o mesmo vocabulário de
+ * "canto reto, nunca arredondado" que os ícones do header já seguem
+ * (`components/icons.tsx`) — nenhuma borda circular entra na direção de arte.
  *
- * ⚠ SÃO QUATRO PARA SEIS SLOTS. O Davi disse que ainda traz as que faltam; até lá, a
- * 1 e a 2 aparecem duas vezes (slots 5 e 6). Quando as novas chegarem, é só apontar
- * `TILE[5]`/`TILE[6]` ali — nada mais muda.
+ * Sem imagem, sem `alt`, sem `<img>`: `aria-hidden`, porque não é conteúdo — é
+ * cenário. O `<h2>` da seção é quem nomeia a seção para leitor de tela.
  */
-const TILE: Record<number, string> = {
-  1: '/images/zoom/zoom-parallax-1.webp',
-  2: '/images/zoom/zoom-parallax-2.webp',
-  3: '/images/zoom/zoom-parallax-3.webp',
-  4: '/images/zoom/zoom-parallax-4.webp',
+type OrbitVariant = 1 | 2 | 3 | 4 | 5 | 6;
+
+/**
+ * `horizon`: onde a linha fica, em % da altura do painel (de cima para baixo) — os
+ * painéis mais baixos/largos puxam a linha para mais perto do centro; os mais altos
+ * (o vertical do slot 2) descem a linha, para o brilho não dominar a caixa inteira.
+ * `glow`: o quanto de `--color-accent` entra no `color-mix` do brilho — acompanha o
+ * tamanho do ladrilho na colagem (maior ladrilho, mais perto, mais luz).
+ */
+const ORBIT_PANELS: Record<OrbitVariant, { horizon: number; glow: number }> = {
+  1: { horizon: 60, glow: 30 }, // slot 1 — 35vw × 30vh, o maior: mais luz.
+  2: { horizon: 74, glow: 18 }, // slot 2 — 20vw × 45vh, o vertical.
+  3: { horizon: 58, glow: 22 }, // slot 3 — 25vw × 25vh.
+  4: { horizon: 66, glow: 14 }, // slot 4 — 20vw × 25vh, o mais discreto.
+  5: { horizon: 62, glow: 26 }, // slot 5 — 30vw × 25vh, quase tão largo quanto o 1.
+  6: { horizon: 76, glow: 10 }, // slot 6 — 15vw × 15vh, o menor: quase apagado.
 };
 
-const ALT: Record<number, string> = {
-  1: 'Ilustração de um sistema planetário visto de cima, com um sol dourado ao centro',
-  2: 'Ilustração de um astronauta diante de um planeta gigante iluminado por trás',
-  3: 'Ilustração de um buraco negro com disco de luz dourada',
-  4: 'Ilustração de um buraco negro em diagonal, com o disco de luz cortando o quadro',
-};
+function OrbitPanel({ variant }: { readonly variant: OrbitVariant }) {
+  const { horizon, glow } = ORBIT_PANELS[variant];
+
+  return (
+    <div aria-hidden className="relative h-full w-full overflow-hidden bg-black">
+      {/* O brilho — mesma gramática da cena central, sem a montanha nem as estrelas. */}
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{
+          top: `${String(horizon)}%`,
+          background: `linear-gradient(to top, color-mix(in oklab, var(--color-accent) ${String(glow)}%, transparent), transparent)`,
+        }}
+      />
+      {/* A linha do horizonte. */}
+      <div
+        className="absolute inset-x-0 h-px bg-accent/25"
+        style={{ top: `${String(horizon)}%` }}
+      />
+      {/* O filete que contorna o painel — bem fraco, só para separar um ladrilho do
+          próximo quando as bordas se tocam na colagem. */}
+      <div className="pointer-events-none absolute inset-0 border border-line" />
+      {/* Os quatro cantos usinados. */}
+      <span className="absolute top-0 left-0 h-3 w-3 border-t border-l border-line-strong/70" />
+      <span className="absolute top-0 right-0 h-3 w-3 border-t border-r border-line-strong/70" />
+      <span className="absolute bottom-0 left-0 h-3 w-3 border-b border-l border-line-strong/70" />
+      <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-line-strong/70" />
+    </div>
+  );
+}
 
 /**
  * Vitrine em zoom — a seção nova, logo abaixo do Processo.
@@ -54,8 +96,11 @@ const ALT: Record<number, string> = {
  * acompanha o componente, portado sem alterar offsets nem estrutura. O título em
  * inglês ainda é do demo, não é copy da Metup — registrado em PENDENCIAS.md.
  *
- * ⚠ AS FOTOS DO UNSPLASH SAÍRAM EM 2026-08-29: os seis ladrilhos agora são arte do
- * Davi (ver `TILE` abaixo).
+ * ⚠ AS FOTOS DO UNSPLASH SAÍRAM EM 2026-08-29: os seis ladrilhos viraram arte do Davi.
+ * E A ARTE DO DAVI SAIU EM 2026-08-31: os seis ladrilhos agora são `OrbitPanel`,
+ * composições abstratas (ver o comentário logo acima). Pedido do Davi: "retire as
+ * imagens ao redor da animação de zoom (...) torne a sessão mais especial" — o zoom,
+ * a cena e a copy ficaram exatamente como estavam; só o que girava em volta mudou.
  *
  * ⚠ ATUALIZADO EM 2026-08-31: o slot que DÁ ZOOM é A CENA HORIZON, ao vivo. Não é
  * foto (2026-08-29 tirou), não é mais um painel preto (era, até aqui) e não é uma
@@ -107,19 +152,18 @@ export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
       content: <div aria-hidden className="h-full w-full bg-black" />,
     },
     // Slot 1 — a caixa mais larga (35vw × 30vh), a primeira a cruzar o quadro.
-    { src: TILE[1], alt: ALT[1] },
+    { content: <OrbitPanel variant={1} /> },
     // Slot 2 — a ÚNICA caixa em pé (20vw × 45vh). É onde a vertical tem que estar:
     // qualquer horizontal aqui entraria recortada nas laterais.
-    { src: TILE[4], alt: ALT[4] },
+    { content: <OrbitPanel variant={2} /> },
     // Slot 3 — 25vw × 25vh, à direita.
-    { src: TILE[2], alt: ALT[2] },
+    { content: <OrbitPanel variant={3} /> },
     // Slot 4 — 20vw × 25vh, embaixo à esquerda.
-    { src: TILE[3], alt: ALT[3] },
-    // Slot 5 — 30vw × 25vh. REPETE a 1 até chegarem as que faltam (ver a nota acima).
-    { src: TILE[1], alt: ALT[1] },
-    // Slot 6 — o menor de todos (15vw × 15vh). REPETE a 2 pelo mesmo motivo; é o
-    // ladrilho onde a repetição menos aparece.
-    { src: TILE[2], alt: ALT[2] },
+    { content: <OrbitPanel variant={4} /> },
+    // Slot 5 — 30vw × 25vh.
+    { content: <OrbitPanel variant={5} /> },
+    // Slot 6 — o menor de todos (15vw × 15vh).
+    { content: <OrbitPanel variant={6} /> },
   ];
 
   return (
