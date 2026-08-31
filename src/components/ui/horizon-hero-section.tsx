@@ -41,15 +41,56 @@
  *  9. **A paleta virou a da Metup** (2026-08-29, pedido do Davi): era azul/roxo/lilás,
  *     agora é âmbar → laranja → vermelho. Ver `PALETTE`, logo abaixo dos imports.
  *
-
- * ⚠ CONFLITOS DECLARADOS, registrados em PENDENCIAS.md e NÃO resolvidos aqui porque
- * resolvê-los seria redesenhar o componente:
- *  · **é um segundo contexto WebGL** — o herói da Metup já tem o seu;
- *  · o `rAF` roda sempre, mesmo com a seção fora de quadro.
+ * ─── O QUARTO ATO (2026-08-31, pedido do Davi: "um CTA no final da cena") ────────
+ * 10. **`finale`** — um ato a mais no fim do container, com a cena atrás dele. O
+ *     componente não sabe o que ele contém: quem monta o conteúdo é
+ *     `sections/HorizonFinale`, que lê a copy de `content/` como manda o §9. Aqui só
+ *     entra a MECÂNICA de ter um ato a mais: mais uma posição de câmera, mais uma
+ *     tela de pista e o indicador de rolagem cedendo lugar. Ver `ComponentProps`.
+ * 11. **`progress > 0.7` virou `ato > 1.4`.** O 0.7 do original é a fração da pista
+ *     em que as cordilheiras e a nebulosa somem de quadro — e ele só significa
+ *     "durante a travessia" enquanto existirem DOIS atos. Com o finale a pista fica
+ *     50% mais longa e o mesmo 0.7 cairia lá na frente, jogando o clarão da nebulosa
+ *     em cima do texto do terceiro ato (o defeito de contraste que o PENDENCIAS.md
+ *     já registrava, piorado). Medido em ATOS, o corte acontece no mesmo instante da
+ *     narrativa, com dois ou com três: `0.7 × 2 = 1.4`.
+ * 12. **A rolagem não re-renderiza mais o React**, e a barra de progresso deixou de
+ *     ser animada por `width`. Eram dois `useState` escritos a cada evento de
+ *     `scroll` — um render de React por quadro de rolagem, ao longo de quatro telas
+ *     — e um `style={{ width: '…%' }}`, que é layout a cada quadro, exatamente o que
+ *     o §6.4 proíbe. Agora o manipulador escreve `transform: scaleX()` e o texto do
+ *     contador direto no DOM, por ref: zero render, zero reflow.
+ * 13. **O `rAF` para quando a seção sai de quadro** (IntersectionObserver). Era um
+ *     conflito declarado em PENDENCIAS.md: a cena desenhava 5000×3 estrelas + bloom
+ *     em tela cheia a 60fps do topo ao rodapé do site, roubando quadro do herói (que
+ *     tem o próprio contexto WebGL) e das animações de todas as outras seções.
+ *
+ * ─── O ZOOM ENTRA NA PRÓPRIA CENA (2026-08-31, pedido do Davi) ──────────────────
+ * 14. **`introTrackRef`** — o quadro central da vitrine acima deixou de ser um painel
+ *     preto (antes disso, uma foto) e passou a ser **esta cena**, de verdade: o que
+ *     abre com o zoom é o `<canvas>` que já existe aqui, projetado dentro do
+ *     quadrinho e crescendo com ele até tomar a tela. Ver `ComponentProps.introTrackRef`
+ *     e `INTRO_MIN_SCALE`.
+ * 15. **`frozen` MORREU.** Era a solução anterior para a mesma coisa: uma SEGUNDA
+ *     instância da cena, congelada, montada dentro do quadrinho. Ela custava um
+ *     terceiro contexto WebGL, outra cópia das 15 000 estrelas e outro alvo de bloom
+ *     em tela cheia — tudo para desenhar um quadro parado. Agora não existe segunda
+ *     cena: é a mesma, no mesmo contexto, e por isso o encaixe do fim do zoom com o
+ *     começo da seção é exato por construção, e não por coincidência de aparência.
+ * 16. **A entrada em GSAP acontece quando a cena CHEGA**, não na montagem. O título,
+ *     o menu e o indicador eram animados assim que o componente ficava pronto — lá no
+ *     carregamento da página, com a pessoa ainda no herói —, então quem descia já
+ *     encontrava tudo parado. Com o zoom desembocando aqui, a entrada é o primeiro
+ *     quadro da cena: um `ScrollTrigger` (`top top`, uma vez só) segura a timeline
+ *     até o container encostar no topo, que é exatamente o instante em que o zoom
+ *     termina.
+ *
+ * ⚠ CONFLITO DECLARADO que CONTINUA aqui, registrado em PENDENCIAS.md: são **dois
+ * contextos WebGL** na mesma página — o herói da Metup já tem o seu.
  */
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -87,6 +128,67 @@ const PALETTE = {
   atmosphere: { r: 0.969, g: 0.702, b: 0.267 },
 } as const;
 
+/**
+ * As posições de câmera, uma por ato. Saíram de dentro do manipulador de rolagem
+ * (onde o original as reconstruía a cada evento) para poderem ser LIDAS junto do
+ * texto que cada ato carrega — a lista é a decupagem da cena.
+ *
+ *   0 · HORIZONTE — a cordilheira ao longe.        "Você enxerga mais longe."
+ *   1 · COSMOS    — atravessando as cordilheiras.  "Mas enxergar não basta."
+ *   2 · INFINITO  — acima de tudo.                 "É preciso construir para chegar lá."
+ *   3 · CHEGADA   — o quarto ato, só com `finale`. O CTA.
+ *
+ * ⚠ O ATO 3 É DELIBERADAMENTE O MENOR DESLOCAMENTO DA CENA (2026-08-31). Os três
+ * primeiros percorrem 350 e 650 unidades; este percorre 200, e ainda por cima com a
+ * suavização exponencial de 0.05 do laço — ou seja, a câmera CHEGA e desacelera em
+ * vez de continuar fugindo. É o §3 aplicado à direção: no ato em que a página pede o
+ * clique, o movimento cede o palco para o CTA em vez de disputá-lo.
+ *
+ * Os números são coordenadas de mundo com `lookAt(0, 10, -600)` fixo (ver o laço).
+ * Subir em Y e recuar em Z afasta a esfera de atmosfera (raio 600 na origem), que é
+ * o que faz o clarão encolher e o céu escurecer justamente onde o texto entra —
+ * metade da conta de contraste do ato; a outra metade é o véu, em `horizon-finale.css`.
+ * `z = -900` mantém a câmera DENTRO da casca de estrelas (raio 200–1000): passar
+ * disso trocaria o céu por uma bola de estrelas vista de fora.
+ */
+const CAMERA_ACTS = [
+  { x: 0, y: 30, z: 300 },
+  { x: 0, y: 40, z: -50 },
+  { x: 0, y: 50, z: -700 },
+  { x: 0, y: 70, z: -900 },
+] as const;
+
+/**
+ * O instante em que cordilheiras e nebulosa saem de quadro, MEDIDO EM ATOS.
+ *
+ * O original escrevia `progress > 0.7` — a mesma coisa, enquanto a cena tem dois
+ * atos (`0.7 × 2 = 1.4`). Ver o ponto 11 do cabeçalho para o porquê de a unidade
+ * importar. 1.4 cai no fim da travessia: as cordilheiras já ficaram para trás da
+ * câmera e o teleporte para `z = 600000` é invisível — é justamente por isso que o
+ * corte seco do original nunca apareceu como um "pop".
+ */
+const CLEAR_AT_ACT = 1.4;
+
+/**
+ * A ESCALA EM QUE A CENA NASCE, DENTRO DO QUADRO DA VITRINE (2026-08-31).
+ *
+ * O quadro central da vitrine em zoom mede `25vw × 25vh` e é o único slot centrado —
+ * ou seja, ele é a janela inteira reduzida a **25%** em torno do próprio centro (o
+ * contrato está escrito no cabeçalho de `components/ui/zoom-parallax.tsx`). Como o
+ * `<canvas>` desta cena também é do tamanho da janela, pô-lo dentro do quadrinho é
+ * uma escala só: 0,25 no começo da pista, 1 quando ela acaba. Nenhum recorte, nenhuma
+ * distorção — a proporção é a mesma dos dois lados.
+ *
+ * ⚠ Este número e o `scale4` do índice 0 da vitrine são a MESMA conta vista de dois
+ * lugares (`1/4`). Se um mudar, o outro muda junto.
+ */
+const INTRO_MIN_SCALE = 0.25;
+
+/** "03 / 04" — o contador do indicador de rolagem. */
+function formatCounter(section: number, total: number): string {
+  return `${String(section).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+}
+
 type StarField = THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
 type Nebula = THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
 type Mountain = THREE.Mesh<THREE.ShapeGeometry, THREE.MeshBasicMaterial>;
@@ -106,27 +208,64 @@ interface ThreeRefs {
   targetCameraX?: number;
   targetCameraY?: number;
   targetCameraZ?: number;
-  /** `position.z` original de cada cordilheira, para o retorno depois de 70%. */
+  /** `position.z` original de cada cordilheira, para o retorno depois do corte. */
   locations?: number[];
+  /** Relógio do quadro anterior — a suavização da câmera é por TEMPO, ver `animate`. */
+  lastFrameTime?: number;
 }
 
 export interface ComponentProps {
   /**
-   * Modo "dentro do slot do zoom" (pedido do Davi, 2026-08-29).
+   * A PISTA DA VITRINE EM ZOOM, logo acima desta seção (pedido do Davi, 2026-08-31:
+   * "que o que desse zoom não fosse uma imagem, e sim a própria cena 3D").
    *
-   * A cena nasce, desenha UM quadro e para: sem `requestAnimationFrame`, sem ouvir a
-   * rolagem, sem a entrada em GSAP e sem o conteúdo (título, menu, indicador, seções).
-   * É a cena TRAVADA que o quadrinho do zoom carrega enquanto abre — e é o que faz a
-   * seção de baixo parecer a mesma cena "começando" quando o zoom termina.
+   * Recebendo esta `ref`, a cena passa a ter um ATO ZERO: enquanto o zoom abre, este
+   * mesmo `<canvas>` é projetado dentro do quadro central da vitrine — reduzido a
+   * `INTRO_MIN_SCALE` e crescendo até 1 — e só então assume a tela. Não é uma segunda
+   * cena nem uma imagem: é este canvas, neste contexto WebGL, com a câmera parada no
+   * primeiro ato.
    *
-   * O quadrinho do zoom tem exatamente a proporção da janela (25vw × 25vh) e chega a
-   * 100% dela na escala 4, então o quadro congelado cresce até tela cheia sem
-   * distorcer e sem corte.
+   * **A cena não COMEÇA aí, ela ESPERA aí.** A viagem da câmera é medida na posição
+   * desta seção, que durante todo o zoom ainda está abaixo da janela: `progress`
+   * continua grampeado em 0, ou seja, o primeiro ato inteiro. O que se vê no quadrinho
+   * é o céu vivo (estrelas girando, o clarão pulsando) — porque um quadro congelado
+   * lá dentro seria indistinguível de uma foto, que é justamente o que saiu. A
+   * narrativa (câmera, títulos, indicador) só arranca quando o zoom acaba.
+   *
+   * Como é feito, e por que assim:
+   *  · **transformação, não remontagem.** O canvas continua exatamente onde está no
+   *    fluxo (`sticky`, dentro desta seção); o que muda é um `transform` escrito no
+   *    DOM pelo manipulador de rolagem. Reparentar um `<canvas>` — ou montar outro —
+   *    custaria o contexto WebGL, que é o recurso escasso da página.
+   *  · **o encaixe é exato por construção.** No fim da pista a transformação vira a
+   *    identidade e o `sticky` do CSS assume, no MESMO pixel. Não há troca de imagem,
+   *    logo não há emenda para aparecer.
+   *  · **cai sozinho.** Sem a `ref` — ou em movimento reduzido — o `transform` nunca
+   *    é escrito e a seção é a de sempre. Quem passa é `sections/HorizonHero`.
    */
-  frozen?: boolean;
+  introTrackRef?: RefObject<HTMLElement | null>;
+  /**
+   * O QUARTO ATO — o fecho da cena (pedido do Davi, 2026-08-31).
+   *
+   * Renderizado como o último filho do container, ou seja: com o `<canvas>` preso
+   * atrás dele e dentro da pista de rolagem da cena. É isso que faz o CTA acontecer
+   * DENTRO do cosmos em vez de numa seção colada embaixo dele — a diferença entre
+   * "a cena termina e aí tem um botão" e "a cena chega a algum lugar".
+   *
+   * Passar um `finale` muda três coisas na mecânica, e nada mais:
+   *  · a pista ganha uma tela (`totalSections` vai de 2 para 3), então cada ato
+   *    continua valendo exatamente uma tela de rolagem;
+   *  · a câmera ganha a quarta posição de `CAMERA_ACTS` — a chegada;
+   *  · o indicador "SCROLL" desaparece quando o último ato entra em quadro: no fim
+   *    da página a instrução certa não é rolar, é clicar (§3).
+   *
+   * O componente NÃO sabe o que tem dentro. A copy, o contraste e o motion do ato
+   * são de quem passa o nó — ver `sections/HorizonFinale`.
+   */
+  finale?: ReactNode;
 }
 
-export const Component = ({ frozen = false }: ComponentProps) => {
+export const Component = ({ introTrackRef, finale }: ComponentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -134,12 +273,25 @@ export const Component = ({ frozen = false }: ComponentProps) => {
   const scrollProgressRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Alvos que o manipulador de rolagem escreve DIRETO no DOM.
+   *
+   * Ver o ponto 12 do cabeçalho: estes três já foram estado do React, e por isso a
+   * rolagem re-renderizava o componente a cada evento. Nenhum deles é conteúdo — são
+   * um medidor, um contador e um atributo de visibilidade —, então o React monta o
+   * valor inicial (que é o que vai para o HTML pré-renderizado) e nunca mais toca
+   * neles: sem estado, não há render que sobrescreva o que o manipulador escreveu.
+   */
+  const progressFillRef = useRef<HTMLDivElement>(null);
+  const sectionCounterRef = useRef<HTMLDivElement>(null);
+  const scrollCueRef = useRef<HTMLDivElement>(null);
+
   const smoothCameraPos = useRef({ x: 0, y: 30, z: 100 });
 
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [currentSection, setCurrentSection] = useState(1);
   const [isReady, setIsReady] = useState(false);
-  const totalSections = 2;
+  const hasFinale = finale !== undefined;
+  /** Um ato por tela de pista. Ver `ComponentProps.finale`. */
+  const totalSections = hasFinale ? 3 : 2;
 
   const threeRefs = useRef<ThreeRefs>({
     scene: null,
@@ -234,13 +386,14 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       createAtmosphere();
       getLocation();
 
-      // Start animation
-      if (frozen) {
-        // UM quadro e para. Ver `ComponentProps.frozen`.
-        refs.composer?.render();
-      } else {
-        animate();
-      }
+      /**
+       * UM quadro, na montagem.
+       *
+       * É a garantia de que o canvas nunca aparece em branco antes de o laço começar:
+       * quem liga o laço é o IntersectionObserver lá embaixo, e o primeiro `callback`
+       * dele só chega no quadro seguinte.
+       */
+      refs.composer?.render();
 
       // Mark as ready after Three.js is initialized
       setIsReady(true);
@@ -511,6 +664,11 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       refs.animationId = requestAnimationFrame(animate);
 
       const time = Date.now() * 0.001;
+      // Quanto tempo passou desde o quadro anterior. `undefined` no primeiro quadro
+      // (e depois de toda pausa do laço — `startLoop` zera): aí vale um quadro de
+      // 60fps, que é o que o original assumia sempre.
+      const delta = refs.lastFrameTime === undefined ? 1 / 60 : time - refs.lastFrameTime;
+      refs.lastFrameTime = time;
 
       // Update stars
       refs.stars.forEach((starField) => {
@@ -530,7 +688,29 @@ export const Component = ({ frozen = false }: ComponentProps) => {
         targetCameraY !== undefined &&
         targetCameraZ !== undefined
       ) {
-        const smoothingFactor = 0.05; // Lower = smoother but slower
+        /**
+         * ⚠ A SUAVIZAÇÃO PASSOU A SER POR TEMPO, NÃO POR QUADRO (2026-08-31).
+         *
+         * O original interpolava 5% do que falta A CADA QUADRO. Isso amarra a
+         * velocidade da câmera à taxa de quadros: num monitor de 120Hz ela chega ao
+         * destino no DOBRO da velocidade de um de 60Hz, e num aparelho fraco (ou num
+         * quadro caro, como o clarão da atmosfera em tela cheia) ela fica para trás.
+         *
+         * Deixou de ser detalhe quando o CTA final virou o quarto ato. O caminho mais
+         * comum até ele não é rolar: é CLICAR — no CTA do herói ou em "Contato" no
+         * header —, e aí a página salta ~10 000px de uma vez. Medido em software
+         * rendering (Puppeteer/SwiftShader, o pior caso disponível): com a conta por
+         * quadro, a câmera ainda estava em trânsito CINCO SEGUNDOS depois do clique, e
+         * quem chegava no CTA encontrava a tela lavada de branco pelo clarão do ato
+         * anterior. O texto continuava legível (o véu garante isso), mas a chegada
+         * parecia um defeito.
+         *
+         * `1 - (1 - k)^(dt × 60)` é a mesma curva do original a 60fps, só que ancorada
+         * no relógio: a câmera assenta em ~1s de tempo REAL em qualquer taxa de
+         * quadros. `dt` é grampeado em 0,2s para que um quadro perdido (aba oculta,
+         * engasgo de GC) não vire um salto de câmera.
+         */
+        const smoothingFactor = 1 - Math.pow(1 - 0.05, Math.min(delta, 0.2) * 60);
 
         // Calculate smooth position with easing
         smoothCameraPos.current.x += (targetCameraX - smoothCameraPos.current.x) * smoothingFactor;
@@ -560,7 +740,96 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       }
     };
 
+    /**
+     * ─── O LAÇO SÓ RODA COM A SEÇÃO EM QUADRO (2026-08-31) ────────────────────────
+     *
+     * Conflito que estava declarado em PENDENCIAS.md: o `rAF` nascia na montagem e
+     * nunca parava. A cena desenha 15 000 estrelas, um plano de 8000×4000 e um passe
+     * de bloom em tela cheia — e fazia isso a 60fps enquanto a pessoa lia o herói, os
+     * Serviços e o Processo, disputando GPU com o OUTRO contexto WebGL da página (o
+     * do herói) e com todas as animações em GSAP. Ninguém via um pixel disso.
+     *
+     * A margem de 25% liga o laço um quarto de tela antes de a seção aparecer: quando
+     * o zoom da vitrine acima termina em tela cheia e a cena entra, ela já está
+     * desenhando há vários quadros. Não existe "primeiro quadro" visível.
+     *
+     * `startLoop` reencontra a câmera com o alvo antes de voltar a desenhar. Enquanto
+     * o laço está parado, o manipulador de rolagem continua atualizando o ALVO (é
+     * barato: três números), mas ninguém interpola em direção a ele — sem este passo,
+     * voltar à seção mostraria um voo de ~1s até a posição correta, que é justamente
+     * o que a suavização de 0.05 do laço existe para esconder.
+     */
+    const stopLoop = (): void => {
+      const { current: refs } = threeRefs;
+      if (refs.animationId === null) return;
+      cancelAnimationFrame(refs.animationId);
+      refs.animationId = null;
+    };
+
+    const startLoop = (): void => {
+      const { current: refs } = threeRefs;
+      if (refs.animationId !== null) return;
+
+      // O relógio recomeça: sem isto, o primeiro quadro depois da pausa veria um
+      // `delta` do tamanho da pausa inteira (ver `animate`).
+      refs.lastFrameTime = undefined;
+
+      const { targetCameraX, targetCameraY, targetCameraZ } = refs;
+      if (
+        targetCameraX !== undefined &&
+        targetCameraY !== undefined &&
+        targetCameraZ !== undefined
+      ) {
+        smoothCameraPos.current.x = targetCameraX;
+        smoothCameraPos.current.y = targetCameraY;
+        smoothCameraPos.current.z = targetCameraZ;
+      }
+
+      animate();
+    };
+
     initThree();
+
+    let observer: IntersectionObserver | null = null;
+
+    // Navegador sem IntersectionObserver: o laço volta a ser o do original (sempre
+    // ligado). Degradar o consumo é aceitável; degradar a cena, não.
+    if (typeof IntersectionObserver === 'undefined') {
+      startLoop();
+    } else {
+      /**
+       * DOIS ALVOS desde 2026-08-31: esta seção **e a pista da vitrine em zoom**.
+       *
+       * Durante o zoom a seção ainda está duas telas abaixo — mas o canvas dela já
+       * está em quadro, dentro do quadrinho que abre (ver `ComponentProps.introTrackRef`).
+       * Observando só a seção, o laço acordaria no meio do zoom e a câmera daria um
+       * salto para o alvo bem na frente de quem está olhando.
+       *
+       * Com dois alvos, "está em quadro" vira a UNIÃO dos dois, e por isso a conta é
+       * um conjunto e não um `if` por entrada: as entradas chegam uma por elemento, e
+       * um `else stopLoop()` na entrada do outro alvo desligaria o laço com a cena
+       * ainda visível.
+       */
+      const onscreen = new Set<Element>();
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) onscreen.add(entry.target);
+            else onscreen.delete(entry.target);
+          }
+
+          if (onscreen.size > 0) startLoop();
+          else stopLoop();
+        },
+        { rootMargin: '25% 0px' },
+      );
+
+      if (containerRef.current !== null) observer.observe(containerRef.current);
+
+      const introTrack = introTrackRef?.current;
+      if (introTrack != null) observer.observe(introTrack);
+    }
 
     // Handle resize
     /**
@@ -585,11 +854,6 @@ export const Component = ({ frozen = false }: ComponentProps) => {
         refs.camera.updateProjectionMatrix();
         refs.renderer.setSize(window.innerWidth, window.innerHeight, false);
         refs.composer.setSize(window.innerWidth, window.innerHeight);
-        // Redimensionar invalida o buffer. Sem `rAF` para redesenhar, o quadro
-        // congelado sumiria — então ele é refeito aqui.
-        if (frozen) {
-          refs.composer.render();
-        }
       }
     };
 
@@ -599,9 +863,8 @@ export const Component = ({ frozen = false }: ComponentProps) => {
     return () => {
       const { current: refs } = threeRefs;
 
-      if (refs.animationId) {
-        cancelAnimationFrame(refs.animationId);
-      }
+      observer?.disconnect();
+      stopLoop();
 
       window.removeEventListener('resize', handleResize);
 
@@ -657,13 +920,13 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       refs.scene = null;
       refs.camera = null;
       refs.locations = undefined;
+      refs.lastFrameTime = undefined;
     };
-  }, [frozen]);
+  }, [introTrackRef]);
 
   // GSAP Animations - Run after component is ready
   useEffect(() => {
-    // No modo congelado não existe nenhum destes elementos para animar.
-    if (!isReady || frozen) return;
+    if (!isReady) return;
 
     // Set initial states to prevent flash
     gsap.set([menuRef.current, titleRef.current, subtitleRef.current, scrollProgressRef.current], {
@@ -675,7 +938,30 @@ export const Component = ({ frozen = false }: ComponentProps) => {
     const matchMedia = gsap.matchMedia();
 
     matchMedia.add('(prefers-reduced-motion: no-preference)', () => {
-      const tl = gsap.timeline();
+      /**
+       * ⚠ A ENTRADA ESPERA A CENA CHEGAR (2026-08-31). Ver o ponto 16 do cabeçalho.
+       *
+       * Sem o gatilho, a timeline rodava na montagem — no carregamento da página, com
+       * a pessoa ainda no herói, dois blocos acima. Quem descia até aqui encontrava o
+       * título já pousado: a cena "começava" antes de ser vista, e depois do zoom não
+       * acontecia nada. `top top` é o instante exato em que o quadrinho da vitrine
+       * acaba de tomar a tela e este container encosta no topo.
+       *
+       * `once: true` porque é uma ENTRADA, não um estado: subir e descer de novo não
+       * remonta a cena, então não há nada para reapresentar. Os `from` continuam
+       * pintando o estado inicial na hora (`immediateRender`), então nada pisca antes
+       * do gatilho — o `visibility: visible` acima só tira a proteção do SSR.
+       *
+       * O ScrollTrigger nasce dentro do `matchMedia`, que é um `gsap.context`: ele é
+       * morto junto com os tweens no `revert` (e no `kill` abaixo, explícito).
+       */
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top top',
+          once: true,
+        },
+      });
 
       // Animate menu
       if (menuRef.current) {
@@ -734,6 +1020,7 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       }
 
       return () => {
+        tl.scrollTrigger?.kill();
         tl.kill();
       };
     });
@@ -741,10 +1028,121 @@ export const Component = ({ frozen = false }: ComponentProps) => {
     return () => {
       matchMedia.revert();
     };
-  }, [isReady, frozen]);
+  }, [isReady]);
 
   // Scroll handling
   useEffect(() => {
+    /**
+     * Meio ato antes do fim da pista — ou seja, com o último ato já ocupando metade
+     * da tela. Sem `finale` não existe ato para o qual ceder lugar, e o valor sai do
+     * alcance de `progress` (que é grampeado em 1): o indicador nunca some.
+     */
+    const cueFadeAt = hasFinale ? 1 - 0.5 / totalSections : Number.POSITIVE_INFINITY;
+
+    /**
+     * Movimento reduzido não tem ato zero (§6.6): a vitrine acima nem escala as caixas
+     * nesse modo — a pista dela encolhe para uma tela e a colagem fica parada —, então
+     * um canvas "abrindo" dentro de um quadrinho que não abre seria movimento inventado
+     * exatamente para quem pediu que não houvesse. A cena continua sendo a seção de
+     * sempre, e o quadro central continua sendo o painel preto.
+     */
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    /**
+     * As duas alturas do ato zero, MEDIDAS FORA DO EVENTO DE ROLAGEM.
+     *
+     * As duas são declaradas em unidades de viewport (`300vh` a pista, `100svh` o
+     * canvas), ou seja: não mudam com a rolagem, e no celular nem com a barra de
+     * endereço. Lê-las a cada quadro só serviria para forçar layout logo depois de
+     * escrever `transform` no canvas — o pior par possível dentro de um manipulador de
+     * rolagem (§6.4). São remedidas no `resize`, junto com o resto.
+     */
+    let trackHeight = 0;
+    let canvasHeight = 0;
+
+    // O nó, capturado uma vez. Ele é sempre renderizado por este componente, então a
+    // identidade não muda enquanto o efeito vive — e o cleanup precisa dele: ler
+    // `canvasRef.current` lá é ler uma ref que o React já pode ter zerado.
+    const canvas = canvasRef.current;
+
+    const measure = (): void => {
+      trackHeight = introTrackRef?.current?.offsetHeight ?? 0;
+      canvasHeight = canvas?.offsetHeight ?? 0;
+    };
+
+    /**
+     * ─── ATO ZERO: A CENA DENTRO DO QUADRO QUE DÁ ZOOM ───────────────────────────
+     *
+     * `top` é o topo desta seção em coordenadas da janela. Como a pista da vitrine
+     * termina exatamente onde a seção começa, ele é o cronômetro do zoom inteiro:
+     * vale `trackHeight` quando a pista encosta no topo da janela — E é também o
+     * instante em que o painel preso da vitrine gruda no topo (`paneTop` vira 0) — e
+     * vale `canvasHeight` quando o zoom termina (a caixa já preenche a tela inteira);
+     * daí até 0 é só o painel deslizando para fora enquanto esta seção chega por
+     * baixo dele, com a cena já parada em tela cheia.
+     *
+     * A transformação tem duas partes:
+     *  · **escala** — de `INTRO_MIN_SCALE` a 1 conforme `top` anda de `trackHeight` a
+     *    `canvasHeight` (ver o comentário de `opened`, no cálculo do denominador), em
+     *    torno do centro do canvas, que é o centro da janela: o mesmo gesto do
+     *    quadrinho, que é a janela a 25%.
+     *  · **deslocamento** — o canvas ainda está lá embaixo, no fluxo desta seção;
+     *    `-top` o traz para o topo da janela (é o que o `position: fixed` faria, sem
+     *    tirar nada do fluxo). Antes de a vitrine grudar no topo, o quadro central
+     *    ainda está subindo com ela, e aí o canvas segue o painel (`paneTop`) em vez
+     *    da janela — senão a cena apareceria deslocada do próprio quadro.
+     *
+     * No fim da pista `top` é 0 e a escala é 1: a matriz vira a identidade e o
+     * `sticky` do CSS assume no mesmo pixel. Não existe troca de elemento, então não
+     * existe emenda para aparecer.
+     */
+    const updateIntro = (top: number): void => {
+      if (canvas === null) return;
+
+      const outsideIntro =
+        trackHeight <= 0 ||
+        canvasHeight <= 0 ||
+        calm.matches ||
+        // A cena já chegou: daqui em diante quem posiciona o canvas é o CSS.
+        top <= 0 ||
+        // A vitrine ainda está abaixo da janela — não há quadrinho em quadro.
+        top - trackHeight >= canvasHeight;
+
+      if (outsideIntro) {
+        if (canvas.style.transform !== '') canvas.style.transform = '';
+        return;
+      }
+
+      // O topo do painel preso da vitrine: ele mesmo, enquanto sobe; o topo da janela
+      // depois que gruda.
+      const paneTop = Math.max(top - trackHeight, 0);
+      /**
+       * ⚠ O DENOMINADOR É `trackHeight - canvasHeight`, NÃO `trackHeight` (defeito
+       * relatado pelo Davi: o quadro sobrava — a cena ficava visivelmente menor que a
+       * moldura no meio do zoom).
+       *
+       * A vitrine mede o PRÓPRIO zoom com `useScroll({ offset: ['start start', 'end
+       * end'] })` — o framer-motion considera a pista "percorrida" quando o TOPO dela
+       * alcança o topo da janela E, simetricamente, quando o FUNDO dela alcança o
+       * fundo da janela. Como o painel preso mede uma tela inteira, essa segunda
+       * marca chega depois de só `trackHeight − canvasHeight` de rolagem (200vh, não
+       * 300vh) — a própria altura do painel não conta como percurso, porque ele já
+       * está preso ali. Dividir por `trackHeight` fazia esta escala andar mais devagar
+       * que a caixa de verdade: no meio do gesto a cena projetada estava atrasada,
+       * sobrava moldura preta em volta dela — exatamente o relatado.
+       *
+       * Fora do intervalo em que o painel está preso (`canvasHeight >= trackHeight`,
+       * geometria que não deveria ocorrer aqui — a pista tem 300vh, o painel 100svh —
+       * mas guardada porque dividir por zero ou por negativo inverteria a escala), o
+       * ato zero não é possível: cai fora por `outsideIntro` antes de chegar aqui.
+       */
+      const denom = trackHeight - canvasHeight;
+      const opened = denom > 0 ? Math.min(Math.max((trackHeight - top) / denom, 0), 1) : 1;
+      const scale = INTRO_MIN_SCALE + (1 - INTRO_MIN_SCALE) * opened;
+
+      canvas.style.transform = `translateY(${String(paneTop - top)}px) scale(${String(scale)})`;
+    };
+
     const handleScroll = () => {
       /**
        * ⚠ AQUI ESTAVA O DEFEITO (corrigido em 2026-08-29).
@@ -767,12 +1165,41 @@ export const Component = ({ frozen = false }: ComponentProps) => {
 
       const windowHeight = window.innerHeight;
       const maxScroll = Math.max(container.offsetHeight - windowHeight, 1);
-      const scrollY = Math.min(Math.max(-container.getBoundingClientRect().top, 0), maxScroll);
+      const containerTop = container.getBoundingClientRect().top;
+      const scrollY = Math.min(Math.max(-containerTop, 0), maxScroll);
       const progress = Math.min(scrollY / maxScroll, 1);
 
-      setScrollProgress(progress);
+      // O ato zero (o canvas dentro do quadrinho da vitrine) reaproveita o MESMO
+      // `containerTop` já lido acima: as leituras de layout do manipulador ficam todas
+      // no topo, e daqui para baixo ele só escreve — nunca uma leitura depois de uma
+      // escrita, que é reflow forçado a cada quadro de rolagem (§6.4).
+      updateIntro(containerTop);
+
       const newSection = Math.floor(progress * totalSections);
-      setCurrentSection(newSection);
+
+      /**
+       * O CROMO DO INDICADOR, ESCRITO NO DOM (ver o ponto 12 do cabeçalho).
+       *
+       * `scaleX` e não `width`: largura é layout e custaria reflow a cada quadro de
+       * rolagem (§6.4). A origem à esquerda está no CSS, não aqui — o GSAP nunca toca
+       * neste nó, então a transformação é só esta linha.
+       */
+      const fill = progressFillRef.current;
+      if (fill !== null) fill.style.transform = `scaleX(${String(progress)})`;
+
+      const counter = sectionCounterRef.current;
+      if (counter !== null) counter.textContent = formatCounter(newSection, totalSections);
+
+      /**
+       * O indicador cede lugar quando o último ato entra em quadro.
+       *
+       * `cueFadeAt` é meio ato antes do fim: nesse ponto o finale já ocupa metade da
+       * tela e "SCROLL" passa a ser uma instrução errada — abaixo dele não há mais
+       * pista, há o CTA. Deixar os dois competindo pelo mesmo canto é exatamente o
+       * "espetáculo enterrando o CTA" que o §3 proíbe.
+       */
+      const cue = scrollCueRef.current;
+      if (cue !== null) cue.dataset.done = progress > cueFadeAt ? 'true' : 'false';
 
       const { current: refs } = threeRefs;
       const { nebula, locations } = refs;
@@ -782,16 +1209,9 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       const totalProgress = progress * totalSections;
       const sectionProgress = totalProgress % 1;
 
-      // Define camera positions for each section
-      const cameraPositions = [
-        { x: 0, y: 30, z: 300 }, // Ato 0 - HORIZONTE (a montanha ao longe)
-        { x: 0, y: 40, z: -50 }, // Ato 1 - TRAVESSIA (atravessando as cordilheiras)
-        { x: 0, y: 50, z: -700 }, // Ato 2 - ALTITUDE (acima de tudo, a tela vira)
-      ];
-
-      // Get current and next positions
-      const currentPos = cameraPositions[newSection] || cameraPositions[0];
-      const nextPos = cameraPositions[newSection + 1] || currentPos;
+      // Get current and next positions — a decupagem está em `CAMERA_ACTS`, no topo.
+      const currentPos = CAMERA_ACTS[newSection] || CAMERA_ACTS[0];
+      const nextPos = CAMERA_ACTS[newSection + 1] || currentPos;
 
       // Set target positions (actual smoothing happens in animate loop)
       refs.targetCameraX = currentPos.x + (nextPos.x - currentPos.x) * sectionProgress;
@@ -805,28 +1225,43 @@ export const Component = ({ frozen = false }: ComponentProps) => {
         nebula.position.z = targetZ + progress * speed * 0.01 - 100;
 
         // Use the same smoothing approach
+        // O corte é medido em ATOS, não na fração da pista — ver `CLEAR_AT_ACT`.
         mountain.userData.targetZ = targetZ;
-        if (progress > 0.7) {
+        if (totalProgress > CLEAR_AT_ACT) {
           mountain.position.z = 600000;
-        }
-        if (progress < 0.7) {
+        } else {
           mountain.position.z = locations[i];
         }
       });
       nebula.position.z = refs.mountains[3].position.z;
     };
 
-    // TRAVADA: no modo congelado a cena não ouve a rolagem — é o quadro parado que o
-    // quadrinho do zoom carrega enquanto abre.
-    if (frozen) return;
+    /**
+     * `resize` mede de novo e reposiciona na mesma passada. As duas alturas do ato
+     * zero são as únicas coisas que uma mudança de janela invalida aqui — e sem
+     * remedir, o canvas ficaria projetado com a geometria da janela anterior (visível
+     * ao girar o telefone no meio do zoom).
+     */
+    const handleViewportChange = (): void => {
+      measure();
+      handleScroll();
+    };
+
+    measure();
 
     window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleViewportChange);
     handleScroll(); // Set initial position
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleViewportChange);
+      // A cena sai daqui posicionada pelo CSS, e não pela transformação do ato zero:
+      // sem isto, uma remontagem (hot reload, troca de props) herdaria o canvas
+      // congelado a 25% no meio da tela.
+      if (canvas !== null) canvas.style.transform = '';
     };
-  }, [totalSections, frozen]);
+  }, [totalSections, hasFinale, introTrackRef]);
 
   const splitTitle = (text: string) => {
     return text.split('').map((char, i) => (
@@ -836,19 +1271,13 @@ export const Component = ({ frozen = false }: ComponentProps) => {
     ));
   };
 
-  // Dentro do slot do zoom só a CENA existe: o título, o menu, o indicador e as duas
-  // seções de rolagem são conteúdo de leitura, e num quadrinho de 25vw eles seriam
-  // ilegíveis — além de repetirem, letra por letra, o que a seção de baixo diz.
-  if (frozen) {
-    return (
-      <div ref={containerRef} className="hero-container cosmos-style hero-container--frozen">
-        <canvas ref={canvasRef} className="hero-canvas" />
-      </div>
-    );
-  }
-
   return (
     <div ref={containerRef} className="hero-container cosmos-style">
+      {/* ⚠ O `transform` deste canvas é ESCRITO PELO MANIPULADOR DE ROLAGEM enquanto o
+          zoom da vitrine abre (ver `ComponentProps.introTrackRef`). Não ponha
+          `transform` de CSS em `.hero-canvas`: a matriz inteira é reescrita a cada
+          quadro e ele seria apagado — o mesmo tombo que o cabeçalho de
+          `styles/horizon-hero.css` registra para o GSAP. */}
       <canvas ref={canvasRef} className="hero-canvas" />
 
       {/* Side menu */}
@@ -872,14 +1301,26 @@ export const Component = ({ frozen = false }: ComponentProps) => {
         </div>
       </div>
 
-      {/* Scroll progress indicator */}
-      <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
-        <div className="scroll-text">SCROLL</div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${String(scrollProgress * 100)}%` }} />
-        </div>
-        <div className="section-counter">
-          {String(currentSection).padStart(2, '0')} / {String(totalSections).padStart(2, '0')}
+      {/* Scroll progress indicator.
+          ⚠ DOIS NÓS, e não um (2026-08-31). O de FORA é o que gruda no rodapé da
+          janela e o que some no último ato (`data-done`, escrito pelo manipulador de
+          rolagem). O de DENTRO é o que o GSAP anima na entrada — e um `gsap.from`
+          deixa `opacity` inline no elemento, que venceria qualquer classe tentando
+          apagá-lo. Separando os dois, cada um mexe no seu, e o fade do fim não briga
+          com a entrada. */}
+      <div ref={scrollCueRef} className="scroll-progress">
+        <div
+          ref={scrollProgressRef}
+          className="scroll-progress__row"
+          style={{ visibility: 'hidden' }}
+        >
+          <div className="scroll-text">SCROLL</div>
+          <div className="progress-track">
+            <div ref={progressFillRef} className="progress-fill" />
+          </div>
+          <div ref={sectionCounterRef} className="section-counter">
+            {formatCounter(0, totalSections)}
+          </div>
         </div>
       </div>
 
@@ -927,6 +1368,10 @@ export const Component = ({ frozen = false }: ComponentProps) => {
           );
         })}
       </div>
+
+      {/* O QUARTO ATO. Último filho do container de propósito: é o que mantém o
+          `<canvas>` preso atrás dele até o fim da cena. Ver `ComponentProps.finale`. */}
+      {finale}
     </div>
   );
 };

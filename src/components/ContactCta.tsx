@@ -22,11 +22,11 @@ export interface ContactCtaProps {
 /**
  * O CTA de conversão da página — o único lugar que sabe para onde ele vai.
  *
- * Herói e header renderizam ESTE componente, não um `Button` cada um. A diferença
- * importa no dia em que o número de WhatsApp chegar: uma troca em `lib/contact.ts` e
- * todos os CTAs mudam de destino, de evento de analytics, de `target` e de ícone ao
- * mesmo tempo. Espalhar `href` por seção é como um CTA fica para trás numa migração
- * — e um CTA para trás é um lead perdido (§3).
+ * Herói, header e o quarto ato da cena renderizam ESTE componente, não um `Button`
+ * cada um. A aposta se pagou em 2026-08-31, quando o número de WhatsApp chegou: UMA
+ * troca em `lib/contact.ts` mudou destino, evento de analytics, `target` e ícone dos
+ * três de uma vez, sem tocar em nenhuma seção. Espalhar `href` por seção é como um
+ * CTA fica para trás numa migração — e um CTA para trás é um lead perdido (§3).
  *
  * O ícone é derivado do destino, não escolhido à mão: seta para baixo quando o
  * clique rola a própria página, seta para fora quando ele sai do site.

@@ -2,6 +2,23 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 export interface SceneBoundaryProps {
   readonly children: ReactNode;
+  /**
+   * O que sobra quando a cena cai — por padrão, nada.
+   *
+   * ─── POR QUE ISTO PRECISOU EXISTIR (2026-08-31) ───────────────────────────────
+   * Enquanto a fronteira só embrulhava cenário, `null` era a resposta certa: some o
+   * efeito, fica a página. Deixou de ser quando o CTA FINAL passou a morar dentro da
+   * cena Horizon (o quarto ato — ver `sections/HorizonFinale`). A partir dali,
+   * devolver `null` numa falha de WebGL apagaria junto o último CTA da página E a
+   * âncora `#contato`, que é o destino do CTA do herói e do item "Contato" do header
+   * — os dois viram link para lugar nenhum. Um driver velho passaria a custar o lead
+   * (§3), que é precisamente o que esta classe existe para impedir.
+   *
+   * Então quem embrulha conteúdo de conversão passa o mesmo conteúdo aqui, na versão
+   * que não depende da cena. Continua valendo a regra: degrada o EFEITO, nunca o
+   * conteúdo.
+   */
+  readonly fallback?: ReactNode;
 }
 
 interface SceneBoundaryState {
@@ -39,6 +56,6 @@ export class SceneBoundary extends Component<SceneBoundaryProps, SceneBoundarySt
   }
 
   override render(): ReactNode {
-    return this.state.failed ? null : this.props.children;
+    return this.state.failed ? (this.props.fallback ?? null) : this.props.children;
   }
 }

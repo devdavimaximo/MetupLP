@@ -12,10 +12,24 @@
  * TODO(F7): consentimento/LGPD antes de qualquer provider que use cookie.
  */
 
+/**
+ * ─── O FUNIL DO FORMULÁRIO SÃO QUATRO EVENTOS, NÃO TRÊS (2026-08-31) ────────────
+ * `lead_form_attempt` entrou junto com o formulário de F6, e não é redundante com o
+ * `submit`: `attempt` é o CLIQUE no botão, `submit` é o lead que chegou de verdade.
+ * A distância entre os dois é a medida do atrito — quantas pessoas clicam e são
+ * barradas pela validação. Sem ele, um formulário com um campo mal explicado
+ * afundaria a conversão sem deixar rastro nenhum no funil.
+ *
+ *   lead_form_start   → tocou em algum campo
+ *   lead_form_attempt → clicou em enviar
+ *   lead_form_submit  → o lead chegou ao destino   ← a conversão
+ *   lead_form_error   → o envio falhou
+ */
 export type ConversionEventName =
   | 'cta_click'
   | 'whatsapp_click'
   | 'lead_form_start'
+  | 'lead_form_attempt'
   | 'lead_form_submit'
   | 'lead_form_error'
   | 'section_view';

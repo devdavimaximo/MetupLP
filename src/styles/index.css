@@ -20,6 +20,8 @@
 @import './showcase.css';
 @import './process.css';
 @import './horizon-hero.css';
+@import './horizon-finale.css';
+@import './lead-form.css';
 
 /**
  * O styleguide é ferramenta de dev e nunca entra no build (é uma entrada HTML

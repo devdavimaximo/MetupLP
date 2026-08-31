@@ -57,6 +57,25 @@
  * Altura total do container, nas duas versões: 100svh (canvas) + 0 (o herói anula a
  * própria altura com a margem) + 200svh (os dois atos) = três telas.
  */
+/**
+ * ⚠ O `transform` DESTE ELEMENTO É DO JAVASCRIPT (2026-08-31).
+ *
+ * Enquanto a vitrine em zoom abre, o manipulador de rolagem do componente escreve aqui
+ * um `translateY(...) scale(...)` que projeta este mesmo canvas dentro do quadro
+ * central da vitrine — é o "ato zero" descrito em `ComponentProps.introTrackRef`. Duas
+ * consequências que valem para sempre:
+ *
+ *  · **nenhum `transform` de CSS nesta regra.** A matriz é reescrita inteira a cada
+ *    quadro; qualquer valor declarado aqui seria apagado no primeiro deles (mesmo
+ *    tombo do GSAP, registrado no cabeçalho desta folha).
+ *  · **a origem é o CENTRO**, e a conta do encaixe depende disso: o quadro central da
+ *    vitrine é a janela reduzida a 25% em torno do próprio centro. Está explícita
+ *    (é o valor default) porque é contrato, não default aproveitado.
+ *
+ * O `z-index: 0` também virou parte do encaixe: o canvas é positivo e vem DEPOIS da
+ * vitrine no documento, então ele pinta por cima da colagem — que é o que faz o
+ * quadrinho preto virar cena — e continua abaixo do header (`--z-index-header`).
+ */
 .hero-canvas {
   position: sticky;
   top: 0;
@@ -64,6 +83,7 @@
   display: block;
   width: 100%;
   height: 100svh;
+  transform-origin: 50% 50%;
 }
 
 /* Sobe o conteúdo por cima do canvas: o primeiro ato começa no topo do container, e
@@ -73,22 +93,12 @@
   margin-top: -100svh;
 }
 
-/**
- * MODO CONGELADO — a cena dentro do quadrinho que dá zoom (`frozen`).
- *
- * Aqui ela não é uma seção da página: é o conteúdo de uma caixa que a vitrine escala
- * de 1 a 4. Então nada de `sticky` nem de margem negativa — a cena preenche a caixa e
- * cresce com ela. Como o quadrinho tem a proporção da janela (25vw × 25vh) e chega a
- * 100% dela na escala 4, o quadro congelado abre em tela cheia sem distorcer.
+/*
+ * ⚠ O bloco `.hero-container--frozen` SAIU em 2026-08-31. Ele estilizava uma SEGUNDA
+ * instância da cena, congelada, montada dentro do quadrinho da vitrine. Não existe
+ * mais segunda instância: o quadrinho recebe este canvas, por transformação — ver a
+ * regra `.hero-canvas` acima.
  */
-.hero-container--frozen,
-.hero-container--frozen .hero-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-}
 
 /* ─── Menu lateral ──────────────────────────────────────────────────────────── */
 
@@ -173,15 +183,41 @@
 
 /* ─── Indicador de rolagem ──────────────────────────────────────────────────── */
 
+/**
+ * ⚠ DOIS NÓS desde 2026-08-31 — o de fora gruda e some, o de dentro é animado pelo
+ * GSAP na entrada. O porquê está no comentário do markup, em
+ * `components/ui/horizon-hero-section.tsx`.
+ *
+ * `opacity` (e não `display`/`visibility`) porque é a única propriedade que o
+ * compositor resolve sem repaint — o fade acontece durante a rolagem, que é o pior
+ * momento possível para gastar quadro. `pointer-events: none` no estado apagado
+ * impede que um indicador invisível continue interceptando clique por cima do CTA.
+ */
 .scroll-progress {
   position: sticky;
   bottom: var(--spacing-gutter);
   z-index: 2;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 1rem;
   padding: 0 var(--spacing-gutter);
+  transition: opacity var(--transition-duration-base) var(--ease-out);
+}
+
+.scroll-progress[data-done='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-progress__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress {
+    transition: none;
+  }
 }
 
 .scroll-text,
@@ -198,9 +234,20 @@
   background-color: var(--color-line);
 }
 
+/**
+ * ⚠ `scaleX`, NÃO `width` (2026-08-31). O componente escrevia `style={{ width }}` a
+ * cada evento de rolagem: largura é layout, e layout a cada quadro é exatamente o que
+ * o §6.4 proíbe. A escala fica no compositor e não custa reflow nenhum.
+ *
+ * A ORIGEM mora aqui, e é obrigatória: sem ela o filete cresceria a partir do centro,
+ * para os dois lados. Mesma regra do `drawLine` em `animations/presets.ts`.
+ */
 .progress-fill {
+  width: 100%;
   height: 100%;
   background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
 }
 
 .scroll-sections {

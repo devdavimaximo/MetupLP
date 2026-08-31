@@ -20,13 +20,24 @@
  *     continuam sendo criadas, só deixam de ser usadas: a ordem dos hooks não muda.
  *  3. `loading="lazy"`/`decoding="async"` nas imagens: a seção fica bem abaixo da
  *     primeira dobra e são sete masters (§6.2). Não muda um pixel do resultado.
+ *  4. `trackRef` (2026-08-31) — a pista de 300vh passou a ser legível de fora, para a
+ *     cena Horizon poder se projetar dentro do quadro central enquanto ele abre. Ver
+ *     `ZoomParallaxProps.trackRef`. Nada no desenho mudou.
+ *
+ * ─── A GEOMETRIA DO QUADRO CENTRAL É UM CONTRATO ────────────────────────────────
+ * O slot 0 é o ÚNICO sem classe de deslocamento: ele fica centrado, mede 25vw × 25vh
+ * e escala de 1 a 4. Ou seja — e é isto que a cena Horizon usa — **ele é a janela
+ * inteira reduzida a 25% em torno do próprio centro**, e chega a 100% dela no fim da
+ * pista. Mexer no `scale4` do índice 0, nas medidas do quadrinho ou na centralização
+ * quebra o encaixe da cena; o outro lado da conta está em `INTRO_MIN_SCALE`, em
+ * `components/ui/horizon-hero-section.tsx`.
  *
  * ⚠ CONFLITO DECLARADO com o §6.4 do CLAUDE.md, que manda animar com GSAP: este
  * componente é framer-motion, como o `hero-parallax`. Foi pedido explícito do Davi
  * ("implemente, depois ajustamos"). Ver PENDENCIAS.md.
  */
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 
 interface Image {
   src: string;
@@ -35,9 +46,9 @@ interface Image {
    * Conteúdo no lugar da foto (pedido do Davi, 2026-08-29).
    *
    * Quando existe, o slot deixa de desenhar o `<img>` e passa a montar este nó, na
-   * mesma caixa e com a mesma escala. É o que põe a cena 3D TRAVADA dentro do
-   * quadrinho que dá zoom, para que a seção de baixo pareça a mesma cena começando
-   * quando o zoom termina.
+   * mesma caixa e com a mesma escala. Hoje quem usa isso é o slot central, que é o
+   * FUNDO preto sobre o qual a cena Horizon é projetada enquanto o zoom abre — ver a
+   * nota do slot em `sections/ZoomShowcase`.
    */
   content?: ReactNode;
 }
@@ -45,10 +56,27 @@ interface Image {
 interface ZoomParallaxProps {
   /** Array of images to be displayed in the parallax effect max 7 images */
   images: Image[];
+  /**
+   * A PISTA, entregue para fora (2026-08-31, pedido do Davi: dar zoom na cena 3D em
+   * vez de numa imagem).
+   *
+   * Quem recebe é a cena Horizon da seção seguinte: ela precisa saber quanto do zoom
+   * já passou para pôr o próprio `<canvas>` exatamente dentro do quadro central
+   * enquanto ele abre. O elemento é esta pista de 300vh — a mesma que o `useScroll`
+   * abaixo mede —, então os dois leem a MESMA geometria e não existe conta duplicada
+   * que possa divergir. Ver `ComponentProps.introTrackRef` em
+   * `components/ui/horizon-hero-section.tsx`.
+   *
+   * Sem ele o componente continua inteiro: é a `ref` local que entra no lugar.
+   */
+  trackRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function ZoomParallax({ images }: ZoomParallaxProps) {
-  const container = useRef(null);
+export function ZoomParallax({ images, trackRef }: ZoomParallaxProps) {
+  const localRef = useRef<HTMLDivElement>(null);
+  // Uma `ref` OU a outra, nunca as duas presas no mesmo nó: `useScroll` exige um
+  // `RefObject`, e escolher aqui evita ter que fundir duas refs num callback.
+  const container = trackRef ?? localRef;
   const reduce = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({
     target: container,

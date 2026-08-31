@@ -1,7 +1,20 @@
+import type { RefObject } from 'react';
+import { Heading } from '../components';
 import { ZoomParallax } from '../components/ui/zoom-parallax';
 import { cn } from '../lib/cn';
 
 const HEADING_ID = 'zoom-parallax-titulo';
+
+export interface ZoomShowcaseProps {
+  /**
+   * Onde a pista de 300vh se anuncia para a cena Horizon (ver `App`).
+   *
+   * A vitrine não sabe nada sobre a cena — ela só empresta a própria geometria. Quem
+   * usa é a seção seguinte, para projetar o canvas dela dentro do quadro central
+   * enquanto o zoom abre.
+   */
+  readonly trackRef?: RefObject<HTMLDivElement | null>;
+}
 
 /**
  * Os ladrilhos que giram em volta do quadro central — arte do Davi (2026-08-29),
@@ -44,9 +57,10 @@ const ALT: Record<number, string> = {
  * ⚠ AS FOTOS DO UNSPLASH SAÍRAM EM 2026-08-29: os seis ladrilhos agora são arte do
  * Davi (ver `TILE` abaixo).
  *
- * ⚠ ATUALIZADO EM 2026-08-29: o slot que DÁ ZOOM não é foto — é um painel PRETO. O
- * zoom abre até tomar a tela e entrega escuridão; a cena da seção seguinte
- * (`sections/HorizonHero`) nasce dali. Ver a nota no próprio slot.
+ * ⚠ ATUALIZADO EM 2026-08-31: o slot que DÁ ZOOM é A CENA HORIZON, ao vivo. Não é
+ * foto (2026-08-29 tirou), não é mais um painel preto (era, até aqui) e não é uma
+ * segunda cópia da cena: é o `<canvas>` da seção seguinte, projetado dentro do
+ * quadrinho e crescendo com ele. Ver a nota no próprio slot e `ComponentProps.introTrackRef`.
  *
  * ─── O QUE MUDOU EM RELAÇÃO AO DEMO, E POR QUÊ ──────────────────────────────────
  *  1. O `<main>` do demo virou `<section>`: a página já tem um `<main>` (em `App`), e
@@ -61,27 +75,32 @@ const ALT: Record<number, string> = {
  *  5. `text-4xl` → `text-display-sm`, pelo mesmo motivo: a escala default do Tailwind
  *     foi zerada, aquela classe não compilaria.
  */
-export function ZoomShowcase() {
+export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
   const images = [
     {
       /**
-       * O SLOT QUE DÁ ZOOM — PRETO (pedido do Davi, 2026-08-29).
+       * O SLOT QUE DÁ ZOOM — É A CENA (pedido do Davi, 2026-08-31: "que o que desse
+       * zoom não fosse uma imagem, e sim a própria cena 3D").
        *
-       * Ele já foi foto do Unsplash e depois a cena Horizon travada. Virou um painel
-       * preto porque é o que o gesto pede: o quadro abre até tomar a tela e entrega
-       * escuridão total, e é dela que a cena da seção seguinte nasce. O quadro
-       * congelado da cena, além de não somar nada nesse instante, chegava lavado de
-       * luz no tamanho pequeno.
+       * O que este `content` desenha é só o FUNDO: um retângulo preto do tamanho do
+       * quadrinho. A cena é projetada em cima dele pela seção seguinte — o `<canvas>`
+       * dela é transformado até coincidir com esta caixa e cresce junto com ela (ver
+       * `ComponentProps.introTrackRef` em `components/ui/horizon-hero-section.tsx`).
        *
-       * De quebra some um contexto WebGL da página (eram três: herói, cena travada e
-       * cena viva) — o custo que estava registrado em PENDENCIAS.md.
+       * O preto continua aqui por dois motivos, e nenhum é decorativo:
+       *  · o renderer roda com `alpha: true`, então o céu é desenhado SOBRE o que
+       *    estiver atrás — este painel é esse "atrás", e ele tem que ser o mesmo preto
+       *    da cena;
+       *  · se o WebGL falhar (`SceneBoundary`), o quadrinho volta a ser o painel preto
+       *    que era, e o gesto do zoom continua fazendo sentido.
+       *
+       * ⚠ NÃO ponha uma segunda instância da cena aqui. Foi o que existiu até
+       * 2026-08-31 (o modo `frozen`, hoje removido): custava um terceiro contexto
+       * WebGL e outra cópia de 15 000 estrelas para desenhar um quadro parado.
        *
        * `src`/`alt` vazios de propósito: com `content` presente, o componente não
        * desenha `<img>` nenhum. `aria-hidden` porque um retângulo preto não é
        * conteúdo — o `<h2>` da seção já a nomeia.
-       *
-       * ⚠ Voltar a cena aqui é uma linha: `<SceneBoundary><HorizonScene frozen /></SceneBoundary>`.
-       * O modo `frozen` continua existindo no componente.
        */
       src: '',
       alt: '',
@@ -105,7 +124,18 @@ export function ZoomShowcase() {
 
   return (
     <section aria-labelledby={HEADING_ID} className="w-full">
-      <div className="relative flex h-[50vh] items-center justify-center">
+      {/*
+        ⚠ ERA `h-[50vh]` (corrigido em 2026-08-29, relatado pelo Davi: "espaçamento
+        absurdo" na frase, Processo e a vitrine "distantes uma da outra"). Meia tela
+        só para centralizar uma linha de texto sobra ~25vh de vazio acima E abaixo
+        dela — em qualquer viewport comum isso são centenas de pixels de nada, dos
+        dois lados. Primeira correção foi `py-block` (o respiro ENTRE blocos de
+        conteúdo, até 4rem); o Davi pediu mais apertado ainda, e `py-stack` é o
+        respiro de dentro de um MESMO bloco — o que título e subtítulo usam entre si
+        — 1,5rem fixos, sem crescer com a viewport. A caixa continua do tamanho do
+        próprio conteúdo, só que com menos ar ao redor.
+      */}
+      <div className="relative flex flex-col items-center justify-center py-stack">
         {/* Radial spotlight.
             ⚠ A LARGURA TEM TETO EM `100%`, e isso não é estética: `w-[120vmin]` é a
             largura no CELULAR (em retrato, `vmin` é a LARGURA da tela), então o halo
@@ -113,7 +143,10 @@ export function ZoomShowcase() {
             direito virava rolagem HORIZONTAL na página inteira — o bug relatado. No
             desktop `vmin` é a altura e nada muda; no celular o halo passa a caber na
             tela. Como é um gradiente radial já desfocado em 30px e cortado pelo topo,
-            o limite não se vê. */}
+            o limite não se vê.
+            `-top-1/2` continua PROPORCIONAL à altura do container (não um valor
+            fixo): com a caixa bem mais baixa agora, o halo se reancora sozinho perto
+            do texto — não precisou de outro ajuste. */}
         <div
           aria-hidden="true"
           className={cn(
@@ -126,16 +159,24 @@ export function ZoomShowcase() {
             Down for Zoom Parallax" do demo. As alternativas e o critério estão em
             `content/sugestoes.md`. Ela é o degrau de entrada da sequência: o quadrinho
             começa minúsculo e cresce até tomar a tela, e a cena continua em "Você
-            enxerga mais longe.". Não afirma número, prazo nem resultado (§4). */}
-        <h2 id={HEADING_ID} className="text-center text-display-sm font-bold">
+            enxerga mais longe.". Não afirma número, prazo nem resultado (§4).
+            ⚠ Virou `<Heading>` (era `<h2 className="text-display-sm font-bold">`
+            solto): o `font-bold` (700) pisava no peso calibrado do token
+            (`--text-display-sm--font-weight: 600`) e pulava a família tipográfica
+            que TODO outro título da página usa via este componente — a Fraunces
+            ainda herdava por `base.css`, mas com o peso errado e fora do sistema de
+            design. `<Heading>` é o mesmo componente de Serviços e Processo. */}
+        <Heading id={HEADING_ID} level={2} size="display-sm" className="relative text-center">
           Toda ideia começa pequena.
-        </h2>
+        </Heading>
       </div>
-      <ZoomParallax images={images} />
-      {/* O respiro de 50vh que fechava o demo SAIU (2026-08-29): entre o quadro em que
-          o zoom termina em tela cheia e a cena viva da seção seguinte, ele aparecia
-          como uma faixa preta. Com o zoom terminando exatamente no fim da pista, a
-          cena travada emenda direto na cena que começa. */}
+      {/* ⚠ A PISTA É COMPARTILHADA com a cena da seção seguinte, e a adjacência é
+          parte da conta: o ato zero mede o quanto do zoom já passou pela distância
+          que falta até o topo da cena, e ela vale a altura da pista porque uma
+          começa exatamente onde a outra termina. Não meta nada entre as duas — nem
+          um respiro. (O de 50vh que fechava o demo saiu em 2026-08-29 justamente por
+          aparecer como uma faixa preta no meio do gesto.) */}
+      <ZoomParallax images={images} trackRef={trackRef} />
     </section>
   );
 }

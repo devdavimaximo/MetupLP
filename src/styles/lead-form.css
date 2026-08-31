@@ -1,0 +1,281 @@
+/**
+ * Folha do formulário de lead (F6) — `components/LeadForm.tsx` e `components/Field.tsx`.
+ *
+ * ⚠ SEM `@layer`, como `process.css` e `horizon-finale.css`: CSS fora de camada vence
+ * utilitária do Tailwind. Aqui isso importa mais que em qualquer outro lugar, porque
+ * o Tailwind (via `@theme`) reseta controles de formulário e um `input` sem folha
+ * própria volta ao desenho do sistema operacional.
+ *
+ * ─── A DIREÇÃO: CAMPO DE TERMINAL, NÃO CAIXA DE CADASTRO ────────────────────────
+ * Rótulo em mono caixa-alta, filete embaixo, sem borda em volta. É a mesma assinatura
+ * do `<Eyebrow>` e da faixa de serviços do herói — o formulário não parece um bloco
+ * de outro site colado no fim da página. Caixa fechada com quatro bordas e canto
+ * arredondado é o default de framework que o §7 exclui.
+ *
+ * ─── MAS O FILETE PRECISA SER VISÍVEL: WCAG 1.4.11 ──────────────────────────────
+ * Um campo de texto é um componente de interface, e a fronteira dele exige 3:1 contra
+ * o que está atrás. `--color-line` (1.17:1) REPROVA e não pode ser usado aqui;
+ * `--color-line-strong` (3.39:1) passa, e é ele que desenha o filete. É a mesma
+ * conta que o `Surface` faz quando o card é interativo.
+ *
+ * O trecho translúcido de `--color-surface` por trás do controle não é decoração: é
+ * ele que garante que o campo continue perceptível quando a cena 3D estiver clara
+ * atrás (o formulário mora dentro do quarto ato — ver `horizon-finale.css`). Como é
+ * `color-mix` com transparente, sobre o fundo sólido da página ele quase não aparece,
+ * e sobre o clarão ele escurece junto.
+ */
+
+.lead-form {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: var(--spacing-stack);
+  text-align: start;
+}
+
+/* `fieldset` nasce com borda, margem e padding do navegador — e um `min-width: auto`
+   implícito que quebra grid dentro dele. Os quatro precisam ir embora. */
+.lead-form__fieldset {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-stack);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Nome e contato dividem a linha quando há largura para os dois. Abaixo de 48rem
+   viram uma coluna só — dois campos de ~9rem lado a lado num celular é onde o erro de
+   digitação acontece. */
+.lead-form__row {
+  display: grid;
+  gap: var(--spacing-stack);
+}
+
+@media (min-width: 48rem) {
+  .lead-form__row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/**
+ * A largura do botão de envio, RESPONSIVA — por isso ela mora aqui e não na prop
+ * `fullWidth` do `Button` (uma booleana não tem breakpoint).
+ *
+ * No celular ele ocupa a linha inteira: é o alvo do polegar e o último passo do
+ * formulário. No desktop encolhe para o próprio texto e vai para a direita, o fim
+ * natural da leitura de um formulário — cheio, ele viraria uma faixa dourada de
+ * ~700px competindo com o CTA do WhatsApp logo acima (§3).
+ */
+.lead-form__actions {
+  display: flex;
+}
+
+.lead-form__actions > * {
+  width: 100%;
+}
+
+@media (min-width: 48rem) {
+  .lead-form__actions {
+    justify-content: flex-end;
+  }
+
+  .lead-form__actions > * {
+    width: auto;
+  }
+}
+
+/* ─── Campo ─────────────────────────────────────────────────────────────────── */
+
+.lead-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.lead-field__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--text-label--font-weight);
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+.lead-field__hint {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-muted);
+}
+
+/**
+ * O CONTROLE.
+ *
+ * `min-height: 2.75rem` = 44px, o alvo de toque mínimo da WCAG 2.5.8 — o mesmo piso
+ * que o `Button` respeita no tamanho `sm`.
+ *
+ * `font-size` nunca abaixo de 1rem: no iOS, um campo com fonte menor que 16px faz o
+ * Safari DAR ZOOM ao receber foco, e a página inteira sai do lugar no meio do
+ * preenchimento. É a razão de o campo não usar `--text-body-sm` como o resto do
+ * miúdo da página.
+ *
+ * O canto é reto embaixo e mínimo em cima: o filete precisa parecer uma linha de
+ * base, não a borda de uma caixa.
+ */
+.lead-field__control {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-bottom: var(--hairline) solid var(--color-line-strong);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: max(1rem, var(--text-body));
+  line-height: var(--text-body--line-height);
+  transition:
+    border-color var(--transition-duration-fast) var(--ease-out),
+    background-color var(--transition-duration-fast) var(--ease-out);
+}
+
+.lead-field__control--multiline {
+  /* Só na vertical: redimensionar na horizontal estoura o grid do formulário. */
+  resize: vertical;
+  min-height: 6.5rem;
+}
+
+.lead-field__control::placeholder {
+  color: var(--color-fg-faint);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lead-field__control:hover {
+    border-bottom-color: var(--color-fg-muted);
+  }
+}
+
+/**
+ * O foco tem DOIS sinais, e os dois são de propósito: o anel turquesa
+ * (`--color-focus`, o mesmo de toda a página, com `outline-offset` positivo para
+ * encostar no fundo e não no preenchimento) e o filete dourado. O anel é a garantia
+ * de acessibilidade; o dourado é a marca dizendo qual campo está ativo.
+ */
+.lead-field__control:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+  border-bottom-color: var(--color-accent);
+  background-color: color-mix(in oklab, var(--color-surface) 92%, transparent);
+}
+
+/* Erro: o filete muda de cor E a frase aparece abaixo. Cor nunca é o único sinal
+   (WCAG 1.4.1) — quem não distingue vermelho continua tendo o texto. */
+.lead-field__control[aria-invalid='true'] {
+  border-bottom-color: var(--color-danger);
+}
+
+.lead-field__error {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-danger);
+}
+
+.lead-field__control:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lead-field__control {
+    transition: none;
+  }
+}
+
+/* ─── A armadilha anti-robô ─────────────────────────────────────────────────── */
+
+/**
+ * Fora da tela por POSIÇÃO, nunca por `display: none` nem `visibility: hidden` — os
+ * dois são o primeiro teste que um robô de spam faz para decidir o que ignorar. Aqui
+ * o campo existe no layout, responde a script e simplesmente não fica em lugar
+ * nenhum que se possa ver. `aria-hidden` + `tabindex="-1"` (no markup) tiram ele de
+ * gente que navega por teclado ou leitor de tela.
+ */
+.lead-form__trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ─── Desfechos ─────────────────────────────────────────────────────────────── */
+
+/* Falha de envio. Nunca é beco sem saída: o link do WhatsApp vive dentro dela. */
+.lead-form__alert {
+  border-inline-start: 2px solid var(--color-danger);
+  padding: 0.75rem 1rem;
+  background-color: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-fg);
+}
+
+.lead-form__sent {
+  border-inline-start: 2px solid var(--color-success);
+  padding: 1rem 1.25rem;
+  background-color: color-mix(in oklab, var(--color-success) 10%, transparent);
+  text-align: start;
+}
+
+.lead-form__sent:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.lead-form__sent-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-success);
+}
+
+.lead-form__sent-body {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-fg-muted);
+}
+
+.lead-form__inline-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 4px;
+}
+
+.lead-form__inline-link:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+.lead-form__inline-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-xs);
+}
+
+/* Aviso de modo de ensaio. Só existe em dev (o componente nem renderiza em produção),
+   e por isso pode ser explicitamente feio: ele tem que incomodar. */
+.lead-form__preview {
+  border: var(--hairline) dashed var(--color-accent);
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: 1.5;
+  color: var(--color-accent);
+}

@@ -37,7 +37,8 @@ export function ArrowDownIcon({ className }: IconProps) {
   );
 }
 
-/** Sair do site — o destino é externo (WhatsApp, quando o número existir). */
+/** Sair do site — o destino é externo. Desde 2026-08-31 é o ícone em uso: o CTA vai
+    para o WhatsApp da Metup (ver `lib/contact.ts`). */
 export function ArrowUpRightIcon({ className }: IconProps) {
   return (
     <svg {...BASE} className={className}>

@@ -3,25 +3,152 @@
 > Conteúdo/assets que faltam para avançar as fases. Nada de lorem ipsum ou copy
 > genérica de agência publicada no lugar do que está aqui (CLAUDE.md seção 4).
 
-## ⚠ Bloqueio nº 1 — a página ainda não tem para onde converter
+## ✅ Bloqueio nº 1 — RESOLVIDO em 2026-08-31: a página tem para onde converter
 
-Desde F2 existe herói, CTA e seção de contato, mas **não existe um único canal de
-contato real**: sem número de WhatsApp, sem e-mail, sem telefone, sem destino de
-formulário. Enquanto isso durar, a LP impressiona e não converte — o oposto do
-CLAUDE.md §3.
+**O Davi enviou o WhatsApp da Metup: (51) 99867-9260.** Desde F2 a LP tinha herói,
+CTA e seção de contato e **nenhum canal real** — impressionava e não convertia, o
+oposto do CLAUDE.md §3. Acabou.
 
-O que F2 fez para não perder o lead nem inventar dado (§4):
+Foi a troca de UMA constante em `src/lib/contact.ts`, exatamente como o arquivo foi
+desenhado para ser. Mudaram juntos, sem tocar em nenhuma seção: o CTA do herói, o do
+header, o do quarto ato da cena Horizon, o evento de analytics (`cta_click` →
+**`whatsapp_click`**, que é o que passa a aparecer no funil), o `target="_blank"` com
+`rel` e o ícone (seta para baixo → seta para fora).
 
-- Todo CTA aponta para `src/lib/contact.ts`, o **destino único**. Hoje ele vale
-  `{ kind: 'pending', href: '#contato' }`; quando o número chegar, **uma troca ali**
-  muda herói, header e (em F6) o CTA final de uma vez — destino, evento de
-  analytics, `target` e ícone.
-- **Divergência conhecida e temporária:** o rótulo do CTA é `copy.hero.primaryCta`
-  ("Falar no WhatsApp") mas o destino é `#contato`. O rótulo é copy do Davi e não
-  pode ser reescrito aqui; o ícone compensa enquanto isso (seta para baixo = rola a
-  página; seta para fora = sai do site). **Some no minuto em que o número existir.**
-- A seção `#contato` é o alvo mínimo: só a headline e o convite que o Davi já
-  escreveu. O formulário, o botão de WhatsApp e os eventos `lead_form_*` são F6.
+- **A divergência do rótulo acabou.** O CTA dizia "Falar no WhatsApp" e o clique
+  rolava a página até `#contato`; o ícone compensava. Agora rótulo, ícone e destino
+  dizem a mesma coisa.
+- **O link é `https://wa.me/5551998679260`** — E.164 sem `+`, espaço ou traço, senão
+  quebra em parte dos aparelhos. Se o número mudar, é só o `href` de `contact.ts` —
+  **e o `telephone`/`contactPoint` do JSON-LD em `index.html`**, que é HTML estático e
+  não lê o TS (é o único lugar duplicado, e está marcado nos dois).
+- **O SEGUNDO CAMINHO está construído (2026-08-31), e falta UMA coisa: o destino.**
+  O formulário existe inteiro — três campos, validação, estados de envio/sucesso/
+  falha, foco gerenciado, armadilha anti-robô e os quatro eventos de funil. O que não
+  existe é para onde ele manda. Ver o bloco "Formulário de lead" mais abaixo.
+  Só quando ele estiver no ar o `copy.contact.cta` ("Falar no WhatsApp · Enviar
+  mensagem") vira dois botões de verdade.
+- **Não avaliado ainda:** mensagem pré-preenchida no link (`?text=…`). Melhora
+  conversão, mas é uma frase escrita em nome de quem clica — **copy, e portanto do
+  Davi** (§4). Se ele mandar a frase, é um parâmetro no `href`.
+- A seção `#contato` **mudou de lugar em 2026-08-31**: ela não é mais a
+  `sections/ContactAnchor` (apagada), e sim o **quarto ato da cena Horizon**
+  (`sections/HorizonFinale`), renderizado dentro do container da cena, com o canvas
+  atrás. Pedido do Davi: "esse CTA finaliza a página, depois só tem o rodapé".
+  Continua sendo a headline e o convite que ele já escreveu — agora com o CTA
+  dourado —, e o formulário, o botão de WhatsApp e os eventos `lead_form_*`
+  continuam sendo F6, **dentro deste mesmo ato**.
+- ⚠ **O rótulo do CTA final é emprestado.** O campo natural é `copy.contact.cta`,
+  mas ele guarda DOIS CTAs num campo só ("Falar no WhatsApp · Enviar mensagem") e o
+  segundo — "Enviar mensagem" — é o formulário de F6, que ainda não existe. Até lá o botão do
+  finale usa `copy.hero.primaryCta` — texto do Davi, mesmo destino único. Nada foi
+  inventado nem recortado por separador. **Davi:** se quiser um rótulo próprio para
+  o CTA final antes de F6, é só acrescentar um `**CTA primário:**` ao bloco
+  `## Contato / CTA final` — aí o parser ganha um campo e o empréstimo acaba.
+
+## ⚠ Formulário de lead (F6) — pronto, esperando UM valor
+
+Construído em 2026-08-31, a pedido do Davi ("construa o segundo caminho"). Ele mora
+no quarto ato da cena, abaixo do CTA do WhatsApp, separado pelo divisor "ou".
+
+**Restrição que desenhou a solução, palavra do Davi:** *"não queremos pagar backend;
+tudo tem que subir na Vercel, só com nosso domínio"*. Então o site continua 100%
+estático e o `POST` sai do NAVEGADOR direto para um serviço de formulário, que
+entrega no e-mail. Sem função serverless, sem servidor, sem processo para manter — o
+§6.1 fica intacto.
+
+### Decidido em 2026-08-31 pelo Davi
+
+- **Serviço: Web3Forms.** A URL dele já é o padrão em `src/lib/lead-form.ts`.
+- **Caixa de destino: `contato@metup.com.br`** — que **ainda não existe** e precisa
+  ser criada antes (passo 1 abaixo).
+
+### O que falta: UMA variável no `.env`
+
+```bash
+VITE_LEAD_ACCESS_KEY=<a chave que o Web3Forms envia por e-mail>
+```
+
+Só isso. `VITE_LEAD_ENDPOINT` continua existindo, mas só para trocar de serviço um
+dia — preenchida, ela vence o padrão.
+
+⚠ `VITE_*` **vai para o bundle em texto puro**. A `access_key` do Web3Forms é uma
+chave PÚBLICA, feita para ser chamada do navegador: publicá-la é o uso previsto, não
+um vazamento. Credencial de e-mail ou token com escrita, **nunca** (§8). `.env` é
+gitignored.
+
+### O roteiro, na ordem
+
+**1. Criar a caixa `contato@metup.com.br` (grátis).** Ter o domínio não cria a caixa.
+O caminho sem custo é ENCAMINHAMENTO — `contato@metup.com.br` cai no Gmail do Davi:
+
+   - pôr o DNS de `metup.com.br` na Cloudflare (plano grátis; troca de nameservers no
+     Registro.br) e ativar o **Email Routing**, que cria os registros MX sozinho;
+   - criar o endereço `contato@metup.com.br` apontando para o Gmail e confirmar o
+     link de verificação que a Cloudflare manda para esse Gmail.
+
+   ⚠ Se o DNS sair para a Cloudflare, os registros do site na **Vercel** têm que ser
+   recriados lá (seguir o que a Vercel indicar para o domínio). Se o registrador
+   atual já oferecer encaminhamento de e-mail, serve igual e pula esta parte.
+
+   ⚠ Encaminhar resolve **receber**. **Responder assinando** `contato@metup.com.br`
+   é outro passo (SMTP no Gmail) e não bloqueia nada: o formulário pede WhatsApp ou
+   e-mail, e a maior parte da resposta sai pelo WhatsApp.
+
+**2. Criar a conta no Web3Forms** com `contato@metup.com.br` — só depois do passo 1,
+   senão a chave é enviada para uma caixa que ainda não recebe.
+
+**3. Pôr a chave no `.env`** (local) **e nas Environment Variables da Vercel**, com o
+   mesmo nome. ⚠ Variável de build: sem redeploy depois de criá-la, o site continua
+   sem formulário.
+
+**4. Conferir no primeiro envio real** se o **assunto** ("Novo lead pelo site — …") e
+   o **Responder** chegaram como esperado. Os dois campos (`subject`/`replyto`) são
+   convenção do provedor; se ele nomear diferente, o ajuste é em `buildLeadPayload`,
+   em `src/lib/lead-form.ts`, e nada mais muda.
+
+**5. Aí sim, acrescentar o e-mail ao JSON-LD** (`index.html`, TODO `#jsonld`).
+   Publicar um endereço antes de ele receber é anunciar uma caixa morta.
+
+### Enquanto ela não existe, nada quebra e nada mente
+
+`leadFormMode()` (`src/lib/lead-form.ts`) tem três modos, e o terceiro é o que
+protege o §3:
+
+| modo | quando | o que acontece |
+|---|---|---|
+| `live` | tem `VITE_LEAD_ENDPOINT` | envia de verdade |
+| `preview` | não tem, e é DEV | formulário aparece, envio SIMULADO, aviso em dev |
+| `off` | não tem, e é PRODUÇÃO | **o formulário não é publicado** — só o WhatsApp |
+
+Hoje o site está em `off`: conferido no build, `dist/index.html` sai sem um único
+campo. Um formulário publicado sem destino é a pior coisa que esta página poderia
+fazer — a pessoa escreve, clica, vê "enviado" e o lead evapora.
+
+### O que já foi verificado (Puppeteer, build de produção com destino local)
+
+- envio real chegando ao destino com o corpo certo
+  (`{nome, contato, mensagem, origem, enviado_em}`);
+- validação de campo vazio e de contato mal formatado, com foco no primeiro inválido;
+- erro que se corrige ao vivo depois da primeira tentativa;
+- falha do destino (HTTP 500): **o que foi digitado continua no formulário** e o
+  alerta entrega o WhatsApp — falhar nunca é beco sem saída;
+- foco indo para o desfecho (`role="status"` no sucesso, `role="alert"` na falha);
+- desktop (1440×900) e celular (390×844).
+
+### Decisões que ainda são do Davi
+
+- [x] ~~**Qual serviço de formulário**~~ — **Web3Forms**, escolhido em 2026-08-31.
+- [x] ~~**E-mail de destino**~~ — **`contato@metup.com.br`**, decidido em 2026-08-31.
+      ⚠ A caixa **ainda não existe**: é o passo 1 do roteiro acima, e ele bloqueia
+      todos os outros.
+- [ ] **Confirmar os rótulos e as mensagens** de `uiStrings.form`
+      (`src/lib/ui-strings.ts`). São chrome de produto, não copy de venda, e por isso
+      o Claude pôde escrevê-las — mas passe o olho. ⚠ **Nenhuma promete prazo**: só o
+      Davi pode assumir "respondemos em X". Se ele quiser um prazo na confirmação de
+      envio, é uma linha.
+- [ ] **Mensagem pré-preenchida no link do WhatsApp** (`?text=…`) — continua
+      pendente, mesmo motivo: é frase escrita em nome de quem clica.
 
 ## Conteúdo do Davi (bloqueia F2+)
 
@@ -1236,9 +1363,24 @@ em tela cheia no quadro em que a cena começa.
       contexto extra sumiu junto. Os dois que sobraram continuam pesados (5000
       estrelas × 3 campos, plano de 8000×4000 com 100×100 segmentos, bloom), e o
       celular é onde isso quebra primeiro.
-- [ ] **O `requestAnimationFrame` da cena viva nunca para** — roda com a seção fora de
-      quadro, do topo ao rodapé da página. Falta medir 60fps, INP e bateria no celular
-      real antes de F7.
+- [x] ~~**O `requestAnimationFrame` da cena viva nunca para**~~ — **corrigido em
+      2026-08-31.** Um `IntersectionObserver` com margem de 25% liga o laço um quarto
+      de tela antes de a seção aparecer e o desliga quando ela sai. Medido com
+      Puppeteer, contando chamadas de desenho por canvas: **0 desenhos** com a cena
+      fora de quadro (era 60fps de estrelas + bloom em tela cheia disputando GPU com o
+      outro contexto WebGL, o do herói), e o laço volta a desenhar assim que ela
+      entra. Junto vieram outras duas: a rolagem não re-renderiza mais o React (eram
+      dois `useState` por evento de `scroll`) e a barra de progresso deixou de ser
+      animada por `width` — virou `transform: scaleX()`, que é o que o §6.4 exige.
+      **Ainda falta medir** 60fps, INP e bateria no celular real antes de F7.
+- [x] ~~**A suavização da câmera dependia da taxa de quadros**~~ — **corrigido em
+      2026-08-31**, junto do CTA final. Era 5% do que falta A CADA QUADRO: em 120Hz a
+      câmera chegava no dobro da velocidade de um 60Hz, e num quadro caro ela ficava
+      para trás. Virou problema visível quando o CTA passou a ser o quarto ato,
+      porque o caminho mais comum até ele é CLICAR (salto de ~10 000px): medido em
+      software rendering, a câmera ainda estava em trânsito **5s depois do clique** e
+      a chegada era uma tela lavada de branco. Agora a curva é ancorada no relógio
+      (`1 - (1-k)^(dt×60)`) e assenta em ~1s de tempo real em qualquer taxa.
 - [x] ~~**A esfera de atmosfera não é liberada no unmount**~~ — **corrigido em
       2026-08-29**, junto do vazamento que derrubou a página em dev: `dispose()` do
       renderer NÃO devolve o contexto WebGL, e cada hot reload deixava mais um
@@ -1259,20 +1401,50 @@ em tela cheia no quadro em que a cena começa.
       próprio texto. Quando ela for aprovada, o lugar dela é `content/copy.md` (o
       parser precisaria de um bloco novo, como o `## Processo` ganhou).
 - [ ] **Os três títulos entram no sumário do documento** como se fossem conteúdo
-      (§6.3) — três `<h2>` que não nomeiam seção de verdade.
+      (§6.3) — três `<h2>` que não nomeiam seção de verdade. (O `<h2>` do QUARTO ato é
+      a exceção legítima: ele nomeia a seção `#contato` via `aria-labelledby`.)
+- [ ] **O quarto ato deixou de medir exatamente uma tela** (2026-08-31, com o
+      formulário). O manipulador de rolagem divide a pista em partes IGUAIS
+      (`progress × totalSections`), então um ato mais alto atrasa proporcionalmente os
+      alvos de câmera dos atos anteriores. Medido no pior caso (ato de ~1,4 tela num
+      telefone): ~12% de tela de defasagem entre o texto de um ato e o alvo de câmera
+      dele. Não aparece — a câmera é interpolada e nenhum ato tem marca dura. A
+      correção certa (derivar os limites dos atos das posições reais no DOM) é
+      redesenhar o manipulador inteiro; fica registrada, não feita.
+- [ ] **`prefers-reduced-motion` na cena continua sendo só a ENTRADA** — o quarto ato
+      tem variante calma própria (`animations/horizon-finale.ts`: revela sem deslocar
+      e sem depender do ScrollTrigger), mas a CÂMERA continua respondendo à rolagem em
+      movimento reduzido, como nos outros três atos. Mesma pendência de sempre, agora
+      valendo para quatro telas em vez de três.
 - [ ] **Cromo do demo ainda em inglês e sem função:** o rótulo vertical "SPACE" e o
       ícone de menu (três traços que não abrem nada) no canto superior esquerdo.
       Menu que não é menu é affordance mentirosa — decidir com o Davi se vira algo da
       Metup ou se sai.
-- [ ] **A seção não tem CTA** e são agora duas telas de espetáculo (zoom + Horizon)
-      entre o Processo e o contato.
-- [ ] **Contraste do texto sobre o clarão, no celular (visto em 390×844).** No terceiro
-      ato a câmera está dentro da luz e a tela fica quase branca: o dourado do título
-      ainda segura, mas a linha "É preciso construir para chegar lá." (cinza `fg-muted`)
-      some. Reprova o AA do §6.6 nesse trecho. **Ainda presente depois da paleta
-      dourada/laranja/vermelha (2026-08-29)** — é problema de LUMINOSIDADE (o núcleo do
-      clarão vira branco puro em qualquer matiz), não de cor. A saída sem mexer na cor
-      é um véu curto atrás do texto ou `text-shadow` — decidir com o Davi.
+- [x] ~~**A seção não tem CTA**~~ — **resolvido em 2026-08-31, a pedido do Davi.** A
+      cena ganhou um QUARTO ATO (`sections/HorizonFinale`), que é a seção `#contato`
+      da página inteira: linha do horizonte dourada, a pergunta do Davi em Fraunces
+      creme, o convite dele e o CTA dourado sólido — o único preenchimento dourado da
+      tela. Ele é passado como `finale` para o componente da cena e renderizado dentro
+      do container dela, com o canvas preso atrás; a pista passou de três para quatro
+      telas e a câmera ganhou `CAMERA_ACTS[3]`, a chegada. O indicador "SCROLL" some
+      quando o ato entra em quadro — no fim da página a instrução certa é clicar.
+      Detalhe do porquê no cabeçalho de `sections/HorizonFinale`.
+- [ ] ⚠ **O contraste do TERCEIRO ato continua reprovando** (visto em 390×844). No ato
+      "INFINITO" a câmera está dentro da luz e a tela fica quase branca: o dourado do
+      título ainda segura, mas a linha "É preciso construir para chegar lá." (cinza
+      `fg-muted`) some. É problema de LUMINOSIDADE (o núcleo do clarão vira branco puro
+      em qualquer matiz), não de cor — segue igual depois da paleta dourada de
+      2026-08-29 e **não foi tocado pelo CTA de 2026-08-31**, que resolveu só o
+      contraste do PRÓPRIO ato.
+      **A saída já existe e está escrita:** é o mesmo véu do finale
+      (`styles/horizon-finale.css`, com as contas de contraste por extenso), aplicado
+      às duas `.content-section`. São ~10 linhas de CSS e nenhuma mudança na cena.
+      Não foi feito porque a decisão é do Davi: escurecer o clarão atrás do texto muda
+      a cara dos dois atos do meio, e ele pediu a cena "como está". **Davi: dá o ok e
+      isso entra.**
+- [ ] **A linha "É preciso construir para chegar lá." é o degrau do CTA.** Ela é a
+      última frase antes do quarto ato, e é justamente a que some no clarão (item
+      acima). Enquanto isso durar, o argumento chega no CTA pela metade.
 
 O que **não** foi deixado passar: a cena travada não ouve rolagem nem roda `rAF` (um
 quadro e para), o `setSize` não escreve mais estilo inline na tag (senão o canvas

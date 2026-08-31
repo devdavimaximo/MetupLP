@@ -1,6 +1,6 @@
+import { useRef } from 'react';
 import { useSmoothScroll } from '../animations/useSmoothScroll';
 import { Header, SkipLink } from '../components';
-import { ContactAnchor } from '../sections/ContactAnchor';
 import { Hero } from '../sections/Hero';
 import { HorizonHero } from '../sections/HorizonHero';
 import { Process } from '../sections/Process';
@@ -20,28 +20,43 @@ const MAIN_ID = 'conteudo';
  * rolagem do documento) e duas instâncias competiriam pela mesma posição. Ele mesmo
  * decide se deve existir — ver `useSmoothScroll`.
  *
- * São quatro seções: o herói, Serviços (cabeçalho editorial + deck em parallax), o
- * Processo e o destino do CTA. A ordem é o argumento da página — impressiona, mostra
- * o que faz, explica como começa, pede o contato —, e o Processo entra exatamente
- * antes do CTA final porque é ali que a objeção "como isso funciona?" aparece.
+ * A ordem é o argumento da página — impressiona, mostra o que faz, explica como
+ * começa, pede o contato —, e o Processo entra exatamente antes do fecho porque é ali
+ * que a objeção "como isso funciona?" aparece.
  *
  * ⚠ `<ZoomShowcase />` entrou depois do Processo, a pedido do Davi (2026-08-29), e é
- * PROVISÓRIA: é o demo do componente de zoom portado como está, com as fotos do
- * Unsplash que vieram com ele. Não é vitrine de case nem entra na navegação enquanto
- * o conteúdo real não for definido — ver a nota em `sections/ZoomShowcase.tsx`.
+ * PROVISÓRIA: é o demo do componente de zoom portado como está. Não é vitrine de case
+ * nem entra na navegação enquanto o conteúdo real não for definido — ver a nota em
+ * `sections/ZoomShowcase.tsx`.
  *
- * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem é o efeito: o quadro central do
- * zoom é PRETO, então a vitrine termina em tela cheia escura e a cena nasce dessa
- * escuridão. Separar as duas quebra o gesto. Também provisória — ver PENDENCIAS.md.
+ * ⚠ `<HorizonHero />` vem LOGO DEPOIS dela, e a ordem não é só narrativa: as duas são
+ * UM gesto só desde 2026-08-31. O quadro central da vitrine não tem imagem nenhuma —
+ * o que abre lá dentro é o `<canvas>` da cena, projetado dentro do quadrinho e
+ * crescendo com ele até tomar a tela; quando o zoom acaba, a cena já está ali e a
+ * viagem começa. `zoomTrackRef` é o fio entre as duas: a vitrine empresta a própria
+ * pista, a cena mede o zoom nela. **Separar as duas — ou pôr qualquer coisa entre
+ * elas — quebra a conta e o gesto.**
+ *
+ * ⚠ NÃO EXISTE MAIS UMA `<ContactAnchor />` AQUI (2026-08-31, pedido do Davi: "esse
+ * CTA finaliza a página"). A seção `#contato` passou a ser o QUARTO ATO da cena
+ * Horizon — ela é renderizada de dentro de `<HorizonHero />`, com o canvas atrás. É
+ * por isso que a lista abaixo parece terminar sem contato: ele está lá, um nível mais
+ * fundo. O porquê de o CTA morar dentro da cena está em `sections/HorizonFinale`.
  *
  * ⚠ `<Process />` pode não renderizar NADA: a seção é opcional em `content/copy.md`
- * (ver a nota em `sections/Process.tsx`). A página tem que continuar coerente com
- * três seções — e continua, porque o CTA final não depende dela.
+ * (ver a nota em `sections/Process.tsx`). A página tem que continuar coerente sem ela
+ * — e continua, porque o CTA final não depende dela.
  *
- * Prova social (F5) e o contato completo (F6) entram por baixo, nesta ordem.
+ * Prova social (F5) entra antes da cena; o formulário de lead (F6) entra DENTRO do
+ * quarto ato, que é onde o CTA já está.
  */
 export function App() {
   useSmoothScroll();
+
+  // A pista da vitrine em zoom, emprestada para a cena logo abaixo. Ela mora aqui
+  // porque é o menor lugar comum às duas seções — nenhuma das duas precisa conhecer a
+  // outra, e o dia em que a vitrine sair, some a `ref` e a cena continua inteira.
+  const zoomTrackRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -51,9 +66,9 @@ export function App() {
         <Hero />
         <Services />
         <Process />
-        <ZoomShowcase />
-        <HorizonHero />
-        <ContactAnchor />
+        <ZoomShowcase trackRef={zoomTrackRef} />
+        {/* Carrega a seção `#contato` dentro dela — ver o aviso no cabeçalho. */}
+        <HorizonHero zoomTrackRef={zoomTrackRef} />
       </main>
 
       {import.meta.env.DEV && (

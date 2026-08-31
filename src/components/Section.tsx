@@ -4,7 +4,7 @@ import { Container, type ContainerWidth } from './Container';
 import { SectionContext, type SectionContextValue } from './section-context';
 
 export type SectionRhythm = 'default' | 'lg' | 'flush';
-export type SectionTone = 'base' | 'surface';
+export type SectionTone = 'base' | 'surface' | 'transparent';
 
 export interface SectionProps {
   /** Âncora de navegação, `location` de analytics e alvo de ScrollTrigger. */
@@ -40,9 +40,24 @@ const RHYTHM: Record<SectionRhythm, string> = {
   flush: 'py-0',
 };
 
+/**
+ * `transparent` é para a seção que vive SOBRE uma cena que não é dela — hoje, o
+ * quarto ato da cena Horizon (`sections/HorizonFinale`), que é renderizado dentro do
+ * container da cena, com o `<canvas>` preso atrás.
+ *
+ * Existe como tom, e não como um `className="bg-transparent"` na seção, porque as
+ * duas utilitárias (`bg-bg` e `bg-transparent`) moram na mesma camada do Tailwind:
+ * quem venceria seria a ordem no CSS gerado, não a ordem escrita no JSX. É o mesmo
+ * motivo pelo qual `font` é prop no `<Heading>` — o componente emite UMA classe e o
+ * conflito não existe.
+ *
+ * ⚠ Sem fundo, o contraste do texto passa a depender do que estiver atrás. Quem usa
+ * este tom assume a conta: no finale ela é o véu de `horizon-finale.css`.
+ */
 const TONE: Record<SectionTone, string> = {
   base: 'bg-bg',
   surface: 'bg-surface',
+  transparent: 'bg-transparent',
 };
 
 /**

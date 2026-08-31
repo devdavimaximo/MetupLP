@@ -1,0 +1,234 @@
+/**
+ * Folha do QUARTO ATO da cena Horizon — o CTA que fecha a página.
+ * Componente: `src/sections/HorizonFinale.tsx`.
+ *
+ * ⚠ ARQUIVO SEPARADO DE `horizon-hero.css` DE PROPÓSITO. Aquele é o mínimo derivado
+ * do markup de um componente ADOTADO, e o cabeçalho dele registra que, se a folha do
+ * autor original aparecer, ela substitui o arquivo inteiro. Este aqui é desenho da
+ * Metup e não pode ir junto na troca.
+ *
+ * ⚠ SEM `@layer`, como `process.css` — CSS fora de camada vence utilitária do
+ * Tailwind. É o que garante que `min-height`, `z-index` e o fundo do ato mandem
+ * mesmo com o `<Section>` emitindo as utilitárias dele (`py-0`, `bg-transparent`).
+ */
+
+/**
+ * O ATO.
+ *
+ * `z-index: 1` põe o ato acima do `<canvas>` da cena, que é `z-index: 0` e está
+ * preso (`sticky`) no topo do mesmo container. Sem ele o texto ficaria ATRÁS da cena.
+ *
+ * `100svh` e não `100vh`: no celular `vh` mede a viewport SEM a barra de endereço, o
+ * ato nasceria mais alto que a tela e o botão cairia fora da dobra do ato — mesmo
+ * motivo do herói. E a altura precisa ser exatamente UMA tela porque é assim que a
+ * cena conta a pista: quatro telas de container = quatro atos (ver `CAMERA_ACTS` em
+ * `components/ui/horizon-hero-section.tsx`).
+ *
+ * O `<Section>` renderiza o `<Container>` como filho único, então centralizar é
+ * `align-items: center` aqui — o Container é o item flex, e a goteira lateral
+ * continua vindo dele (é a única permitida no projeto).
+ */
+/**
+ * ⚠ `min-height`, NÃO `height` (importa desde o formulário de F6, 2026-08-31).
+ *
+ * Enquanto o ato era só título + botão, ele media exatamente uma tela em qualquer
+ * viewport, e a conta da cena fechava redonda: quatro telas de container = quatro
+ * atos, um por tela. Com o formulário, ele CRESCE onde precisa — no celular, os três
+ * campos empilhados passam de 100svh em telefone curto.
+ *
+ * A cena continua correta, com uma imprecisão conhecida e pequena: o manipulador de
+ * rolagem divide a pista em partes IGUAIS (`progress × totalSections`), então um
+ * quarto ato mais alto atrasa proporcionalmente os alvos de câmera dos atos
+ * anteriores. Medido no pior caso (ato de ~1,4 tela num telefone): o alvo de câmera
+ * de cada ato chega ~12% de tela depois do texto correspondente. Como a câmera é
+ * interpolada e nenhum ato tem marca dura, isso não aparece — e a alternativa
+ * (derivar os limites dos atos das posições reais no DOM) é redesenhar o manipulador
+ * inteiro para corrigir algo que não se vê. Registrado em PENDENCIAS.md.
+ */
+.horizon-finale {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 100svh;
+  align-items: center;
+  padding-block: var(--spacing-block);
+  text-align: center;
+}
+
+/**
+ * O VÉU — metade da conta de contraste do ato (a outra metade é a câmera; ver
+ * `CAMERA_ACTS[3]`).
+ *
+ * ─── O PROBLEMA QUE ELE RESOLVE ──────────────────────────────────────────────────
+ * A cena é aditiva com bloom: o núcleo do clarão vira BRANCO PURO em qualquer matiz
+ * da paleta. O PENDENCIAS.md já registrava isso como defeito de contraste no terceiro
+ * ato ("no celular a linha cinza some"), e o CTA final não pode herdar o mesmo
+ * problema — texto ilegível no quadro do clique é perder o lead (§3).
+ *
+ * ─── A CONTA (pior caso: branco puro atrás) ─────────────────────────────────────
+ * Composição em sRGB de `--color-bg` (#060606) sobre branco, e o contraste medido
+ * pela fórmula de luminância relativa da WCAG — os mesmos números do painel Color do
+ * styleguide:
+ *
+ *   véu 94%  → #131313   creme 16,1:1 · dourado 9,0:1   (centro do bloco)
+ *   véu 86%  → #292929   creme 12,9:1 · dourado 7,2:1   (borda do bloco)
+ *   véu 55%  → #767676   creme  4,0:1 · dourado 2,2:1   ← REPROVA corpo
+ *
+ * Por isso a elipse só cai abaixo de 86% depois de 34% do raio: o bloco inteiro
+ * (filete, título, frase e botão) cabe dentro dessa faixa nas viewports medidas —
+ * 1440×900 e 390×844, com o bloco ocupando ~28% da altura para cada lado do centro.
+ *
+ * ⚠ E O ÚLTIMO STOP É `transparent 64%`, NÃO 100% — foi um defeito medido, não
+ * afinação. Com o raio vertical em 78% da caixa, a borda de CIMA do ato cai a
+ * `50 / 78 = 64%` do raio: qualquer véu ainda restando ali vira um DEGRAU horizontal
+ * de ponta a ponta da tela, porque acima da borda não há véu nenhum. Apareceu na
+ * primeira medição como uma faixa nítida cortando o clarão da atmosfera ao meio.
+ * Zerando em 64%, a elipse chega ao fim exatamente onde o elemento começa e a
+ * emenda deixa de existir. Mexer no raio vertical obriga a refazer esta conta.
+ *
+ * A SEGUNDA camada é o CHÃO DA PÁGINA: a cena dissolve no fundo sólido na última
+ * fatia do ato. Não é só contraste — é o fim da página. Abaixo daqui vem o rodapé, e
+ * ele precisa começar num preto chapado em vez de emendar num céu cortado ao meio.
+ * Ela só começa em 68% de propósito: subindo mais, o chão apaga o campo de estrelas
+ * na metade de baixo do ato e o CTA passa a flutuar num retângulo preto — a cena
+ * pararia de existir justamente no quadro em que ela deveria estar entregando o
+ * clique.
+ *
+ * Só `background-image`: nada aqui anima, nada aqui é opaco o bastante para apagar a
+ * cena, e o custo é uma pintura só, no `backdrop` full-bleed que o `<Section>` já
+ * oferece (fora do `<Container>`, ou o véu pararia na medida de leitura).
+ */
+.horizon-finale__veil {
+  position: absolute;
+  z-index: -10;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      115% 78% at 50% 50%,
+      color-mix(in oklab, var(--color-bg) 94%, transparent) 0%,
+      color-mix(in oklab, var(--color-bg) 86%, transparent) 34%,
+      color-mix(in oklab, var(--color-bg) 42%, transparent) 52%,
+      transparent 64%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 68%,
+      color-mix(in oklab, var(--color-bg) 62%, transparent) 88%,
+      var(--color-bg) 100%
+    );
+}
+
+.horizon-finale__block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/**
+ * A LINHA DO HORIZONTE.
+ *
+ * O arco da cena abre em "HORIZONTE" e fecha aqui: um filete dourado exatamente onde
+ * os outros três atos põem o título. Ele ocupa o lugar do kicker sem trazer copy
+ * junto — nenhuma frase nova sobre a Metup foi escrita para o ato (§4).
+ *
+ * O gradiente morre nas duas pontas de propósito: um filete de ponta reta lê como
+ * separador de template; este some no céu, como uma linha de horizonte some na bruma.
+ *
+ * ⚠ `transform-origin: center` é REQUISITO da timeline, não estilo — o `drawLine` de
+ * `presets.ts` anima `scaleX` e o GSAP não escreve a origem sozinho. Sem esta linha o
+ * filete cresceria a partir da esquerda; com ela, abre do centro para os dois lados.
+ *
+ * O brilho é `box-shadow` e não `filter: blur()`: ninguém o anima, então ele é
+ * pintado uma vez e não custa quadro — e blur num elemento animado por `scaleX`
+ * forçaria a rasterização da camada a cada passo.
+ */
+.horizon-finale__rule {
+  display: block;
+  width: min(100%, 26rem);
+  height: var(--hairline);
+  transform-origin: center;
+  background-image: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--color-accent) 50%,
+    transparent 100%
+  );
+  box-shadow: 0 0 24px -4px color-mix(in oklab, var(--color-accent) 55%, transparent);
+}
+
+/* O ritmo do bloco. Título e frase estão no mesmo respiro interno (`--spacing-stack`,
+   1,5rem fixos) porque são a mesma unidade de leitura; o botão recebe o respiro ENTRE
+   blocos (`--spacing-block`, 2,5–4rem fluidos) porque é outra coisa — é a ação, e ela
+   precisa de ar em volta para ser o alvo óbvio da tela (§3). */
+.horizon-finale__headline,
+.horizon-finale__lede {
+  margin-top: var(--spacing-stack);
+}
+
+.horizon-finale__cta {
+  margin-top: var(--spacing-block);
+}
+
+/**
+ * ─── O SEGUNDO CAMINHO ──────────────────────────────────────────────────────────
+ * O bloco do formulário. Ele é `narrow` por herança do `<Container>` da seção (44rem,
+ * a medida de leitura), o que também é a largura certa para três campos: mais que
+ * isso e o olho perde a linha de base entre o rótulo e o controle.
+ *
+ * O respiro acima é `--spacing-block` — o ritmo ENTRE blocos, não o de dentro de um.
+ * O formulário é a segunda oferta, não a continuação da primeira: colado no botão,
+ * ele leria como "o botão não funcionou, preencha aqui". ⚠ A primeira versão usava
+ * `--spacing-section` (até 9rem) e abriu um vão morto de ~160px medido em 1440×900,
+ * numa tela que o formulário já tinha deixado mais alta que uma dobra.
+ */
+.horizon-finale__second {
+  width: 100%;
+  margin-top: var(--spacing-block);
+  text-align: start;
+}
+
+/**
+ * O DIVISOR — "ou", entre dois filetes.
+ *
+ * É o que faz a página oferecer DUAS coisas em vez de empilhar duas. Sem ele, um
+ * formulário logo abaixo de um botão lê como "o botão não funcionou, preencha aqui".
+ *
+ * `--color-line-strong` e não `--color-line` no filete: ele encosta na zona onde o
+ * véu já deixa passar um pouco do clarão da cena, e o filete decorativo (1.17:1)
+ * simplesmente sumiria ali.
+ */
+.horizon-finale__divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 0 var(--spacing-stack);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.horizon-finale__divider-rule {
+  height: var(--hairline);
+  flex: 1;
+  background-color: var(--color-line-strong);
+}
+
+/**
+ * SEM A CENA ATRÁS — o `fallback` do `SceneBoundary` (falha de WebGL).
+ *
+ * Deixa de ser um ato de tela cheia e vira uma seção comum, com o ritmo largo das
+ * outras. O véu some: sobre o fundo da página ele seria `--color-bg` sobre
+ * `--color-bg`, ou seja, invisível — mas o gradiente ainda seria pintado.
+ */
+.horizon-finale--standalone {
+  min-height: 0;
+  padding-block: var(--spacing-section-lg);
+}
+
+.horizon-finale--standalone .horizon-finale__veil {
+  display: none;
+}

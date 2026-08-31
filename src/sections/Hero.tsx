@@ -90,8 +90,9 @@ const HEADING_ID = 'hero-titulo';
  *
  * ─── CTA ────────────────────────────────────────────────────────────────────────
  * Um só, dourado, no maior contraste da tela, acima da dobra em qualquer viewport, e
- * entrando cedo na timeline. O destino vem de `lib/contact.ts` — ver lá por que ele
- * hoje aponta para `#contato` em vez do WhatsApp.
+ * entrando cedo na timeline. O destino vem de `lib/contact.ts` e, desde 2026-08-31,
+ * é o WhatsApp da Metup — o rótulo "Falar no WhatsApp" e o clique finalmente dizem a
+ * mesma coisa (a divergência que ficava registrada no PENDENCIAS.md acabou).
  *
  * ─── POR QUE O TEXTO CONTINUA LEGÍVEL SOBRE A CENA ──────────────────────────────
  * Não é sorte nem opacidade chutada: a forma é renderizada apagada por exigência de

@@ -45,6 +45,58 @@ export const uiStrings = {
     process: 'Processo',
     contact: 'Contato',
   },
+  /**
+   * O FORMULÁRIO DE LEAD (F6). Mesmo critério do resto do arquivo, e ele foi aplicado
+   * frase por frase aqui — porque um formulário é onde mais tenta escapar uma
+   * promessa.
+   *
+   * Rótulo de campo, dica de preenchimento e mensagem de erro dizem o que FAZER com o
+   * formulário: são instrução, não argumento de venda. Nenhuma delas afirma nada sobre
+   * a Metup, cliente, número ou resultado (§4).
+   *
+   * ⚠ E É POR ISSO QUE `sent` NÃO PROMETE PRAZO. "Respondemos em 24h", "retorno
+   * imediato" e parentes seriam exatamente a afirmação que o §4 proíbe o Claude de
+   * escrever — só o Davi pode assumir um prazo. A confirmação diz o que ACONTECEU
+   * ("Mensagem enviada.") e oferece o caminho mais rápido, que é o WhatsApp. A única
+   * frase sobre velocidade na página continua sendo a do Davi, no `copy.md`
+   * ("a gente te responde rápido").
+   *
+   * TODO(PENDENCIAS.md): confirmar os rótulos e as mensagens com o Davi — e perguntar
+   * se ele quer um prazo real na confirmação.
+   */
+  form: {
+    /** Separa os dois caminhos: WhatsApp acima, formulário abaixo. */
+    divider: 'ou',
+    legend: 'Enviar uma mensagem',
+    name: { label: 'Nome' },
+    contact: {
+      label: 'WhatsApp ou e-mail',
+      hint: 'Como a gente te responde.',
+    },
+    message: {
+      label: 'O que você precisa',
+      hint: 'Site, app, automação, sistema — em poucas linhas.',
+    },
+    /** Campo-armadilha anti-robô: some da tela e do leitor de tela, ver `LeadForm`. */
+    trap: 'Não preencha este campo',
+    submit: 'Enviar mensagem',
+    sending: 'Enviando…',
+    errors: {
+      required: 'Preencha este campo.',
+      name: 'Escreva seu nome.',
+      contact: 'Escreva um e-mail válido ou um número com DDD.',
+      message: 'Escreva pelo menos uma frase.',
+    },
+    /** Falha de envio. Nunca é beco sem saída: o WhatsApp fica do lado (§3). */
+    failed: 'Não consegui enviar agora. Tenta de novo — ou fala no WhatsApp, que é direto.',
+    sent: {
+      title: 'Mensagem enviada.',
+      body: 'Se preferir adiantar, é só chamar no WhatsApp.',
+    },
+    /** Só em dev — ver `leadFormMode()` em `lib/lead-form.ts`. */
+    preview:
+      'ENSAIO (só em dev): sem VITE_LEAD_ACCESS_KEY no .env, o envio é simulado e nada sai daqui. Em produção, sem destino, o formulário não é publicado — só o WhatsApp.',
+  },
 } as const;
 
 export type UiStringKey = keyof typeof uiStrings;
