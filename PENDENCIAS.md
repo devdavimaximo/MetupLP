@@ -110,20 +110,26 @@ O caminho sem custo é ENCAMINHAMENTO — `contato@metup.com.br` cai no Gmail do
 **5. Aí sim, acrescentar o e-mail ao JSON-LD** (`index.html`, TODO `#jsonld`).
    Publicar um endereço antes de ele receber é anunciar uma caixa morta.
 
-### Enquanto ela não existe, nada quebra e nada mente
+### ⚠ JANELA DE DEMONSTRAÇÃO ABERTA (2026-08-31) — o formulário está no ar sem destino
 
-`leadFormMode()` (`src/lib/lead-form.ts`) tem três modos, e o terceiro é o que
-protege o §3:
+A pedido do Davi ("deixe visível no projeto no ar, depois te entrego as chaves"), o
+formulário **é publicado mesmo sem chave**. `leadFormMode()`
+(`src/lib/lead-form.ts`) tem três modos:
 
 | modo | quando | o que acontece |
 |---|---|---|
-| `live` | tem `VITE_LEAD_ENDPOINT` | envia de verdade |
-| `preview` | não tem, e é DEV | formulário aparece, envio SIMULADO, aviso em dev |
-| `off` | não tem, e é PRODUÇÃO | **o formulário não é publicado** — só o WhatsApp |
+| `live` | tem destino (chave ou endpoint) | envia de verdade |
+| `preview` | não tem, e é DEV | envio SIMULADO com sucesso + aviso em dev |
+| `showcase` | não tem, e é PRODUÇÃO | formulário visível, **envio falha de propósito** |
 
-Hoje o site está em `off`: conferido no build, `dist/index.html` sai sem um único
-campo. Um formulário publicado sem destino é a pior coisa que esta página poderia
-fazer — a pessoa escreve, clica, vê "enviado" e o lead evapora.
+**O que `showcase` NUNCA faz é dizer "enviado".** O envio lança, a interface mostra
+"O envio por formulário ainda está sendo ligado. Por enquanto, fala no WhatsApp — é
+direto." com o link ao lado, e o texto digitado continua na tela. Um formulário que
+responde "enviado" sem ter enviado é o §3 ao contrário, e sem deixar rastro.
+
+⚠ **Isto tem custo enquanto durar, e é consciente:** quem preencher os três campos vai
+ser recusado depois do esforço — pior do que nunca ter visto o formulário. É janela de
+demonstração, não estado de regime. **Quanto antes a chave chegar, melhor.**
 
 ### O que já foi verificado (Puppeteer, build de produção com destino local)
 
@@ -1368,6 +1374,89 @@ deliberadamente:
   2026-08-29 (o `content` do quadro central); os seis ladrilhos passaram a usar o
   mesmo caminho — `Image.src` virou opcional no componente, nada mudou na mecânica de
   escala/scroll.
+
+## Os `OrbitPanel` saíram; a vitrine virou fundo + quadro sozinho (2026-08-31)
+
+**Superou o item acima no MESMO DIA.** Pedido do Davi, na sequência de ter aprovado a
+ideia dos `OrbitPanel`: "retire todos os elementos que você criou, os `OrbitPanel` (...)
+deixe somente centralizado a cena que ganha o zoom, adicione esse background [um
+componente de terceiro que ele trouxe] e coloque a cor do gradiente de dourado que
+estamos usando".
+
+- **Os seis `OrbitPanel` foram REMOVIDOS** (não é substituição — a função e o tipo
+  `OrbitVariant` saíram inteiros de `sections/ZoomShowcase.tsx`). `images` hoje tem UM
+  item: o quadro central que carrega o zoom da cena Horizon. Nada na mecânica de
+  `ZoomParallax` mudou — o componente sempre aceitou uma lista de qualquer tamanho; só
+  encolheu para um.
+- **`ZoomBackground`** (`components/ui/elegant-dark-pattern.tsx`) é o pano de fundo
+  novo: gradiente radial carvão-a-preto + cinco feixes diagonais + pontilhado sutil +
+  um segundo brilho radial no canto oposto. Entra por um slot novo do `ZoomParallax`
+  (`background`, opcional), pintado atrás do quadro central, dentro do MESMO painel
+  preso — não é um wrapper de página, é só mais uma camada.
+- **A cor dos feixes mudou de ciano (`rgb(0,207,255)`) para `var(--color-accent)`**
+  (o dourado da marca) — pedido explícito. Era a única cor fora da paleta da Metup na
+  página inteira.
+- **A textura de ruído do componente original SAIU.** Ele vinha com um
+  `background-image: url("https://framerusercontent.com/...")` — um PNG de outro
+  domínio, requisição de rede dispensável (§6.2) para um asset que a Metup não tem
+  como versionar. O pontilhado (`radial-gradient` puro) ficou, dá textura parecida
+  sem sair do domínio.
+- **Não é um projeto shadcn.** O componente chegou com `@/lib/utils` e a estrutura de
+  pasta do shadcn/CLI; este projeto não tem `components.json` nem alias `@/` — usa
+  `lib/cn` próprio e Tailwind puro sobre os tokens de `styles/tokens.css`. Adaptado
+  para os imports relativos e o vocabulário de cor daqui, sem instalar nada do shadcn.
+
+## `ZoomBackground` trocou de novo — feixes viraram UM gradiente radial (2026-08-31)
+
+**Superou o item acima, ainda no MESMO DIA.** O Davi não gostou do resultado: "troque
+para esse fundo (...) eu não gostei do atual, entre uma section e outro ficou muita
+divisão" — trouxe outro snippet de terceiro ("tailwind-css-background-snippet" /
+`Hero`) e pediu a cor dourada de novo, mais um ajuste: "faça com que o efeito de
+gradiante não conecte encima".
+
+- **`components/ui/elegant-dark-pattern.tsx` foi REESCRITO por inteiro** (mesmo
+  arquivo, mesmo export `ZoomBackground`, mesmo ponto de entrada — o slot
+  `background` de `ZoomParallax` não mudou). Os feixes diagonais + pontilhado do
+  fundo anterior saíram; hoje é um `radial-gradient` único: preto no centro, dourado
+  (`var(--color-accent)`) só longe dele. A hipótese para a "divisão" relatada: cada
+  feixe era uma `mask` com um recorte reto, e a soma deles lia como um retângulo
+  desenhado por cima — não como ambiente. Um gradiente só, sem aresta interna, não
+  tem essa costura.
+- **"Não conecte encima"** — o centro do gradiente desceu de `50% 10%` (perto do
+  topo, como veio no snippet) para `50% 45%`, e o núcleo preto cresceu de `40%` para
+  `55%`. Com o centro perto do topo, o dourado já nascia colado na borda de CIMA da
+  seção — bem onde ela encosta na seção anterior (Processo), a costura que o Davi
+  via. **Conferido por amostragem de pixel** (Puppeteer + `sharp`, não só no olho):
+  a fileira inteira do topo do painel, de ponta a ponta, sai `rgb(5,5,5)` — preto
+  sólido, igual ao fundo da página — em qualquer ponto da rolagem. O dourado só
+  aparece a partir do meio da tela para baixo.
+
+### Ajuste no mesmo dia: o corretivo do "não conecte encima" foi longe demais
+
+O Davi voltou com print: "o gradiente está só na pontinha da tela (...) quero que
+fique bem grande na parte inferior, o gradiente bem forte (...) o preto (...) tem
+que ser da mesma tonalidade do restante da página". Dois defeitos, achados nesse
+print:
+
+- **O dourado quase sumiu.** Com o centro em `50% 45%` e raio 125%, só os CANTOS
+  mais distantes (embaixo-esquerda/direita) escapavam do núcleo preto — exatamente a
+  "pontinha" do relato. Corrigido migrando o centro para `50% 100%` (embaixo, ao
+  centro): agora o dourado nasce PURO (`var(--color-accent)` sem mistura) no pé da
+  tela e cresce em largura subindo, com uma parada intermediária em `color-mix` para
+  a transição não ser um degrau duro. Preenche a parte de baixo de verdade, não uma
+  lasca de canto — "bem grande, bem forte", como pedido. **Conferido por pixel**: o
+  centro do rodapé mede `rgb(243,165,35)`, a poucos pontos do dourado puro da marca
+  (`#f5a623` = `rgb(245,166,35)`).
+- **O núcleo era `#000` literal, não o preto da página.** `--color-bg` (o token da
+  Metup) é `#060606`, não `#000000` — perto, mas diferente o bastante para reconhecer
+  em área grande, e foi o que o Davi viu como "contraste ao trocar de seção". Trocado
+  o literal pelo token: o topo desta camada (onde o dourado não chega) é agora,
+  pixel a pixel, o MESMO preto do resto da página. **Conferido por pixel**: a fileira
+  do topo mede `rgb(6,6,6)` — bate exatamente com `getComputedStyle(document.body)`.
+- A régua de "não encostar em cima" continua valendo (o pedido anterior não foi
+  revogado): com o centro embaixo agora, o quarto de tela mais perto do cabeçalho
+  segue só em `--color-bg` sólido — só que o resto da tela, que antes também era
+  quase todo preto, agora é dourado de verdade.
 
 ## Cena Horizon (three.js), abaixo da vitrine em zoom (2026-08-29)
 

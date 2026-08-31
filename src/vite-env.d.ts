@@ -20,8 +20,9 @@ interface ImportMetaEnv {
    * `VITE_LEAD_ACCESS_KEY` abaixo para o formulário entrar no ar.
    *
    * Ela existe para o dia de trocar de serviço: preenchida, vence o padrão. Sem ela e
-   * sem a chave, não há destino — e aí a regra do §3 entra: em produção o formulário
-   * não é publicado (fica só o WhatsApp) e em dev ele aparece em modo de ensaio.
+   * sem a chave não há destino — e aí o formulário continua VISÍVEL (modo `showcase`,
+   * pedido do Davi em 2026-08-31) mas o envio falha de propósito e entrega o
+   * WhatsApp. Nunca um "enviado" falso. Ver `leadFormMode()` em `lib/lead-form.ts`.
    */
   readonly VITE_LEAD_ENDPOINT?: string;
   /**

@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { Heading } from '../components';
+import { ZoomBackground } from '../components/ui/elegant-dark-pattern';
 import { ZoomParallax } from '../components/ui/zoom-parallax';
 import { cn } from '../lib/cn';
 
@@ -17,79 +18,6 @@ export interface ZoomShowcaseProps {
 }
 
 /**
- * `OrbitPanel` — o que ocupa os seis ladrilhos ao redor do quadro central desde
- * 2026-08-31 (pedido do Davi: "retire as imagens ao redor da animação de zoom (...)
- * torne a sessão mais especial"). Antes eram fotos (arte do Davi, e antes disso
- * Unsplash do demo); agora são abstratos, no mesmo espírito do §5 do CLAUDE.md
- * ("elementos decorativos, abstratos ou 3D fazem parte do design autoral e são
- * permitidos" — a regra proíbe forjar trabalho de cliente, não usar arte no design).
- *
- * ─── O CONCEITO: HORIZONTES PEQUENOS AO REDOR DO QUE VAI FICAR GRANDE ───────────
- * Cada painel é a MESMA gramática visual da cena Horizon que mora no quadro central
- * — uma linha fina e um brilho âmbar subindo dela —, só que em miniatura e sem
- * montanha, sem estrela, sem textura nenhuma: puro `linear-gradient` sobre preto. A
- * ideia liga direto com o título da seção ("Toda ideia começa pequena."): o que abre
- * em tela cheia no centro já estava ali, em versão pequena, o tempo todo. Painéis
- * maiores (mais perto, na composição) recebem um brilho mais forte; os menores, mais
- * fraco — a MESMA lógica de escala que já rege os tamanhos dos sete ladrilhos na
- * colagem (ver os comentários de cada slot, abaixo).
- *
- * Os quatro cantos usinados (`OrbitPanel`'s brackets) são o mesmo vocabulário de
- * "canto reto, nunca arredondado" que os ícones do header já seguem
- * (`components/icons.tsx`) — nenhuma borda circular entra na direção de arte.
- *
- * Sem imagem, sem `alt`, sem `<img>`: `aria-hidden`, porque não é conteúdo — é
- * cenário. O `<h2>` da seção é quem nomeia a seção para leitor de tela.
- */
-type OrbitVariant = 1 | 2 | 3 | 4 | 5 | 6;
-
-/**
- * `horizon`: onde a linha fica, em % da altura do painel (de cima para baixo) — os
- * painéis mais baixos/largos puxam a linha para mais perto do centro; os mais altos
- * (o vertical do slot 2) descem a linha, para o brilho não dominar a caixa inteira.
- * `glow`: o quanto de `--color-accent` entra no `color-mix` do brilho — acompanha o
- * tamanho do ladrilho na colagem (maior ladrilho, mais perto, mais luz).
- */
-const ORBIT_PANELS: Record<OrbitVariant, { horizon: number; glow: number }> = {
-  1: { horizon: 60, glow: 30 }, // slot 1 — 35vw × 30vh, o maior: mais luz.
-  2: { horizon: 74, glow: 18 }, // slot 2 — 20vw × 45vh, o vertical.
-  3: { horizon: 58, glow: 22 }, // slot 3 — 25vw × 25vh.
-  4: { horizon: 66, glow: 14 }, // slot 4 — 20vw × 25vh, o mais discreto.
-  5: { horizon: 62, glow: 26 }, // slot 5 — 30vw × 25vh, quase tão largo quanto o 1.
-  6: { horizon: 76, glow: 10 }, // slot 6 — 15vw × 15vh, o menor: quase apagado.
-};
-
-function OrbitPanel({ variant }: { readonly variant: OrbitVariant }) {
-  const { horizon, glow } = ORBIT_PANELS[variant];
-
-  return (
-    <div aria-hidden className="relative h-full w-full overflow-hidden bg-black">
-      {/* O brilho — mesma gramática da cena central, sem a montanha nem as estrelas. */}
-      <div
-        className="absolute inset-x-0 bottom-0"
-        style={{
-          top: `${String(horizon)}%`,
-          background: `linear-gradient(to top, color-mix(in oklab, var(--color-accent) ${String(glow)}%, transparent), transparent)`,
-        }}
-      />
-      {/* A linha do horizonte. */}
-      <div
-        className="absolute inset-x-0 h-px bg-accent/25"
-        style={{ top: `${String(horizon)}%` }}
-      />
-      {/* O filete que contorna o painel — bem fraco, só para separar um ladrilho do
-          próximo quando as bordas se tocam na colagem. */}
-      <div className="pointer-events-none absolute inset-0 border border-line" />
-      {/* Os quatro cantos usinados. */}
-      <span className="absolute top-0 left-0 h-3 w-3 border-t border-l border-line-strong/70" />
-      <span className="absolute top-0 right-0 h-3 w-3 border-t border-r border-line-strong/70" />
-      <span className="absolute bottom-0 left-0 h-3 w-3 border-b border-l border-line-strong/70" />
-      <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-line-strong/70" />
-    </div>
-  );
-}
-
-/**
  * Vitrine em zoom — a seção nova, logo abaixo do Processo.
  *
  * ⚠ ESTADO PROVISÓRIO, POR PEDIDO EXPLÍCITO DO DAVI (2026-08-29): é o `demo.tsx` que
@@ -97,10 +25,14 @@ function OrbitPanel({ variant }: { readonly variant: OrbitVariant }) {
  * inglês ainda é do demo, não é copy da Metup — registrado em PENDENCIAS.md.
  *
  * ⚠ AS FOTOS DO UNSPLASH SAÍRAM EM 2026-08-29: os seis ladrilhos viraram arte do Davi.
- * E A ARTE DO DAVI SAIU EM 2026-08-31: os seis ladrilhos agora são `OrbitPanel`,
- * composições abstratas (ver o comentário logo acima). Pedido do Davi: "retire as
- * imagens ao redor da animação de zoom (...) torne a sessão mais especial" — o zoom,
- * a cena e a copy ficaram exatamente como estavam; só o que girava em volta mudou.
+ * A ARTE DO DAVI SAIU EM 2026-08-31 (primeiro pedido do dia): os seis ladrilhos
+ * viraram `OrbitPanel`, composições abstratas. E OS SEIS LADRILHOS EM SI SAÍRAM NO
+ * MESMO DIA (segundo pedido): "retire todos os elementos que você criou, os
+ * `OrbitPanel` (...) deixe somente centralizado a cena que ganha o zoom, adicione
+ * esse background [`ZoomBackground`, abaixo] e coloque a cor do gradiente de
+ * dourado que estamos usando". Hoje a colagem é UM quadro só — o que dá zoom —, com
+ * o novo pano de fundo pintado atrás dele. O zoom, a cena e a copy continuam
+ * exatamente como estavam.
  *
  * ⚠ ATUALIZADO EM 2026-08-31: o slot que DÁ ZOOM é A CENA HORIZON, ao vivo. Não é
  * foto (2026-08-29 tirou), não é mais um painel preto (era, até aqui) e não é uma
@@ -151,19 +83,15 @@ export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
       alt: '',
       content: <div aria-hidden className="h-full w-full bg-black" />,
     },
-    // Slot 1 — a caixa mais larga (35vw × 30vh), a primeira a cruzar o quadro.
-    { content: <OrbitPanel variant={1} /> },
-    // Slot 2 — a ÚNICA caixa em pé (20vw × 45vh). É onde a vertical tem que estar:
-    // qualquer horizontal aqui entraria recortada nas laterais.
-    { content: <OrbitPanel variant={2} /> },
-    // Slot 3 — 25vw × 25vh, à direita.
-    { content: <OrbitPanel variant={3} /> },
-    // Slot 4 — 20vw × 25vh, embaixo à esquerda.
-    { content: <OrbitPanel variant={4} /> },
-    // Slot 5 — 30vw × 25vh.
-    { content: <OrbitPanel variant={5} /> },
-    // Slot 6 — o menor de todos (15vw × 15vh).
-    { content: <OrbitPanel variant={6} /> },
+    /**
+     * ⚠ ERA SETE ITENS, HOJE É UM (2026-08-31). Os seis ladrilhos ao redor —
+     * primeiro fotos, depois `OrbitPanel` — saíram por pedido do Davi: "retire
+     * todos os elementos que você criou (...) deixe somente centralizado a cena
+     * que ganha o zoom". A vitrine agora é só o quadro central, sozinho, sobre o
+     * `ZoomBackground` (ver `background` abaixo). Nada na MECÂNICA do zoom mudou —
+     * `images` sempre foi uma lista, e o slot 0 sempre foi o único centralizado e
+     * sem deslocamento (`components/ui/zoom-parallax.tsx`); só encolheu para um.
+     */
   ];
 
   return (
@@ -220,7 +148,7 @@ export function ZoomShowcase({ trackRef }: ZoomShowcaseProps) {
           começa exatamente onde a outra termina. Não meta nada entre as duas — nem
           um respiro. (O de 50vh que fechava o demo saiu em 2026-08-29 justamente por
           aparecer como uma faixa preta no meio do gesto.) */}
-      <ZoomParallax images={images} trackRef={trackRef} />
+      <ZoomParallax images={images} trackRef={trackRef} background={<ZoomBackground />} />
     </section>
   );
 }

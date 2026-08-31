@@ -29,6 +29,11 @@
  *     torne a sessão mais especial"). O componente não sabe o que é `OrbitPanel`;
  *     só continua desenhando o que cada slot mandar, na mesma caixa e na mesma
  *     escala. Ver `Image.content` e `sections/ZoomShowcase`.
+ *  6. `background` (2026-08-31) — os SEIS ladrilhos saíram de vez (pedido do Davi:
+ *     "retire todos os elementos que você criou (...) deixe somente centralizado a
+ *     cena que ganha o zoom, adicione esse background"). `images` hoje tem UM item
+ *     só (o quadro central); o novo slot `background` é onde entra o pano de fundo,
+ *     pintado atrás dele dentro do MESMO painel preso — ver `ZoomParallaxProps.background`.
  *
  * ─── A GEOMETRIA DO QUADRO CENTRAL É UM CONTRATO ────────────────────────────────
  * O slot 0 é o ÚNICO sem classe de deslocamento: ele fica centrado, mede 25vw × 25vh
@@ -84,9 +89,16 @@ interface ZoomParallaxProps {
    * Sem ele o componente continua inteiro: é a `ref` local que entra no lugar.
    */
   trackRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * Pano de fundo do painel preso (2026-08-31, pedido do Davi — ver ponto 6 do
+   * cabeçalho). Renderizado como o PRIMEIRO filho do painel `sticky`, atrás de
+   * todos os `images`, preenchendo a mesma janela (`h-screen`). Opcional: sem ele, o
+   * painel continua com o fundo padrão da página (preto).
+   */
+  background?: ReactNode;
 }
 
-export function ZoomParallax({ images, trackRef }: ZoomParallaxProps) {
+export function ZoomParallax({ images, trackRef, background }: ZoomParallaxProps) {
   const localRef = useRef<HTMLDivElement>(null);
   // Uma `ref` OU a outra, nunca as duas presas no mesmo nó: `useScroll` exige um
   // `RefObject`, e escolher aqui evita ter que fundir duas refs num callback.
@@ -108,6 +120,7 @@ export function ZoomParallax({ images, trackRef }: ZoomParallaxProps) {
   return (
     <div ref={container} className="relative h-[300vh] motion-reduce:h-screen">
       <div className="sticky top-0 h-screen overflow-hidden">
+        {background}
         {images.map(({ src, alt, content }, index) => {
           const scale = scales[index % scales.length];
 

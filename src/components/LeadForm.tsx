@@ -70,7 +70,17 @@ export function LeadForm() {
   const alertRef = useRef<HTMLDivElement>(null);
 
   const { form } = uiStrings;
+  const mode = leadFormMode();
   const fieldId = (field: LeadFieldName): string => `${uid}-${field}`;
+
+  /**
+   * Qual aviso de falha aparece.
+   *
+   * No modo 'showcase' (formulário no ar antes de a chave existir) o envio SEMPRE
+   * falha, e "tenta de novo" seria conselho errado — tentar de novo não vai dar certo
+   * enquanto não houver destino. O porquê dos dois textos está em `ui-strings.ts`.
+   */
+  const failureMessage = mode === 'showcase' ? form.pending : form.failed;
 
   /**
    * O FOCO SEGUE O DESFECHO — e num efeito, não logo depois do `await`.
@@ -235,7 +245,7 @@ export function LeadForm() {
 
       {status === 'error' && (
         <div className="lead-form__alert" ref={alertRef} role="alert" tabIndex={-1}>
-          {form.failed}{' '}
+          {failureMessage}{' '}
           <a
             className="lead-form__inline-link"
             href={contactTarget.href}
@@ -275,7 +285,7 @@ export function LeadForm() {
       </Button>
       </div>
 
-      {leadFormMode() === 'preview' && <p className="lead-form__preview">{form.preview}</p>}
+      {mode === 'preview' && <p className="lead-form__preview">{form.preview}</p>}
     </form>
   );
 }

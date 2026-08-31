@@ -89,13 +89,27 @@ export const uiStrings = {
     },
     /** Falha de envio. Nunca é beco sem saída: o WhatsApp fica do lado (§3). */
     failed: 'Não consegui enviar agora. Tenta de novo — ou fala no WhatsApp, que é direto.',
+    /**
+     * O MESMO AVISO, mas para o modo 'showcase' — o formulário no ar antes de a chave
+     * do serviço existir (ver `lib/lead-form.ts`).
+     *
+     * ⚠ Separado do `failed` de propósito: lá "tenta de novo" é um conselho útil,
+     * aqui seria mentira — enquanto não houver destino, tentar de novo nunca vai dar
+     * certo. Esta frase diz o que É verdade e manda para o caminho que funciona.
+     *
+     * Ela afirma um fato sobre o SITE ("ainda está sendo ligado"), não sobre a Metup:
+     * nenhum prazo, nenhum resultado, nenhuma promessa (§4). ⚠ Some no minuto em que
+     * a chave entrar — é a única string aqui com data de validade.
+     */
+    pending:
+      'O envio por formulário ainda está sendo ligado. Por enquanto, fala no WhatsApp — é direto.',
     sent: {
       title: 'Mensagem enviada.',
       body: 'Se preferir adiantar, é só chamar no WhatsApp.',
     },
     /** Só em dev — ver `leadFormMode()` em `lib/lead-form.ts`. */
     preview:
-      'ENSAIO (só em dev): sem VITE_LEAD_ACCESS_KEY no .env, o envio é simulado e nada sai daqui. Em produção, sem destino, o formulário não é publicado — só o WhatsApp.',
+      'ENSAIO (só em dev): sem VITE_LEAD_ACCESS_KEY no .env, o envio é simulado e nada sai daqui. Em produção, sem destino, o formulário APARECE (pedido do Davi) mas o envio falha de propósito, entregando o WhatsApp — nunca um "enviado" falso.',
   },
 } as const;
 

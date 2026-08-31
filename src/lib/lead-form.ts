@@ -20,21 +20,33 @@
  * puro; por isso ela tem que ser uma chave PÚBLICA, das que os serviços emitem
  * justamente para serem chamadas do cliente. Ver `src/vite-env.d.ts`.
  *
- * ─── OS TRÊS MODOS, E POR QUE O TERCEIRO EXISTE ─────────────────────────────────
- * O destino ainda não foi escolhido (a decisão é do Davi). Um formulário publicado
- * sem destino é a pior coisa que esta página poderia fazer — a pessoa escreve,
- * clica, vê "enviado" e o lead evapora. É o §3 ao contrário. Daí `leadFormMode()`:
+ * ─── OS TRÊS MODOS ──────────────────────────────────────────────────────────────
  *
- *   'live'    — tem `VITE_LEAD_ENDPOINT`: envia de verdade.
- *   'preview' — não tem, mas é DEV: o formulário aparece para ser desenhado e
- *               testado, o envio é SIMULADO e um aviso em dev diz isso.
- *   'off'     — não tem e é PRODUÇÃO: o formulário NÃO É PUBLICADO. A seção fica só
- *               com o WhatsApp, que funciona. Nada de campo que não leva a lugar
- *               nenhum.
+ *   'live'     — tem destino: envia de verdade.
+ *   'preview'  — não tem, mas é DEV: envio SIMULADO com sucesso, para desenhar e
+ *                testar os estados. Um aviso em dev diz que nada saiu dali.
+ *   'showcase' — não tem e é PRODUÇÃO: o formulário APARECE, e o envio FALHA de
+ *                propósito, entregando o WhatsApp. Ver abaixo.
+ *
+ * ⚠ 'showcase' SUBSTITUIU UM 'off' (2026-08-31, pedido do Davi: "deixe visível no
+ * projeto no ar, depois te entrego as chaves"). O modo anterior simplesmente não
+ * publicava o formulário — a seção ficava só com o WhatsApp, que funciona.
+ *
+ * O que NÃO mudou é a razão daquele modo existir: um formulário que responde
+ * "enviado" sem ter enviado é a pior coisa que esta página poderia fazer. A pessoa
+ * escreve, clica, sai satisfeita, e o lead evapora — é o §3 ao contrário, e sem
+ * deixar rastro. Então o formulário fica visível, mas o envio **falha honestamente**:
+ * `submitLead` lança, a interface mostra o aviso com o link do WhatsApp ao lado e o
+ * que foi digitado continua na tela. Ninguém é enganado e ninguém fica sem caminho.
+ *
+ * ⚠ ISSO TEM CUSTO ENQUANTO DURAR, e é consciente: quem preencher os três campos vai
+ * ser recusado depois do esforço, o que é pior do que nunca ter visto o formulário.
+ * É uma janela de demonstração, não um estado de regime — quanto antes a chave
+ * chegar, melhor. Registrado em PENDENCIAS.md.
  *
  * ⚠ O modo é decidido em tempo de BUILD (`import.meta.env` é substituído pelo Vite),
- * o que é exatamente o que um site pré-renderizado precisa: o HTML já sai com ou sem
- * formulário, sem depender de JS para descobrir.
+ * o que é exatamente o que um site pré-renderizado precisa: o HTML já sai decidido,
+ * sem depender de JS para descobrir.
  */
 import { uiStrings } from './ui-strings';
 
@@ -56,7 +68,7 @@ export type LeadFormErrors = Partial<Record<LeadFieldName, string>>;
 
 export type LeadFormStatus = 'idle' | 'sending' | 'sent' | 'error';
 
-export type LeadFormMode = 'live' | 'preview' | 'off';
+export type LeadFormMode = 'live' | 'preview' | 'showcase';
 
 export const emptyLead: LeadFormValues = { name: '', contact: '', message: '', trap: '' };
 
@@ -87,7 +99,7 @@ const endpoint =
 
 export function leadFormMode(): LeadFormMode {
   if (endpoint !== '') return 'live';
-  return import.meta.env.DEV ? 'preview' : 'off';
+  return import.meta.env.DEV ? 'preview' : 'showcase';
 }
 
 /* ── Validação ──────────────────────────────────────────────────────────────── */
@@ -216,10 +228,15 @@ export async function submitLead(values: LeadFormValues): Promise<void> {
     return;
   }
 
-  // 'off' não deveria chegar aqui: o formulário não é nem renderizado. A guarda
-  // existe porque "não deveria" não é o mesmo que "não pode" — e, se chegar, falhar
-  // é o comportamento certo (a pessoa recebe o WhatsApp em vez de um falso "enviado").
-  if (mode === 'off') throw new Error('lead-form: sem destino configurado');
+  /**
+   * ⚠ ESTE `throw` É A FUNCIONALIDADE, não uma guarda defensiva.
+   *
+   * Em 'showcase' o formulário está no ar para ser mostrado, sem destino configurado.
+   * Falhar é o único desfecho honesto: a interface transforma esta exceção no aviso
+   * que entrega o WhatsApp e preserva o que foi digitado. A alternativa — devolver
+   * sucesso — seria dizer "enviado" para uma mensagem que não existe em lugar nenhum.
+   */
+  if (mode === 'showcase') throw new Error('lead-form: sem destino configurado');
 
   const response = await fetch(endpoint, {
     method: 'POST',

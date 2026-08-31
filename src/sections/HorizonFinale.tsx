@@ -4,7 +4,6 @@ import { useMotion } from '../animations/useMotion';
 import { ContactCta, Heading, LeadForm, PendingContent, Section, Text } from '../components';
 import { cn } from '../lib/cn';
 import { copy } from '../lib/content';
-import { leadFormMode } from '../lib/lead-form';
 import { SECTION_ID } from '../lib/sections';
 import { uiStrings } from '../lib/ui-strings';
 
@@ -136,34 +135,36 @@ export function HorizonFinale({ standalone = false }: HorizonFinaleProps) {
         </div>
 
         {/* ─── O SEGUNDO CAMINHO ────────────────────────────────────────────────
-            Só aparece quando existe destino para ele (`leadFormMode()`): em produção
-            sem `VITE_LEAD_ENDPOINT` o ato volta a ser só o WhatsApp, que funciona.
-            Publicar campos que não levam a lugar nenhum é a pior coisa que esta
-            página poderia fazer — a pessoa escreve, clica e o lead evapora (§3).
-            Os três modos estão documentados em `lib/lead-form.ts`. */}
-        {leadFormMode() !== 'off' && (
-          <div className="horizon-finale__second" {...{ [FINALE_HOOK.fade]: true }}>
-            {/* O divisor nomeia os dois caminhos sem gastar um título: acima o
-                atalho, abaixo o formulário. `aria-hidden` porque um "ou" solto não
-                diz nada a quem não vê a linha — quem nomeia o formulário para leitor
-                de tela é o `<legend>` dele. */}
-            <p aria-hidden className="horizon-finale__divider">
-              <span className="horizon-finale__divider-rule" />
-              {uiStrings.form.divider}
-              <span className="horizon-finale__divider-rule" />
-            </p>
+            ⚠ SEMPRE VISÍVEL desde 2026-08-31, a pedido do Davi ("deixe visível no
+            projeto no ar, depois te entrego as chaves"). Antes ele era escondido em
+            produção enquanto não houvesse destino.
 
-            <LeadForm />
-          </div>
-        )}
+            O que garante que isso não perca lead é o modo 'showcase' de
+            `lib/lead-form.ts`: sem destino, o envio FALHA de propósito e a interface
+            entrega o WhatsApp com o texto digitado ainda na tela. O que a página não
+            faz, em hipótese nenhuma, é responder "enviado" para uma mensagem que não
+            saiu daqui — esse é o §3 ao contrário, e sem deixar rastro. */}
+        <div className="horizon-finale__second" {...{ [FINALE_HOOK.fade]: true }}>
+          {/* O divisor nomeia os dois caminhos sem gastar um título: acima o atalho,
+              abaixo o formulário. `aria-hidden` porque um "ou" solto não diz nada a
+              quem não vê a linha — quem nomeia o formulário para leitor de tela é o
+              `<legend>` dele. */}
+          <p aria-hidden className="horizon-finale__divider">
+            <span className="horizon-finale__divider-rule" />
+            {uiStrings.form.divider}
+            <span className="horizon-finale__divider-rule" />
+          </p>
+
+          <LeadForm />
+        </div>
 
         {/* Só em dev — `PendingContent` não renderiza nada em produção. */}
         <PendingContent
           hint={
-            'F6 — falta UMA variável: `VITE_LEAD_ACCESS_KEY` no `.env` (a chave do Web3Forms, serviço escolhido pelo Davi). ' +
-            'Sem ela, este formulário está em modo de ensaio aqui e NÃO é publicado em produção. ' +
-            'Depende também da caixa contato@metup.com.br existir — ver PENDENCIAS.md. ' +
-            'Com o destino no ar, o `copy.contact.cta` vira dois botões e o rótulo emprestado do herói sai daqui.'
+            'F6 — falta UMA variável: `VITE_LEAD_ACCESS_KEY` no `.env` e na Vercel (a chave do Web3Forms). ' +
+            'Sem ela o formulário FICA VISÍVEL em produção (pedido do Davi, 2026-08-31) mas o envio falha de propósito, ' +
+            'entregando o WhatsApp — nunca um "enviado" mentiroso. É janela de demonstração, não estado de regime: ' +
+            'quem preencher os três campos é recusado depois do esforço. Depende da caixa contato@metup.com.br existir — ver PENDENCIAS.md.'
           }
         />
       </div>
