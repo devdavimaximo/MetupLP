@@ -36,10 +36,12 @@
  *     `targetCamera*`) — antes da inicialização, o manipulador simplesmente não faz
  *     nada, que é o que já acontecia na prática.
  *
- *  8. **A rolagem passou a ser medida na SEÇÃO, não no documento** (2026-08-29). É a
- *     única mudança de comportamento em relação ao original, e ela foi feita porque a
- *     cena chegava quebrada: o detalhe está no comentário do próprio manipulador.
+ *  8. **A rolagem passou a ser medida na SEÇÃO, não no documento** (2026-08-29),
+ *     porque a cena chegava quebrada: o detalhe está no comentário do manipulador.
+ *  9. **A paleta virou a da Metup** (2026-08-29, pedido do Davi): era azul/roxo/lilás,
+ *     agora é âmbar → laranja → vermelho. Ver `PALETTE`, logo abaixo dos imports.
  *
+
  * ⚠ CONFLITOS DECLARADOS, registrados em PENDENCIAS.md e NÃO resolvidos aqui porque
  * resolvê-los seria redesenhar o componente:
  *  · **é um segundo contexto WebGL** — o herói da Metup já tem o seu;
@@ -54,6 +56,36 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 gsap.registerPlugin(ScrollTrigger);
+
+/**
+ * PALETA DA CENA — traduzida da paleta da Metup (2026-08-29, pedido do Davi).
+ *
+ * O original era azul/roxo/lilás (nebulosa `0x0033ff` → `0xff0066`, cordilheiras em
+ * tons de navy `0x1a1a2e` → `0x0a4668`, atmosfera `vec3(0.3, 0.6, 1.0)`). Aqui vira
+ * âmbar → laranja → vermelho, na mesma família do `--color-accent` (`#f5a623`) de
+ * `tokens.css`.
+ *
+ * ⚠ NÃO HÁ SINCRONIA AUTOMÁTICA COM `tokens.css`. Um shader do three.js recebe
+ * números (`0xRRGGBB`, `vec3` 0–1), não `var(--color-accent)` — não existe ponte
+ * entre CSS custom property e uniform de GLSL sem ler `getComputedStyle` em tempo de
+ * execução (frágil, e o projeto pré-renderiza). Os valores abaixo são a TRADUÇÃO
+ * manual dos tokens; se a paleta de marca mudar, esta lista precisa mudar junto —
+ * mesma classe de problema que `motion-sync.ts` resolve para GSAP↔CSS, sem
+ * equivalente aqui. Registrado em PENDENCIAS.md.
+ */
+const PALETTE = {
+  /** As quatro cordilheiras, da mais perto (opaca) à mais longe (tênue). Antes:
+   *  navy/roxo (`0x1a1a2e` → `0x0a4668`). Agora: marrom quase preto → âmbar. */
+  mountains: [0x1a0f08, 0x3d1f0a, 0x8a3a12, 0xd4791f],
+  /** Nebulosa: antes azul (`0x0033ff`) misturando com magenta (`0xff0066`). Agora
+   *  brasa (vermelho profundo) misturando com o dourado da marca — `#f5a623`
+   *  literal, o mesmo hex de `--color-accent`. */
+  nebulaColor1: 0x8a1a0a,
+  nebulaColor2: 0xf5a623,
+  /** Halo da atmosfera: antes `vec3(0.3, 0.6, 1.0)` (azul-branco). Agora é
+   *  `--color-accent-hover` (`#f7b344`) em 0–1: `(0.969, 0.702, 0.267)`. */
+  atmosphere: { r: 0.969, g: 0.702, b: 0.267 },
+} as const;
 
 type StarField = THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
 type Nebula = THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
@@ -234,6 +266,10 @@ export const Component = ({ frozen = false }: ComponentProps) => {
           positions[j * 3 + 2] = radius * Math.cos(phi);
 
           // Color variation
+          // ⚠ Terça fatia (10%) recolorida: era azul puro (H=0.6), a única estrela da
+          // cena fora da paleta da Metup. Virou vermelho-ember (H≈0.02), a ponta fria
+          // da família âmbar→laranja→vermelho de `PALETTE` — ver o comentário lá em
+          // cima. As outras duas fatias (branco e âmbar) já cabiam na paleta nova.
           const color = new THREE.Color();
           const colorChoice = Math.random();
           if (colorChoice < 0.7) {
@@ -241,7 +277,7 @@ export const Component = ({ frozen = false }: ComponentProps) => {
           } else if (colorChoice < 0.9) {
             color.setHSL(0.08, 0.5, 0.8);
           } else {
-            color.setHSL(0.6, 0.5, 0.8);
+            color.setHSL(0.02, 0.6, 0.75);
           }
 
           colors[j * 3] = color.r;
@@ -326,8 +362,8 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       const material = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
-          color1: { value: new THREE.Color(0x0033ff) },
-          color2: { value: new THREE.Color(0xff0066) },
+          color1: { value: new THREE.Color(PALETTE.nebulaColor1) },
+          color2: { value: new THREE.Color(PALETTE.nebulaColor2) },
           opacity: { value: 0.3 },
         },
         vertexShader: `
@@ -381,10 +417,10 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       const { current: refs } = threeRefs;
 
       const layers = [
-        { distance: -50, height: 60, color: 0x1a1a2e, opacity: 1 },
-        { distance: -100, height: 80, color: 0x16213e, opacity: 0.8 },
-        { distance: -150, height: 100, color: 0x0f3460, opacity: 0.6 },
-        { distance: -200, height: 120, color: 0x0a4668, opacity: 0.4 },
+        { distance: -50, height: 60, color: PALETTE.mountains[0], opacity: 1 },
+        { distance: -100, height: 80, color: PALETTE.mountains[1], opacity: 0.8 },
+        { distance: -150, height: 100, color: PALETTE.mountains[2], opacity: 0.6 },
+        { distance: -200, height: 120, color: PALETTE.mountains[3], opacity: 0.4 },
       ];
 
       layers.forEach((layer, index) => {
@@ -429,6 +465,10 @@ export const Component = ({ frozen = false }: ComponentProps) => {
       const material = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
+          // Halo da atmosfera — ver `PALETTE.atmosphere` no topo do arquivo.
+          glowColor: {
+            value: new THREE.Vector3(PALETTE.atmosphere.r, PALETTE.atmosphere.g, PALETTE.atmosphere.b),
+          },
         },
         vertexShader: `
           varying vec3 vNormal;
@@ -444,10 +484,11 @@ export const Component = ({ frozen = false }: ComponentProps) => {
           varying vec3 vNormal;
           varying vec3 vPosition;
           uniform float time;
+          uniform vec3 glowColor;
 
           void main() {
             float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            vec3 atmosphere = vec3(0.3, 0.6, 1.0) * intensity;
+            vec3 atmosphere = glowColor * intensity;
 
             float pulse = sin(time * 2.0) * 0.1 + 0.9;
             atmosphere *= pulse;

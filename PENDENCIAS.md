@@ -1269,8 +1269,10 @@ em tela cheia no quadro em que a cena começa.
 - [ ] **Contraste do texto sobre o clarão, no celular (visto em 390×844).** No terceiro
       ato a câmera está dentro da luz e a tela fica quase branca: o dourado do título
       ainda segura, mas a linha "É preciso construir para chegar lá." (cinza `fg-muted`)
-      some. Reprova o AA do §6.6 nesse trecho. A saída sem mexer na cor é um véu curto
-      atrás do texto ou `text-shadow` — decidir com o Davi.
+      some. Reprova o AA do §6.6 nesse trecho. **Ainda presente depois da paleta
+      dourada/laranja/vermelha (2026-08-29)** — é problema de LUMINOSIDADE (o núcleo do
+      clarão vira branco puro em qualquer matiz), não de cor. A saída sem mexer na cor
+      é um véu curto atrás do texto ou `text-shadow` — decidir com o Davi.
 
 O que **não** foi deixado passar: a cena travada não ouve rolagem nem roda `rAF` (um
 quadro e para), o `setSize` não escreve mais estilo inline na tag (senão o canvas
