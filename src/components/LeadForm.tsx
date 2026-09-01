@@ -198,10 +198,14 @@ export function LeadForm() {
             hint={form.contact.hint}
             value={values.contact}
             error={errors.contact}
-            // `tel` e não `email`: o campo aceita os dois, e o teclado numérico é o
-            // que atende o caso mais comum aqui sem impedir digitar um e-mail.
-            inputMode="tel"
-            autoComplete="tel"
+            // ⚠ ERA `inputMode="tel"` — bug relatado pelo Davi (2026-09-01): no
+            // celular esse teclado é o de discagem, sem letra nenhuma nem "@", e
+            // quem tenta digitar e-mail (metade do que este campo aceita) não
+            // consegue. `email` resolve nos dois sentidos: tem "@" e letras, e
+            // dígito de telefone continua digitável nele — só sem atalho de teclado
+            // numérico dedicado, que é o único custo real da troca.
+            inputMode="email"
+            autoComplete="email"
             onFocus={handleFirstTouch}
             onChange={(value) => {
               setField('contact', value);
