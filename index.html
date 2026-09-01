@@ -38,7 +38,14 @@
     <!-- Telefone real do Davi (2026-08-31), em E.164 — o mesmo número do CTA, que já
          vai público no link do WhatsApp. Fonte única em `src/lib/contact.ts`: se ele
          mudar lá, mude aqui junto (o HTML estático não lê o TS).
-         TODO(PENDENCIAS.md #jsonld): faltam e-mail, endereço e redes reais. -->
+
+         E-mail: grupometup@gmail.com (2026-09-01, decisão explícita do Davi de
+         publicar já — ver PENDENCIAS.md "E-mail público no JSON-LD"). É TEMPORÁRIO:
+         quando contato@metup.com.br existir e estiver recebendo, troca aqui E no
+         destino do formulário (`.env`, VITE_LEAD_ACCESS_KEY do Web3Forms). O Google
+         pode manter o Gmail em cache por um tempo mesmo depois da troca — contado.
+
+         TODO(PENDENCIAS.md #jsonld): falta endereço e redes reais. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -47,10 +54,12 @@
         "description": "Agência de soluções web: sites, aplicativos, automações e sistemas sob demanda.",
         "areaServed": "BR",
         "telephone": "+5551998679260",
+        "email": "grupometup@gmail.com",
         "contactPoint": {
           "@type": "ContactPoint",
           "contactType": "sales",
           "telephone": "+5551998679260",
+          "email": "grupometup@gmail.com",
           "availableLanguage": "pt-BR"
         }
       }

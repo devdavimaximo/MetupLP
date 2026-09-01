@@ -135,15 +135,17 @@ export function HorizonFinale({ standalone = false }: HorizonFinaleProps) {
         </div>
 
         {/* ─── O SEGUNDO CAMINHO ────────────────────────────────────────────────
-            ⚠ SEMPRE VISÍVEL desde 2026-08-31, a pedido do Davi ("deixe visível no
-            projeto no ar, depois te entrego as chaves"). Antes ele era escondido em
-            produção enquanto não houvesse destino.
+            Envio NO AR desde 2026-09-01 (confirmado por envio real do Davi) — o
+            destino ainda é `grupometup@gmail.com`, temporário, ver PENDENCIAS.md.
 
-            O que garante que isso não perca lead é o modo 'showcase' de
-            `lib/lead-form.ts`: sem destino, o envio FALHA de propósito e a interface
-            entrega o WhatsApp com o texto digitado ainda na tela. O que a página não
-            faz, em hipótese nenhuma, é responder "enviado" para uma mensagem que não
-            saiu daqui — esse é o §3 ao contrário, e sem deixar rastro. */}
+            O formulário é SEMPRE VISÍVEL desde 2026-08-31 (pedido do Davi: "deixe
+            visível no projeto no ar, depois te entrego as chaves"), mesmo antes de a
+            chave existir. Enquanto não houvesse destino, o modo 'showcase' de
+            `lib/lead-form.ts` fazia o envio FALHAR de propósito, entregando o
+            WhatsApp com o texto digitado ainda na tela — nunca um "enviado" mentiroso
+            para uma mensagem que não saiu daqui (o oposto seria o §3 ao contrário, e
+            sem deixar rastro). O modo continua no código para o dia em que a chave
+            precisar ser trocada/revogada sem derrubar a seção. */}
         <div className="horizon-finale__second" {...{ [FINALE_HOOK.fade]: true }}>
           {/* O divisor nomeia os dois caminhos sem gastar um título: acima o atalho,
               abaixo o formulário. `aria-hidden` porque um "ou" solto não diz nada a
@@ -161,10 +163,9 @@ export function HorizonFinale({ standalone = false }: HorizonFinaleProps) {
         {/* Só em dev — `PendingContent` não renderiza nada em produção. */}
         <PendingContent
           hint={
-            'F6 — falta UMA variável: `VITE_LEAD_ACCESS_KEY` no `.env` e na Vercel (a chave do Web3Forms). ' +
-            'Sem ela o formulário FICA VISÍVEL em produção (pedido do Davi, 2026-08-31) mas o envio falha de propósito, ' +
-            'entregando o WhatsApp — nunca um "enviado" mentiroso. É janela de demonstração, não estado de regime: ' +
-            'quem preencher os três campos é recusado depois do esforço. Depende da caixa contato@metup.com.br existir — ver PENDENCIAS.md.'
+            'F6 — envio NO AR desde 2026-09-01 (VITE_LEAD_ACCESS_KEY do Web3Forms, confirmado com envio real). ' +
+            'O destino ainda é grupometup@gmail.com, temporário: quando contato@metup.com.br existir e receber, ' +
+            'a troca é a chave no Web3Forms + o e-mail no JSON-LD de index.html. Roteiro do Cloudflare Email Routing em PENDENCIAS.md.'
           }
         />
       </div>

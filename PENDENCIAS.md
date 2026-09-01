@@ -57,97 +57,83 @@ estático e o `POST` sai do NAVEGADOR direto para um serviço de formulário, qu
 entrega no e-mail. Sem função serverless, sem servidor, sem processo para manter — o
 §6.1 fica intacto.
 
-### Decidido em 2026-08-31 pelo Davi
+### ✅ NO AR desde 2026-09-01 — envio real confirmado pelo Davi
 
-- **Serviço: Web3Forms.** A URL dele já é o padrão em `src/lib/lead-form.ts`.
-- **Caixa de destino: `contato@metup.com.br`** — que **ainda não existe** e precisa
-  ser criada antes (passo 1 abaixo).
+O formulário está em modo `live`: `VITE_LEAD_ACCESS_KEY` está em `.env` (gitignored,
+não vai para o Git — precisa ser adicionada TAMBÉM nas Environment Variables da
+**Vercel** para o deploy funcionar; é variável de build, então redeploy é obrigatório
+depois de criá-la lá). Confirmado com um envio de teste de verdade, pelo próprio Davi,
+num navegador real — chegou.
 
-### O que falta: UMA variável no `.env`
+⚠ **Só um navegador de verdade confirma isto.** O Web3Forms fica atrás da Cloudflare,
+que devolve um desafio anti-bot (`cf-mitigated: challenge`) para tráfego automatizado
+— então testes por Puppeteer/headless SEMPRE dão 403 aqui, mesmo com a chave certa.
+Não é defeito; é a mesma proteção que impede spam de robô. **Se for depurar isto de
+novo, teste num navegador comum — não em automação.**
 
-```bash
-VITE_LEAD_ACCESS_KEY=<a chave que o Web3Forms envia por e-mail>
-```
+- **Serviço:** Web3Forms — a URL dele é o padrão em `src/lib/lead-form.ts`.
+- **Destino atual: `grupometup@gmail.com`** — TEMPORÁRIO, decisão explícita do Davi
+  em 2026-09-01 (o e-mail próprio ainda não existe). Publicado no JSON-LD também (ver
+  abaixo), com o mesmo aviso de troca.
+- **Destino final: `contato@metup.com.br`** — ainda não existe; passo a passo do
+  Cloudflare Email Routing continua valendo, ver a seção abaixo. Quando a caixa
+  passar a receber, a troca é em DOIS lugares: a chave no Web3Forms (cadastro novo ou
+  destino trocado lá) e o `email`/`contactPoint.email` de `index.html`. Nenhum
+  componente muda.
 
-Só isso. `VITE_LEAD_ENDPOINT` continua existindo, mas só para trocar de serviço um
-dia — preenchida, ela vence o padrão.
+### Como criar `contato@metup.com.br` (Cloudflare Email Routing, grátis)
 
-⚠ `VITE_*` **vai para o bundle em texto puro**. A `access_key` do Web3Forms é uma
-chave PÚBLICA, feita para ser chamada do navegador: publicá-la é o uso previsto, não
-um vazamento. Credencial de e-mail ou token com escrita, **nunca** (§8). `.env` é
-gitignored.
+Pré-requisito: o DNS do `metup.com.br` precisa estar NA Cloudflare (nameservers
+trocados no Registro.br) — o Email Routing não funciona sem isso, e é o que travou
+antes: o menu "Email" só mostra "Email Security"/"DMARC Management" enquanto a zona
+não estiver `Active`.
 
-### O roteiro, na ordem
+1. Cloudflare → **Add a site** → `metup.com.br` → plano Free. Ela importa o DNS
+   existente — **confira registro por registro** contra o que a Vercel pede para o
+   domínio antes de seguir.
+2. Deixe os registros do site como **DNS only** (nuvem cinza, sem proxy) — proxy da
+   Cloudflare na frente da Vercel só complica SSL/cache aqui, sem ganho.
+3. Troque os nameservers no Registro.br para os dois que a Cloudflare mostrar. Espere
+   a zona ficar `Active` (pode levar horas).
+4. **Email → Email Routing → Enable.** Ela cria os registros MX e o TXT de SPF
+   sozinha. ⚠ Se já houver MX de outro serviço, eles conflitam e precisam sair.
+5. **Destination addresses** → adicione o Gmail que vai receber, confirme o e-mail de
+   verificação que chega lá.
+6. **Routing rules → Create address:** `contato` → `metup.com.br` → o Gmail
+   verificado. Teste mandando algo de outra caixa.
 
-**1. Criar a caixa `contato@metup.com.br` (grátis).** Ter o domínio não cria a caixa.
-O caminho sem custo é ENCAMINHAMENTO — `contato@metup.com.br` cai no Gmail do Davi:
+⚠ Isso resolve **receber**. **Responder assinando** `contato@metup.com.br` é outro
+passo (SMTP no Gmail) e não bloqueia nada — a maior parte da resposta sai pelo
+WhatsApp de qualquer forma.
 
-   - pôr o DNS de `metup.com.br` na Cloudflare (plano grátis; troca de nameservers no
-     Registro.br) e ativar o **Email Routing**, que cria os registros MX sozinho;
-   - criar o endereço `contato@metup.com.br` apontando para o Gmail e confirmar o
-     link de verificação que a Cloudflare manda para esse Gmail.
+### O que já foi verificado
 
-   ⚠ Se o DNS sair para a Cloudflare, os registros do site na **Vercel** têm que ser
-   recriados lá (seguir o que a Vercel indicar para o domínio). Se o registrador
-   atual já oferecer encaminhamento de e-mail, serve igual e pula esta parte.
+- **Envio real, pelo Davi, navegador de verdade, 2026-09-01** — confirmado recebido.
+- Build de produção (Puppeteer, destino local simulado): corpo do envio correto
+  (`{nome, contato, mensagem, origem, enviado_em, subject, replyto}`), validação de
+  campo vazio e de contato mal formatado com foco no primeiro inválido, erro que se
+  corrige ao vivo, falha do destino preservando o que foi digitado e entregando o
+  WhatsApp, foco indo para o desfecho (`role="status"`/`role="alert"`), desktop
+  (1440×900) e celular (390×844).
 
-   ⚠ Encaminhar resolve **receber**. **Responder assinando** `contato@metup.com.br`
-   é outro passo (SMTP no Gmail) e não bloqueia nada: o formulário pede WhatsApp ou
-   e-mail, e a maior parte da resposta sai pelo WhatsApp.
+### O modo `showcase` — não é mais o estado do site, mas continua no código
 
-**2. Criar a conta no Web3Forms** com `contato@metup.com.br` — só depois do passo 1,
-   senão a chave é enviada para uma caixa que ainda não recebe.
-
-**3. Pôr a chave no `.env`** (local) **e nas Environment Variables da Vercel**, com o
-   mesmo nome. ⚠ Variável de build: sem redeploy depois de criá-la, o site continua
-   sem formulário.
-
-**4. Conferir no primeiro envio real** se o **assunto** ("Novo lead pelo site — …") e
-   o **Responder** chegaram como esperado. Os dois campos (`subject`/`replyto`) são
-   convenção do provedor; se ele nomear diferente, o ajuste é em `buildLeadPayload`,
-   em `src/lib/lead-form.ts`, e nada mais muda.
-
-**5. Aí sim, acrescentar o e-mail ao JSON-LD** (`index.html`, TODO `#jsonld`).
-   Publicar um endereço antes de ele receber é anunciar uma caixa morta.
-
-### ⚠ JANELA DE DEMONSTRAÇÃO ABERTA (2026-08-31) — o formulário está no ar sem destino
-
-A pedido do Davi ("deixe visível no projeto no ar, depois te entrego as chaves"), o
-formulário **é publicado mesmo sem chave**. `leadFormMode()`
-(`src/lib/lead-form.ts`) tem três modos:
-
-| modo | quando | o que acontece |
-|---|---|---|
-| `live` | tem destino (chave ou endpoint) | envia de verdade |
-| `preview` | não tem, e é DEV | envio SIMULADO com sucesso + aviso em dev |
-| `showcase` | não tem, e é PRODUÇÃO | formulário visível, **envio falha de propósito** |
-
-**O que `showcase` NUNCA faz é dizer "enviado".** O envio lança, a interface mostra
-"O envio por formulário ainda está sendo ligado. Por enquanto, fala no WhatsApp — é
-direto." com o link ao lado, e o texto digitado continua na tela. Um formulário que
-responde "enviado" sem ter enviado é o §3 ao contrário, e sem deixar rastro.
-
-⚠ **Isto tem custo enquanto durar, e é consciente:** quem preencher os três campos vai
-ser recusado depois do esforço — pior do que nunca ter visto o formulário. É janela de
-demonstração, não estado de regime. **Quanto antes a chave chegar, melhor.**
-
-### O que já foi verificado (Puppeteer, build de produção com destino local)
-
-- envio real chegando ao destino com o corpo certo
-  (`{nome, contato, mensagem, origem, enviado_em}`);
-- validação de campo vazio e de contato mal formatado, com foco no primeiro inválido;
-- erro que se corrige ao vivo depois da primeira tentativa;
-- falha do destino (HTTP 500): **o que foi digitado continua no formulário** e o
-  alerta entrega o WhatsApp — falhar nunca é beco sem saída;
-- foco indo para o desfecho (`role="status"` no sucesso, `role="alert"` na falha);
-- desktop (1440×900) e celular (390×844).
+`leadFormMode()` (`src/lib/lead-form.ts`) tem três modos; hoje o site está em `live`.
+`showcase` foi o estado entre 2026-08-31 (formulário publicado, a pedido do Davi,
+antes de existir chave) e 2026-09-01 (chave configurada): sem destino, o formulário
+aparecia mas o envio falhava HONESTAMENTE — nunca dizia "enviado" sem ter enviado.
+Continua existindo no código para o dia em que a chave precisar ser trocada/revogada
+sem derrubar a seção: enquanto isso durar, a página volta sozinha a esse modo.
 
 ### Decisões que ainda são do Davi
 
 - [x] ~~**Qual serviço de formulário**~~ — **Web3Forms**, escolhido em 2026-08-31.
-- [x] ~~**E-mail de destino**~~ — **`contato@metup.com.br`**, decidido em 2026-08-31.
-      ⚠ A caixa **ainda não existe**: é o passo 1 do roteiro acima, e ele bloqueia
-      todos os outros.
+- [x] ~~**E-mail de destino (temporário)**~~ — **`grupometup@gmail.com`**, decidido e
+      no ar em 2026-09-01. Publicado no JSON-LD por decisão explícita do Davi (sabendo
+      que o Google pode manter em cache um tempo depois da troca para o domínio
+      próprio).
+- [ ] **`contato@metup.com.br`** — a caixa definitiva. Ver o roteiro do Cloudflare
+      acima. Não bloqueia mais nada: é upgrade, não requisito.
 - [ ] **Confirmar os rótulos e as mensagens** de `uiStrings.form`
       (`src/lib/ui-strings.ts`). São chrome de produto, não copy de venda, e por isso
       o Claude pôde escrevê-las — mas passe o olho. ⚠ **Nenhuma promete prazo**: só o
@@ -155,6 +141,8 @@ demonstração, não estado de regime. **Quanto antes a chave chegar, melhor.**
       envio, é uma linha.
 - [ ] **Mensagem pré-preenchida no link do WhatsApp** (`?text=…`) — continua
       pendente, mesmo motivo: é frase escrita em nome de quem clica.
+- [ ] **Endereço e redes sociais** — faltam no JSON-LD (`index.html`, TODO
+      `#jsonld`), agora que telefone e e-mail já foram.
 
 ## Conteúdo do Davi (bloqueia F2+)
 
