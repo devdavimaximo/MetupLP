@@ -47,13 +47,13 @@
 Landing pages e sites institucionais pensados pra converter, não só pra existir.
 
 **Aplicativos**
-Apps web e mobile com atenção a cada detalhe de uso — do onboarding ao dia a dia.
+Apps web e mobile com atenção a cada detalhe de uso, do onboarding ao dia a dia.
 
 **Automações**
 Fluxos que tiram trabalho manual do seu time e colocam processo pra rodar sozinho.
 
 **Sistemas sob demanda**
-Software feito do jeito que sua empresa já funciona — não o contrário.
+Software feito do jeito que sua empresa já funciona, não o contrário.
 
 ## Processo
 
@@ -91,8 +91,8 @@ resultado, sempre vindos do Davi. Nada de case fictício. ]
 
 **Headline:** Bora tirar sua ideia do papel?
 
-**Corpo:** Conta pra gente o que você precisa — site, app, automação ou sistema — e a
-gente te responde rápido.
+**Corpo:** Manda o que você precisa (site, app, automação, sistema), mesmo que ainda
+esteja meio bagunçado na sua cabeça. A gente lê e responde ainda hoje.
 
 **CTA:** Falar no WhatsApp · Enviar mensagem
 
